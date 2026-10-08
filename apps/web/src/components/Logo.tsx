@@ -4,12 +4,12 @@ import { t } from '../i18n';
 // The round badge is redrawn from the logo used in the brand film (intro.html / film end card).
 // TODO_CLIENT: replace with the original logo file (assets/logo.*, ideally SVG) when Алексей sends it,
 // and confirm the Armenian line.
-const ARMENIAN_LINE = 'Ալյոշա Պելմենիչ';
+export const ARMENIAN_LINE = 'Ալյոշա Պելմենիչ';
 
 const PELMEN_BODY =
   'M-42,6 C-46,-28 -20,-44 0,-44 C20,-44 46,-28 42,6 C40,26 21,36 9,27 C5,33 -5,33 -9,27 C-21,36 -40,26 -42,6 Z';
 
-function Pelmen({ fill, transform }: { fill: string; transform: string }) {
+export function Pelmen({ fill, transform }: { fill: string; transform?: string }) {
   return (
     <g transform={transform}>
       <path d={PELMEN_BODY} fill={fill} stroke="#7a4a1e" strokeWidth="3.5" strokeLinejoin="round" />

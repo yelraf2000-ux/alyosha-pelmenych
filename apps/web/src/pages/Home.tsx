@@ -1,9 +1,7 @@
 import { CATEGORIES } from '@alyosha/shared';
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Catalog } from '../components/Catalog';
-import { FilmModal } from '../components/FilmModal';
-import { Hero, PlayIcon } from '../components/Hero';
+import { Hero } from '../components/Hero';
 import { ContactsList, DeliveryCards } from '../components/InfoBlocks';
 import { ProductCard } from '../components/ProductCard';
 import { Reveal } from '../components/Reveal';
@@ -36,7 +34,6 @@ function Marquee({ categories }: { categories: Category[] }) {
 export default function Home() {
   useTitle();
   const { products, settings } = useShop();
-  const [filmOpen, setFilmOpen] = useState(false);
   if (!settings) return null;
 
   const newProducts = products.filter((p) => p.isNew);
@@ -44,7 +41,7 @@ export default function Home() {
 
   return (
     <>
-      <Hero settings={settings} onWatchFilm={() => setFilmOpen(true)} />
+      <Hero settings={settings} />
       <Marquee
         categories={CATEGORIES.filter((category) => category !== 'other' && products.some((p) => p.category === category))}
       />
@@ -75,25 +72,14 @@ export default function Home() {
         <Catalog />
       </section>
 
-      <section className="story" aria-labelledby="about-title">
-        <div className="container story__inner">
-          <Reveal className="story__media">
-            <button type="button" className="story__play" onClick={() => setFilmOpen(true)}>
-              <img src="/media/about.webp" alt="" width={960} height={540} loading="lazy" decoding="async" />
-              <span className="story__play-btn">
-                <PlayIcon />
-                <span>{t.home.watchFilm}</span>
-              </span>
-            </button>
-            <p className="story__caption">{t.home.filmFrame}</p>
-          </Reveal>
-          <Reveal className="story__text" delay={120}>
-            <p className="story__tag">
-              <span aria-hidden="true">✦</span> {t.home.aboutTitle}
-            </p>
-            <h2 id="about-title">{t.home.tagline}</h2>
+      <section className="section section--tinted" aria-labelledby="about-title">
+        <div className="container narrow">
+          <Reveal>
+            <h2 id="about-title" className="section__title">
+              {t.home.aboutTitle}
+            </h2>
             {aboutTeaser && <p className="lead">{aboutTeaser}</p>}
-            <Link to="/about" className="btn btn--glass">
+            <Link to="/about" className="more-link">
               {t.home.aboutMore} →
             </Link>
           </Reveal>
@@ -106,18 +92,12 @@ export default function Home() {
             {t.home.deliveryTitle}
           </h2>
         </Reveal>
-        <div className="delivery">
-          <Reveal className="delivery__media">
-            <img src="/media/delivery.webp" alt="" width={960} height={540} loading="lazy" decoding="async" />
-            <span className="delivery__caption">{t.home.filmFrame}</span>
-          </Reveal>
-          <Reveal delay={100}>
-            <DeliveryCards settings={settings} />
-            <Link to="/delivery" className="more-link">
-              {t.home.deliveryMore} →
-            </Link>
-          </Reveal>
-        </div>
+        <Reveal delay={80}>
+          <DeliveryCards settings={settings} />
+          <Link to="/delivery" className="more-link">
+            {t.home.deliveryMore} →
+          </Link>
+        </Reveal>
       </section>
 
       <section className="section container" aria-labelledby="contacts-title">
@@ -131,7 +111,6 @@ export default function Home() {
         </Reveal>
       </section>
 
-      {filmOpen && <FilmModal onClose={() => setFilmOpen(false)} />}
     </>
   );
 }

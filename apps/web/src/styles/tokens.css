@@ -1,13 +1,12 @@
 /* Design tokens.
-   The palette comes from the brand film and the logo: night-sky indigo, a glowing amber dumpling,
-   the logo's light blue, and flour/cream for the shopping pages.
+   The palette is built around the logo: its light blue, dough and cream, a warm amber for
+   buttons, and a deep navy for the header, footer and headings.
    Changing the look of the whole site means changing the values in this file. */
 :root {
   --night-950: #070b1f;
   --night-900: #0d1236;
   --night-800: #161c4a;
   --night-700: #2a1f55;
-  --violet: #7a5be0;
 
   --cream: #fdfbf7;
   --flour: #f6efe4;

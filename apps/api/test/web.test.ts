@@ -17,10 +17,8 @@ beforeAll(async () => {
 
   webDir = mkdtempSync(join(tmpdir(), 'alyosha-web-'));
   mkdirSync(join(webDir, 'assets'));
-  mkdirSync(join(webDir, 'media'));
   writeFileSync(join(webDir, 'index.html'), '<!doctype html><title>shop</title>');
   writeFileSync(join(webDir, 'assets', 'index-abc123.js'), 'console.log(1)');
-  writeFileSync(join(webDir, 'media', 'hero-poster.webp'), 'not really an image');
 
   app = await ctx.buildApp({ webDir });
 });
@@ -42,14 +40,11 @@ describe('storefront served by the API', () => {
     }
   });
 
-  it('caches hashed files forever and media for a week', async () => {
+  it('caches hashed files forever', async () => {
     const script = await app.inject({ url: '/assets/index-abc123.js' });
     expect(script.statusCode).toBe(200);
     expect(script.headers['content-type']).toContain('javascript');
     expect(script.headers['cache-control']).toBe('public, max-age=31536000, immutable');
-
-    const media = await app.inject({ url: '/media/hero-poster.webp' });
-    expect(media.headers['cache-control']).toBe('public, max-age=604800');
   });
 
   it('keeps the API an API', async () => {

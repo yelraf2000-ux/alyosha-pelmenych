@@ -18,6 +18,7 @@ What is still a guess is marked `TODO_CLIENT` or `PLACEHOLDER` in the code and l
 | Telegram | channel `@apelmenych` |
 | Instagram, TikTok | `bbllbbd` on both |
 | Working hours | every day, 11:00–22:00 |
+| Look of the home page | no space theme; "just have the logo assemble itself" (his feedback on the first live version) |
 
 ## Still needed
 
@@ -58,9 +59,7 @@ What is still a guess is marked `TODO_CLIENT` or `PLACEHOLDER` in the code and l
 | --- | --- | --- |
 | Original logo file (SVG, or PNG with a transparent background) | Round badge redrawn from the logo in the brand film | `apps/web/src/components/Logo.tsx` |
 | Armenian line on the logo — confirm the spelling | «Ալյոշա Պելմենիչ», copied from `intro.html` | `apps/web/src/components/Logo.tsx` |
-| Palette — approve the direction | Night indigo + glowing amber + cream, taken from the brand film and logo | `apps/web/src/styles/tokens.css` |
-| OK to use the brand film on the site? | Hero background loop, «Смотреть историю» player, two frames on the home page | `apps/web/public/media/` |
-| Tagline «Рецепт не с этой планеты» — OK as the site's line? | Taken from the film's end card | `apps/web/src/i18n/ru.ts` (`home.tagline`) |
+| Palette — approve the direction | The logo's light blue, cream and amber, with a deep navy header and footer | `apps/web/src/styles/tokens.css` |
 | Favicon | Drawn dumpling | `apps/web/public/favicon.svg` |
 
 ### Telegram notifications

@@ -185,7 +185,6 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
         const path = filePath.replaceAll('\\', '/');
         // Vite puts a content hash into every file name under /assets, so those never change.
         if (path.includes('/assets/')) reply.header('cache-control', 'public, max-age=31536000, immutable');
-        else if (path.includes('/media/')) reply.header('cache-control', 'public, max-age=604800');
         else reply.header('cache-control', 'no-cache');
       },
     });

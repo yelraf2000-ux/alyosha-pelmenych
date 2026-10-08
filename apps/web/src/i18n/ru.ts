@@ -32,11 +32,7 @@ export const ru = {
   },
 
   home: {
-    // The line from the end card of the brand film.
-    tagline: 'Рецепт не с этой планеты',
-    watchFilm: 'Смотреть историю',
-    filmLabel: 'Мультфильм «Алёша Пельменыч»',
-    filmFrame: 'Кадр из нашего мультфильма',
+    replayLogo: 'Собрать логотип ещё раз',
     handmade: 'Ручная лепка',
     city: 'Ереван',
     heroCta: 'Смотреть каталог',

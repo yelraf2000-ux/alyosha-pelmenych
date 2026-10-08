@@ -10,8 +10,7 @@
 backups
 apps/api/uploads
 
-# Not part of the shop: the brand film sources. The web-sized copies the site uses
-# are in apps/web/public/media and are included.
+# Not part of the shop: the brand film and its sources.
 film
 intro.html
 alyosha-pelmenych.mp4

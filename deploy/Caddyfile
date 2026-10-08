@@ -6,8 +6,7 @@
 	@backend path /api/* /uploads/*
 	@static not path /api/* /uploads/*
 	@hashed path /assets/*
-	@media path /media/*
-	@page not path /api/* /uploads/* /assets/* /media/*
+	@page not path /api/* /uploads/* /assets/*
 
 	# The API sets its own security headers; these are for the storefront files.
 	header @static {
@@ -22,7 +21,6 @@
 
 	# Vite puts a content hash into every file name under /assets, so those never change.
 	header @hashed Cache-Control "public, max-age=31536000, immutable"
-	header @media Cache-Control "public, max-age=604800"
 	# Pages are re-checked on every visit, so a new deploy shows up at once.
 	header @page Cache-Control "no-cache"
 
