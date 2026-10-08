@@ -5,6 +5,11 @@
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  /* The top of every page glows in the logo's colours: mostly dough, a little of its blue at the
+     right. The first layer fades the glow into the page's cream; the header and the hero lie on it. */
+  background:
+    linear-gradient(180deg, rgba(253, 251, 247, 0) 0, var(--cream) 100%) top / 100% var(--glow-height) no-repeat,
+    var(--glow) top / 100% var(--glow-height) no-repeat;
 }
 
 .main {
@@ -58,8 +63,8 @@
   justify-content: center;
   gap: 2px 12px;
   padding: 5px var(--gutter);
-  background: var(--night-950);
-  color: var(--amber-300);
+  background: var(--flour);
+  color: var(--ink);
   font-size: 0.75rem;
   text-align: center;
 }
@@ -93,19 +98,20 @@
 .header {
   position: relative;
   z-index: 20;
-  background: var(--night-900);
-  color: #fff;
+  color: var(--ink);
 }
 
 .header__inner {
+  /* The bar spans the whole screen: logo at the left edge, cart at the right. */
+  max-width: none;
   display: grid;
   grid-template-columns: 1fr auto;
   grid-template-areas:
     'logo cart'
-    'nav nav';
+    'hours hours';
   align-items: center;
-  gap: 2px 12px;
-  padding-block: 10px 0;
+  gap: 8px 12px;
+  padding-block: 10px 8px;
 }
 
 .header__logo {
@@ -114,16 +120,27 @@
   text-decoration: none;
 }
 
-.logo {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
+/* The working hours, in bold: under the logo's row on a phone, in the middle of the bar on a wide screen. */
+.header__hours {
+  grid-area: hours;
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+}
+
+/* The entry animation is still carrying the logo here (components/Intro.tsx). */
+.header__logo--waiting {
+  visibility: hidden;
 }
 
 .logo__mark {
-  width: 46px;
-  height: 46px;
-  flex: none;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  box-shadow: 0 3px 10px rgba(43, 37, 32, 0.16);
   transition: transform 0.6s var(--ease-spring);
 }
 
@@ -137,82 +154,174 @@
   fill: #6b3f1d;
 }
 
-.logo__text {
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 0.9375rem;
-  line-height: 1.15;
-  color: #fff;
-}
-
-.nav {
-  grid-area: nav;
-  display: flex;
-  gap: 2px;
-  margin-inline: calc(var(--gutter) * -1);
-  padding-inline: var(--gutter);
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.nav::-webkit-scrollbar {
+/* The large lettering of the header's logo (see LogoBadge): only the home page's top shows it. */
+.logo__open {
   display: none;
 }
 
-.nav__link {
+/* The dumplings in the header's logo are alive: each one rests, then hops up, dips and settles.
+   The three run on rhythms of different lengths, so together they never fall into step and the
+   hops look random. */
+.header__logo .logo__pelmen {
+  animation: pelmen-hop 5.3s ease-in-out infinite;
+}
+
+.header__logo .logo__pelmen--right {
+  animation-duration: 6.7s;
+  animation-delay: -2.1s;
+}
+
+.header__logo .logo__pelmen--top {
+  animation-duration: 7.9s;
+  animation-delay: -4.4s;
+}
+
+@keyframes pelmen-hop {
+  0%,
+  58%,
+  100% {
+    transform: none;
+  }
+
+  70% {
+    transform: translateY(-16px);
+  }
+
+  82% {
+    transform: translateY(7px);
+  }
+
+  92% {
+    transform: translateY(-3px);
+  }
+}
+
+/* The header's right corner: the contacts and the cart. */
+.header__actions {
+  /* The contacts panel hangs from this corner, so it lines up with the edge of the screen. */
   position: relative;
-  flex: none;
-  padding: 10px 10px 13px;
-  color: rgba(255, 255, 255, 0.72);
-  font-weight: 500;
-  font-size: 0.9375rem;
+  grid-area: cart;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------- Contacts in the header (components/ContactMenu.tsx) ---------- */
+
+/* A round button with a handset. */
+.contact-menu__toggle {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid rgba(43, 37, 32, 0.18);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--contact-phone);
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.contact-menu__toggle:hover,
+.contact-menu--open .contact-menu__toggle {
+  border-color: var(--amber-400);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+/* The gap between the button and the panel belongs to this box, so a mouse on its way down
+   never leaves the menu. */
+.contact-menu__drop {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 5;
+  padding-top: 8px;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.contact-menu__panel {
+  display: grid;
+  gap: 2px;
+  width: max-content;
+  max-width: calc(100vw - 2 * var(--gutter));
+  padding: 8px;
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  box-shadow: var(--shadow-m);
+  /* Rolled up under the button until the menu opens. */
+  opacity: 0;
+  transform: translateY(-10px) scaleY(0.9);
+  transform-origin: top right;
+  transition:
+    opacity 0.25s var(--ease-out),
+    transform 0.35s var(--ease-out);
+}
+
+.contact-menu--open .contact-menu__drop {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.contact-menu--open .contact-menu__panel {
+  opacity: 1;
+  transform: none;
+}
+
+/* A mouse opens it just by being over it. */
+@media (hover: hover) {
+  .contact-menu:hover .contact-menu__drop {
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .contact-menu:hover .contact-menu__panel {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.contact-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px 10px 10px;
+  border-radius: var(--radius-s);
+  color: var(--ink);
   text-decoration: none;
   white-space: nowrap;
-  transition: color 0.2s;
+  transition: background-color 0.2s;
 }
 
-.nav__link:first-child {
-  padding-left: 0;
+.contact-menu__item:hover {
+  background: var(--dough-100);
+  color: var(--ink);
 }
 
-.nav__link::after {
-  content: '';
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: 6px;
-  height: 3px;
-  border-radius: 3px;
-  background: var(--amber-400);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.35s var(--ease-out);
+.contact-menu__item svg {
+  flex: none;
 }
 
-.nav__link:first-child::after {
-  left: 0;
+/* Each icon in its own colour (Instagram's gradient is drawn inside its icon). */
+.contact-menu__item--phone svg {
+  color: var(--contact-phone);
 }
 
-.nav__link:hover,
-.nav__link.active {
-  color: #fff;
-}
-
-.nav__link.active::after {
-  transform: scaleX(1);
+.contact-menu__item--telegram svg {
+  color: var(--contact-telegram);
 }
 
 .cart-link {
-  grid-area: cart;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   min-height: 44px;
   padding: 0 14px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(43, 37, 32, 0.18);
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--ink);
   font-weight: 600;
   text-decoration: none;
   transition: background-color 0.2s, border-color 0.2s;
@@ -220,8 +329,8 @@
 
 .cart-link:hover {
   border-color: var(--amber-400);
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
 }
 
 .cart-link__count {
@@ -229,7 +338,7 @@
   padding: 0 7px;
   border-radius: var(--radius-pill);
   background: var(--amber-400);
-  color: var(--night-900);
+  color: var(--ink);
   font-size: 0.8125rem;
   font-weight: 700;
   line-height: 24px;
@@ -282,13 +391,13 @@
 .btn--primary {
   border-color: transparent;
   background: linear-gradient(180deg, var(--amber-300) 0%, var(--amber-400) 45%, var(--amber-500) 100%);
-  color: var(--night-900);
+  color: var(--ink);
   box-shadow: var(--shadow-glow);
 }
 
 .btn--primary:hover {
   border-color: transparent;
-  color: var(--night-900);
+  color: var(--ink);
   box-shadow: 0 12px 30px rgba(245, 160, 31, 0.5);
 }
 
@@ -315,7 +424,7 @@
   padding: 4px 0;
   border: 0;
   background: none;
-  color: var(--night-800);
+  color: var(--ink);
   font-weight: 600;
   text-decoration: underline;
   text-decoration-color: var(--amber-500);
@@ -356,7 +465,7 @@
 }
 
 .chip:hover {
-  border-color: var(--night-800);
+  border-color: var(--sky-500);
 }
 
 .chip:active {
@@ -364,101 +473,143 @@
 }
 
 .chip--active {
-  border-color: var(--night-900);
-  background: var(--night-900);
-  color: #fff;
+  border-color: var(--sky-300);
+  background: var(--blue-glass);
+  color: var(--ink);
 }
 
 .badge {
   display: inline-block;
   padding: 5px 12px;
   border-radius: var(--radius-pill);
-  background: var(--night-900);
-  color: var(--amber-300);
+  background: var(--blue-glass);
+  /* It lies over the product picture: blurring what is behind keeps the word readable. */
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: var(--ink);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.03em;
-  box-shadow: 0 4px 12px rgba(13, 18, 54, 0.3);
+  box-shadow: 0 4px 12px rgba(43, 37, 32, 0.12);
 }
 
 /* ---------- Hero ---------- */
 
-.hero {
-  position: relative;
-  overflow: hidden;
-  background:
-    radial-gradient(70% 60% at 50% 0%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 70%),
-    linear-gradient(180deg, var(--dough-100) 0%, var(--cream) 100%);
-}
-
+/* No background of its own: it lies on the glow at the top of the page (.page). */
 .hero__inner {
-  display: grid;
-  justify-items: center;
-  gap: 22px;
-  padding-block: 28px 40px;
+  padding-block: 4px 20px;
   text-align: center;
 }
 
-.hero__text > * {
+/* Whatever comes right under the title (new products or the catalog) starts close to it. */
+.hero + .section {
+  padding-top: 20px;
+}
+
+.hero__inner > * {
   animation: hero-rise 0.9s var(--ease-out) both;
 }
 
-.hero__text > :nth-child(2) {
+.hero__inner > :nth-child(2) {
   animation-delay: 0.08s;
-}
-
-.hero__text > :nth-child(3) {
-  animation-delay: 0.16s;
-}
-
-@keyframes hero-rise {
-  from {
-    opacity: 0;
-    transform: translateY(26px);
-  }
 }
 
 .hero h1 {
   max-width: 14em;
   margin: 0 auto 12px;
-  color: var(--night-900);
+  color: var(--ink);
   font-size: clamp(1.75rem, 7.6vw, 3.4rem);
   font-weight: 700;
   line-height: 1.08;
 }
 
+/* No line under the title (the usual case): no gap kept for it either. */
+.hero h1:last-child {
+  margin-bottom: 0;
+}
+
 .hero__subtitle {
   max-width: 30em;
   margin: 0 auto;
-  color: var(--text-muted);
-  font-size: 1.0625rem;
+  color: var(--ink);
+  font-size: 1.125rem;
+  font-weight: 600;
 }
 
-.hero__actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 24px;
+/* ---------- Entry animation (components/Intro.tsx) ---------- */
+
+/* A curtain in the page's colours with the logo in the middle. When the logo is ready, the curtain
+   fades and the logo shrinks and flies to its place in the header: Intro.tsx measures where that
+   is and passes it in --intro-x, --intro-y and --intro-scale. */
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.intro::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--cream) var(--glow);
+  transition: opacity 0.7s ease;
+}
+
+.intro__logo {
+  position: relative;
+  width: min(62vw, 300px);
+  aspect-ratio: 1;
+  filter: drop-shadow(0 18px 28px rgba(43, 37, 32, 0.18));
+  transition:
+    transform 0.85s cubic-bezier(0.65, 0, 0.35, 1),
+    filter 0.85s ease;
+}
+
+.intro--flying {
+  pointer-events: none;
+}
+
+.intro--flying::before {
+  opacity: 0;
+}
+
+.intro--flying .intro__logo {
+  transform: translate(var(--intro-x), var(--intro-y)) scale(var(--intro-scale));
+}
+
+/* Flying to a header logo that stands without its blue disc (and with other lettering): the disc,
+   its ring, the arched lettering and the shadow fade out on the way, so only the dumplings land. */
+.intro--bare .intro__logo {
+  filter: drop-shadow(0 0 0 rgba(43, 37, 32, 0));
+}
+
+.intro--bare .assembly__disc,
+.intro--bare .assembly__ring,
+.intro--bare .assembly__text,
+.intro--bare .assembly__heart {
+  animation: intro-fade 0.7s ease forwards;
+}
+
+@keyframes intro-fade {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes logo-open-in {
+  from {
+    opacity: 0;
+  }
 }
 
 /* The logo assembling itself (components/LogoAssembly.tsx). Every part rests in its final place;
-   the animations only describe where it comes from, so with motion off the logo is just there. */
+   the animations only describe where it comes from. */
 
 .assembly {
-  display: block;
-  width: min(62vw, 280px);
-  aspect-ratio: 1;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: none;
-  cursor: pointer;
-  filter: drop-shadow(0 18px 28px rgba(43, 37, 32, 0.18));
-  animation: assembly-rest 6s ease-in-out 2.6s infinite;
-}
-
-.assembly__svg {
   display: block;
   width: 100%;
   height: 100%;
@@ -474,51 +625,51 @@
 }
 
 .assembly__disc {
-  animation: assembly-pop 0.7s var(--ease-spring) both;
+  animation: assembly-pop 0.6s var(--ease-spring) both;
 }
 
 .assembly__ring {
   stroke-dasharray: 1;
-  animation: assembly-draw 0.9s var(--ease-out) 0.4s both;
+  animation: assembly-draw 0.8s var(--ease-out) 0.3s both;
 }
 
 .assembly__pelmen {
-  animation: assembly-fly 0.9s var(--ease-spring) both;
+  animation: assembly-fly 0.8s var(--ease-spring) both;
 }
 
 .assembly__pelmen--left {
   --from: translate(-300px, -60px) rotate(-240deg) scale(0.3);
-  animation-delay: 0.5s;
+  animation-delay: 0.35s;
 }
 
 .assembly__pelmen--right {
   --from: translate(300px, -60px) rotate(240deg) scale(0.3);
-  animation-delay: 0.68s;
+  animation-delay: 0.5s;
 }
 
 .assembly__pelmen--top {
   --from: translate(0, -320px) rotate(180deg) scale(0.3);
-  animation-delay: 0.86s;
+  animation-delay: 0.65s;
 }
 
 .assembly__text {
   transform-box: view-box;
   transform-origin: 50% 50%;
-  animation: assembly-swing 0.9s var(--ease-out) both;
+  animation: assembly-swing 0.75s var(--ease-out) both;
 }
 
 .assembly__text--top {
   --from: rotate(-70deg);
-  animation-delay: 1.3s;
+  animation-delay: 0.95s;
 }
 
 .assembly__text--bottom {
   --from: rotate(70deg);
-  animation-delay: 1.45s;
+  animation-delay: 1.05s;
 }
 
 .assembly__heart {
-  animation: assembly-pop 0.5s var(--ease-spring) 1.9s both;
+  animation: assembly-pop 0.45s var(--ease-spring) 1.4s both;
 }
 
 @keyframes assembly-pop {
@@ -545,50 +696,6 @@
   from {
     opacity: 0;
     transform: var(--from);
-  }
-}
-
-@keyframes assembly-rest {
-  50% {
-    transform: translateY(-6px);
-  }
-}
-
-/* ---------- Marquee ---------- */
-
-.marquee {
-  overflow: hidden;
-  padding-block: 12px;
-  background: var(--amber-400);
-  color: var(--night-900);
-}
-
-.marquee__track {
-  display: flex;
-  width: max-content;
-  animation: marquee 32s linear infinite;
-}
-
-.marquee__item {
-  display: inline-flex;
-  align-items: center;
-  font-family: var(--font-heading);
-  font-size: 0.9375rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.marquee__item i {
-  padding-inline: 18px;
-  font-style: normal;
-  font-size: 0.75rem;
-}
-
-@keyframes marquee {
-  to {
-    transform: translateX(-50%);
   }
 }
 
@@ -812,6 +919,8 @@
 .buy__row {
   display: flex;
   flex-wrap: wrap;
+  /* In a narrow card the stepper gets a row of its own: it stands in the middle of it. */
+  justify-content: center;
   gap: 8px;
 }
 
@@ -826,13 +935,13 @@
   font-size: 0.875rem;
 }
 
+/* As wide as its three parts and no wider: the pill hugs the number. */
 .stepper {
   display: inline-flex;
-  flex: 1 1 108px;
+  flex: none;
   align-items: center;
-  justify-content: space-between;
   min-height: 46px;
-  padding: 0 2px;
+  padding: 0 3px;
   border-radius: var(--radius-pill);
   background: var(--flour);
 }
@@ -865,18 +974,45 @@
 }
 
 .stepper__value {
-  min-width: 24px;
+  min-width: 34px;
+  font-size: 1.375rem;
   font-weight: 700;
+  line-height: 1;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
 /* ---------- Info blocks ---------- */
 
-.info-cards {
+/* Pickup and courier in one card: one under the other on a phone, side by side from 640px. */
+.delivery {
   display: grid;
-  gap: 12px;
+  gap: 18px;
   margin-bottom: 8px;
+}
+
+.delivery__way {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.delivery__way + .delivery__way {
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.delivery__way .info-card__icon {
+  flex: none;
+  margin-bottom: 0;
+}
+
+.delivery__way h3 {
+  margin-bottom: 4px;
+}
+
+.delivery__way p {
+  margin: 0;
 }
 
 .info-card,
@@ -895,63 +1031,59 @@
   margin-bottom: 12px;
   border-radius: 14px;
   background: var(--dough-100);
-  color: var(--night-900);
+  color: var(--ink);
 }
 
 .info-card p:last-child {
   margin-bottom: 0;
 }
 
-.contacts {
-  display: grid;
-  gap: 12px;
-  margin-bottom: 16px;
+/* The networks the shop is on: a row of round buttons (the footer). */
+.socials {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
 }
 
-.contact {
+.social {
   display: grid;
-  gap: 2px;
-  height: 100%;
-  padding: 18px;
-  border-radius: var(--radius-m);
-  background: var(--surface);
-  box-shadow: var(--shadow-s);
-  color: var(--text);
-  text-decoration: none;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--ink);
   transition:
     transform 0.4s var(--ease-out),
-    box-shadow 0.4s var(--ease-out),
     background-color 0.3s;
 }
 
-.contact:hover {
-  background: var(--night-900);
-  color: #fff;
-  transform: translateY(-4px);
+.social:hover {
+  background: var(--amber-300);
+  color: var(--ink);
+  transform: translateY(-3px);
+}
+
+/* ---------- «О нас»: the portrait beside the story ---------- */
+
+.about {
+  display: grid;
+  gap: 20px;
+}
+
+.about__photo {
+  width: min(100%, 300px);
+  height: auto;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: var(--radius-l);
   box-shadow: var(--shadow-m);
 }
 
-.contact__label {
-  color: var(--text-muted);
-  font-size: 0.8125rem;
-}
-
-.contact:hover .contact__label {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.contact__value {
-  font-family: var(--font-heading);
-  font-size: 1.0625rem;
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
-.contact__action {
-  margin-top: 10px;
-  color: var(--amber-500);
-  font-weight: 700;
-  font-size: 0.9375rem;
+/* The «О нас» page: wider than a text page, to make room for the portrait. */
+.about--page {
+  max-width: 960px;
 }
 
 .prose h2 {
@@ -1024,7 +1156,7 @@
   width: min(100%, 720px);
   max-height: 80vh;
   border-radius: var(--radius-l);
-  background: var(--night-950);
+  background: var(--ink);
   box-shadow: var(--shadow-s);
   overflow: hidden;
 }
@@ -1054,6 +1186,7 @@
 }
 
 .line {
+  position: relative;
   display: grid;
   grid-template-columns: 84px 1fr;
   gap: 10px 12px;
@@ -1061,6 +1194,51 @@
   border-radius: var(--radius-m);
   background: var(--surface);
   box-shadow: var(--shadow-s);
+}
+
+/* Taken out of the cart: a line is drawn across the row, then the row fades and folds away.
+   CartPage.tsx puts the row's height into --line-height and removes the product when the fold ends. */
+.line--leaving {
+  height: var(--line-height);
+  overflow: hidden;
+  pointer-events: none;
+  animation: line-fold 0.4s var(--ease-out) 0.4s both;
+}
+
+.line--leaving > * {
+  opacity: 0.45;
+  transition: opacity 0.3s;
+}
+
+.line--leaving::after {
+  content: '';
+  position: absolute;
+  top: calc(var(--line-height) / 2 - 1px);
+  left: 12px;
+  right: 12px;
+  /* Over the photo too. */
+  z-index: 2;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--ink);
+  transform-origin: left;
+  animation: line-strike 0.35s var(--ease-out) both;
+}
+
+@keyframes line-strike {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes line-fold {
+  to {
+    height: 0;
+    /* Takes back the gap the list keeps between rows. */
+    margin-bottom: -12px;
+    padding-block: 0;
+    opacity: 0;
+  }
 }
 
 .line__media {
@@ -1094,10 +1272,6 @@
   gap: 8px 14px;
 }
 
-.line__controls .stepper {
-  flex: 0 0 128px;
-}
-
 .line__total {
   margin-left: auto;
   font-size: 1.0625rem;
@@ -1121,8 +1295,17 @@
   margin: 0;
 }
 
+/* The cart has reached the free-delivery sum. */
+.summary__free {
+  margin: 0;
+  color: var(--sky-700);
+  font-weight: 700;
+}
+
+/* The quiet way back under the main button: plain text, no underline. */
 .summary__back {
   justify-self: center;
+  text-decoration: none;
 }
 
 .summary__items {
@@ -1274,8 +1457,8 @@ textarea.field__input {
     background-color 0.2s;
 }
 
+/* The chosen one is told apart by its filled dot and warm background; no coloured outline. */
 .option--active {
-  border-color: var(--amber-500);
   background: #fff8ea;
 }
 
@@ -1284,7 +1467,7 @@ textarea.field__input {
   width: 20px;
   height: 20px;
   margin: 0;
-  accent-color: var(--night-800);
+  accent-color: var(--sky-500);
 }
 
 .option__title {
@@ -1359,7 +1542,7 @@ textarea.field__input {
   margin: 16px auto 20px;
   border-radius: 50%;
   background: linear-gradient(180deg, var(--amber-300), var(--amber-500));
-  color: var(--night-900);
+  color: var(--ink);
   font-size: 2.2rem;
   font-weight: 700;
   box-shadow: var(--shadow-glow);
@@ -1401,11 +1584,6 @@ textarea.field__input {
   text-align: left;
 }
 
-.success__number {
-  margin: 0;
-  font-size: 1.1rem;
-}
-
 .success__links {
   display: flex;
   flex-wrap: wrap;
@@ -1432,7 +1610,7 @@ textarea.field__input {
 }
 
 .modal::backdrop {
-  background: rgba(7, 11, 31, 0.6);
+  background: rgba(43, 37, 32, 0.45);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
 }
@@ -1477,43 +1655,38 @@ textarea.field__input {
 
 .footer {
   margin-top: 32px;
-  padding-block: 32px 104px;
-  background: var(--night-900);
-  color: rgba(255, 255, 255, 0.78);
+  padding-block: 48px 104px;
+  /* The same glow as at the top of the page, turned round: it grows out of the page's cream. */
+  background:
+    linear-gradient(0deg, rgba(253, 251, 247, 0) 0%, var(--cream) 100%),
+    var(--glow-reversed);
+  color: var(--ink);
   font-size: 0.9375rem;
 }
 
 .footer a {
-  color: #fff;
-  text-decoration-color: rgba(255, 255, 255, 0.35);
+  color: var(--ink);
+  text-decoration-color: rgba(43, 37, 32, 0.35);
 }
 
 .footer a:hover {
-  color: var(--amber-300);
+  color: var(--terracotta);
 }
 
-.footer .logo__mark {
-  width: 64px;
-  height: 64px;
-}
 
 .footer__inner {
   display: grid;
-  gap: 20px;
+  justify-items: center;
+  gap: 14px;
+  text-align: center;
 }
 
-.footer__contacts,
-.footer__nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 18px;
-  margin: 14px 0 0;
-}
-
-.footer__credit {
+.footer__brand {
   margin: 0;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.8125rem;
+  color: var(--ink);
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .sticky-cart {
@@ -1564,12 +1737,33 @@ textarea.field__input {
     padding: 18px;
   }
 
-  .info-cards {
+  .delivery {
     grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    padding: 24px 28px;
   }
 
-  .contacts {
-    grid-template-columns: repeat(3, 1fr);
+  .delivery__way + .delivery__way {
+    padding-top: 0;
+    padding-left: 28px;
+    border-top: 0;
+    border-left: 1px solid var(--border);
+  }
+
+  .about {
+    grid-template-columns: 240px 1fr;
+    align-items: center;
+    gap: 32px;
+  }
+
+  .about--page {
+    grid-template-columns: 320px 1fr;
+    align-items: start;
+    gap: 40px;
+  }
+
+  .about__photo {
+    width: 100%;
   }
 
   .options {
@@ -1590,64 +1784,129 @@ textarea.field__input {
   .header {
     position: sticky;
     top: 0;
-    background: rgba(13, 18, 54, 0.86);
+    transition: background-color 0.3s, box-shadow 0.3s;
+  }
+
+  /* At the top of the page the header is part of the glow; once the page moves under it, it
+     needs a surface of its own. */
+  .header--scrolled {
+    background: rgba(253, 249, 241, 0.86);
+    box-shadow: 0 1px 0 var(--line);
     -webkit-backdrop-filter: blur(14px);
     backdrop-filter: blur(14px);
   }
 
+  .logo__mark {
+    width: 60px;
+    height: 60px;
+  }
+
   .header__inner {
-    grid-template-columns: auto 1fr auto;
-    grid-template-areas: 'logo nav cart';
+    position: relative;
+    /* Equal columns either side, so the hours stand in the middle of the screen. */
+    grid-template-columns: 1fr auto 1fr;
+    grid-template-areas: '. hours cart';
     gap: 24px;
+    min-height: 80px;
     padding-block: 10px;
   }
 
-  .nav {
-    justify-content: center;
-    margin-inline: 0;
-    padding-inline: 0;
+  .header__actions {
+    justify-self: end;
   }
 
-  .nav__link,
-  .nav__link:first-child {
-    padding: 12px 14px;
+  /* The logo is laid over its own (empty) cell, so that it can travel. On the home page, while
+     the page is at the very top, it stands big in the middle of the screen, above the title; the
+     first scroll shrinks it into its corner. On every other page it is always in the corner. */
+  .header__logo {
+    position: absolute;
+    top: 10px;
+    left: var(--gutter);
+    transform-origin: top center;
+    /* An unhurried glide between the middle and the corner. */
+    transition:
+      left 1.3s cubic-bezier(0.65, 0, 0.35, 1),
+      transform 1.3s cubic-bezier(0.65, 0, 0.35, 1);
   }
 
-  .nav__link::after,
-  .nav__link:first-child::after {
-    left: 14px;
-    right: 14px;
+  .header--home:not(.header--scrolled) .header__logo {
+    left: 50%;
+    transform: translateX(-50%) scale(2.6);
   }
 
-  .logo__text {
-    font-size: 1.0625rem;
+  /* In the middle it is the three dumplings with the name large on a gentle curve above them and
+     the Armenian line below. On the way to the corner that lettering fades out while the blue
+     disc, its ring, the arched lettering and the shadow fade in, until it is the whole logo. */
+  .header__logo .logo__mark {
+    /* The large lettering reaches far outside the badge. */
+    overflow: visible;
   }
 
+  .header__logo .logo__disc,
+  .header__logo .logo__ring,
+  .header__logo .logo__closed,
+  .header__logo .logo__open {
+    transition: opacity 1.3s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  .header__logo .logo__open {
+    display: block;
+    opacity: 0;
+    /* Only on arrival (when the entry animation hands the logo over): the lettering fades in. */
+    animation: logo-open-in 0.7s ease backwards;
+  }
+
+  .header__logo--waiting .logo__open {
+    animation: none;
+  }
+
+  .header--home:not(.header--scrolled) .header__logo .logo__open {
+    opacity: 1;
+  }
+
+  .header--home:not(.header--scrolled) .header__logo .logo__closed {
+    opacity: 0;
+  }
+
+  .header__logo .logo__mark {
+    transition:
+      transform 0.6s var(--ease-spring),
+      box-shadow 1.3s ease;
+  }
+
+  .header--home:not(.header--scrolled) .header__logo .logo__disc,
+  .header--home:not(.header--scrolled) .header__logo .logo__ring {
+    opacity: 0;
+  }
+
+  .header--home:not(.header--scrolled) .header__logo .logo__mark {
+    box-shadow: none;
+  }
+
+  /* The middle of the bar belongs to the big logo until it has left. */
+  /* It fades in once the logo is well on its way out, and steps aside at once when the logo returns. */
+  .header__hours {
+    font-size: 0.9375rem;
+    transition: opacity 0.5s ease 0.6s;
+  }
+
+  .header--home:not(.header--scrolled) .header__hours {
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+
+  /* Room above the title for the big logo, which hangs some 70px below the header's bar. */
   .hero__inner {
-    grid-template-columns: 1.15fr 0.85fr;
-    justify-items: start;
-    align-items: center;
-    gap: 40px;
-    padding-block: 64px;
-    text-align: left;
+    padding-block: 78px 24px;
   }
 
-  .hero__art {
-    order: 2;
-    justify-self: center;
+
+  .hero + .section {
+    padding-top: 24px;
   }
 
-  .assembly {
-    width: min(100%, 380px);
-  }
-
-  .hero h1,
-  .hero__subtitle {
-    margin-inline: 0;
-  }
-
-  .hero__actions {
-    justify-content: flex-start;
+  .intro__logo {
+    width: min(40vh, 360px);
   }
 
   .product {
@@ -1669,15 +1928,6 @@ textarea.field__input {
     padding-bottom: 32px;
   }
 
-  .footer__inner {
-    grid-template-columns: 1fr auto;
-    align-items: start;
-  }
-
-  .footer__credit {
-    grid-column: 1 / -1;
-  }
-
   .sticky-cart {
     display: none;
   }
@@ -1686,6 +1936,30 @@ textarea.field__input {
 /* ---------- Reduced motion: everything is shown in place, nothing moves ---------- */
 
 @media (prefers-reduced-motion: reduce) {
+  /* The contacts panel simply appears. */
+  .contact-menu__panel {
+    transform: none;
+    transition: none;
+  }
+
+  /* The logo changes places without the journey, and its dumplings sit still. */
+  .header__logo,
+  .header__logo .logo__disc,
+  .header__logo .logo__ring,
+  .header__logo .logo__closed,
+  .header__logo .logo__open,
+  .header__logo .logo__mark {
+    transition: none;
+  }
+
+  .header__logo .logo__open {
+    animation: none;
+  }
+
+  .header__logo .logo__pelmen {
+    animation: none;
+  }
+
   .reveal {
     opacity: 1;
     transform: none;
@@ -1693,10 +1967,8 @@ textarea.field__input {
   }
 
   .route,
-  .hero__text > *,
-  .assembly,
-  .assembly__svg *,
-  .marquee__track,
+  .hero__inner > *,
+  .assembly *,
   .product__media .photo__plate,
   .success__mark,
   .sticky-cart,

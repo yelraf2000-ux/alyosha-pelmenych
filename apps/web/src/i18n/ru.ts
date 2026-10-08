@@ -32,18 +32,11 @@ export const ru = {
   },
 
   home: {
-    replayLogo: 'Собрать логотип ещё раз',
-    handmade: 'Ручная лепка',
-    city: 'Ереван',
-    heroCta: 'Смотреть каталог',
-    heroSecondary: 'Доставка и оплата',
     newTitle: 'Новинки',
     catalogTitle: 'Каталог',
     aboutTitle: 'О нас',
     aboutMore: 'Подробнее о нас',
-    deliveryTitle: 'Доставка и оплата',
-    deliveryMore: 'Все условия',
-    contactsTitle: 'Контакты',
+    deliveryTitle: 'Доставка',
   },
 
   catalog: {
@@ -87,7 +80,6 @@ export const ru = {
     title: 'Корзина',
     emptyTitle: 'В корзине пока пусто',
     emptyText: 'Загляните в каталог — там пельмени, манты и хинкали.',
-    remove: 'Убрать',
     removeItem: (name: string) => `Убрать «${name}» из корзины`,
     subtotal: 'Товары',
     delivery: 'Доставка',
@@ -95,11 +87,14 @@ export const ru = {
     pickup: 'Самовывоз',
     courier: 'Курьер',
     free: 'Бесплатно',
+    /** Where a courier fee would stand when the shop has no fixed one. */
+    deliveryExtra: '+ доставка',
+    deliveryExtraNote: 'Доставку до этой суммы вы оплачиваете курьеру отдельно',
+    plusDelivery: (sum: string) => `${sum} + доставка`,
     freeFrom: (sum: string) => `Бесплатная доставка от ${sum}`,
     untilFree: (sum: string) => `До бесплатной доставки осталось ${sum}`,
-    deliveryPreview: 'Способ получения выберете на следующем шаге.',
+    deliveryIsFree: 'Доставка бесплатная!',
     checkout: 'Оформить заказ',
-    continue: 'Продолжить покупки',
     adjusted: 'На складе осталось меньше, чем было в корзине, — мы поправили количество.',
     maxReached: (n: number) => `Больше нет: в наличии ${n} шт.`,
     count: (n: number) => `${n} ${plural(n, ['товар', 'товара', 'товаров'])}`,
@@ -111,16 +106,13 @@ export const ru = {
     phone: 'Телефон',
     phoneHint: 'Например: +374 91 123456',
     telegram: 'Telegram',
-    telegramHint: 'Необязательно. Например: @username',
     comment: 'Комментарий',
-    commentHint: 'Необязательно',
     optional: 'необязательно',
     errors: {
       name: 'Напишите, как к вам обращаться',
       phone: 'Проверьте номер. Формат: +374 91 123456',
       telegram: 'Проверьте имя в Telegram, например @username',
       address: 'Укажите адрес доставки',
-      consent: 'Без согласия мы не сможем принять заказ',
     },
   },
 
@@ -135,7 +127,7 @@ export const ru = {
     addressHint: 'Улица, дом, квартира, подъезд',
     courierFee: (sum: string) => `Доставка — ${sum}`,
     courierFree: 'Доставка бесплатно',
-    consent: 'Согласен(на) на обработку персональных данных для оформления заказа',
+    courierExtra: 'Доставку оплачиваете курьеру отдельно',
     summaryTitle: 'Ваш заказ',
     submit: 'Отправить заказ',
     submitting: 'Отправляем…',
@@ -154,7 +146,6 @@ export const ru = {
   success: {
     title: 'Заказ принят!',
     text: 'Мы свяжемся с вами в ближайшее время.',
-    number: 'Номер заказа',
     toHome: 'На главную',
     toCatalog: 'В каталог',
     noOrder: 'Спасибо за заказ! Мы свяжемся с вами в ближайшее время.',
@@ -163,8 +154,8 @@ export const ru = {
   delivery: {
     pickupTitle: 'Самовывоз',
     courierTitle: 'Курьер',
-    courierFee: (sum: string) => `Стоимость доставки — ${sum}.`,
     courierFreeFrom: (sum: string) => `Бесплатно при заказе от ${sum}.`,
+    courierExtraBelow: 'До этой суммы доставка оплачивается отдельно.',
   },
 
   contacts: {
@@ -172,13 +163,15 @@ export const ru = {
     telegram: 'Telegram',
     instagram: 'Instagram',
     tiktok: 'TikTok',
-    openProfile: 'Открыть профиль',
-    call: 'Позвонить',
-    openTelegram: 'Открыть в Telegram',
+    menu: 'Контакты',
+  },
+
+  about: {
+    photoAlt: 'Алексей с миской начинки для пельменей',
   },
 
   footer: {
-    madeBy: 'Сайт сделан:',
+    madeBy: 'Разработка сайта —',
   },
 
   notFound: {

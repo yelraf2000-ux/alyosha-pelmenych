@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import CartPage from './pages/CartPage';
 import CatalogPage from './pages/CatalogPage';
@@ -7,7 +7,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import Home from './pages/Home';
 import OrderSuccessPage from './pages/OrderSuccessPage';
 import ProductPage from './pages/ProductPage';
-import { AboutPage, ContactsPage, DeliveryPage, NotFoundPage } from './pages/TextPages';
+import { AboutPage, NotFoundPage } from './pages/TextPages';
 import { CartProvider } from './state/CartContext';
 import { ShopProvider } from './state/ShopContext';
 
@@ -42,10 +42,11 @@ export default function App() {
           <Route path="product/:slug" element={<ProductPage />} />
           <Route path="cart" element={<CartPage />} />
           <Route path="checkout" element={<CheckoutPage />} />
-          <Route path="order/:number" element={<OrderSuccessPage />} />
+          <Route path="order/:any" element={<OrderSuccessPage />} />
           <Route path="about" element={<AboutPage />} />
-          <Route path="delivery" element={<DeliveryPage />} />
-          <Route path="contacts" element={<ContactsPage />} />
+          {/* These two used to be pages of their own; what they said is on the home page and in the footer. */}
+          <Route path="delivery" element={<Navigate to="/" replace />} />
+          <Route path="contacts" element={<Navigate to="/" replace />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

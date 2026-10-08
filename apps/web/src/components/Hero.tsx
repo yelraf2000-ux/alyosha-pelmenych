@@ -1,27 +1,15 @@
-import { Link } from 'react-router-dom';
-import { t } from '../i18n';
 import type { Settings } from '../types';
-import { LogoAssembly } from './LogoAssembly';
 
+/**
+ * The top of the home page: the title and the line under it, both from the settings.
+ * On wide screens the logo stands above them until the page is scrolled (the header's doing).
+ */
 export function Hero({ settings }: { settings: Settings }) {
   return (
     <section className="hero">
       <div className="container hero__inner">
-        <div className="hero__art">
-          <LogoAssembly />
-        </div>
-        <div className="hero__text">
-          <h1>{settings.heroTitle}</h1>
-          <p className="hero__subtitle">{settings.heroSubtitle}</p>
-          <div className="hero__actions">
-            <Link to="/catalog" className="btn btn--primary btn--lg">
-              {t.home.heroCta}
-            </Link>
-            <Link to="/delivery" className="btn btn--lg">
-              {t.home.heroSecondary}
-            </Link>
-          </div>
-        </div>
+        <h1>{settings.heroTitle}</h1>
+        {settings.heroSubtitle && <p className="hero__subtitle">{settings.heroSubtitle}</p>}
       </div>
     </section>
   );

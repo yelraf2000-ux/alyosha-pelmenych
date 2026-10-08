@@ -31,8 +31,10 @@ export function formatOrderMessage(order: OrderView, customer: OrderCustomer): s
     `Товары: ${formatAmd(order.itemsTotalAmd)}`,
     order.deliveryMethod === 'pickup'
       ? 'Самовывоз'
-      : `Курьер: ${order.deliveryFeeAmd === 0 ? 'бесплатно' : formatAmd(order.deliveryFeeAmd)}`,
-    `<b>Итого: ${formatAmd(order.totalAmd)}</b>`,
+      : order.deliveryExtra
+        ? 'Курьер: доставка оплачивается отдельно'
+        : `Курьер: ${order.deliveryFeeAmd === 0 ? 'бесплатно' : formatAmd(order.deliveryFeeAmd)}`,
+    `<b>Итого: ${formatAmd(order.totalAmd)}${order.deliveryExtra ? ' + доставка' : ''}</b>`,
     '',
   ];
   if (order.deliveryAddress) lines.push(`📍 ${escapeHtml(order.deliveryAddress)}`);

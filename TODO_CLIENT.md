@@ -18,7 +18,7 @@ What is still a guess is marked `TODO_CLIENT` or `PLACEHOLDER` in the code and l
 | Telegram | channel `@apelmenych` |
 | Instagram, TikTok | `bbllbbd` on both |
 | Working hours | every day, 11:00–22:00 |
-| Look of the home page | no space theme; "just have the logo assemble itself" (his feedback on the first live version) |
+| Look of the home page | no space theme; "just have the logo assemble itself" (his feedback on the first live version). It now assembles once when the site opens, then shrinks into the top left corner. |
 
 ## Still needed
 
@@ -44,19 +44,33 @@ What is still a guess is marked `TODO_CLIENT` or `PLACEHOLDER` in the code and l
 
 ### Delivery and payment
 
-- [ ] **Courier fee for orders under 20 000 ֏.** The site says 1 000 ֏, which is our guess.
+- [ ] **Courier fee for orders under 20 000 ֏.** He has no fixed price, so the site no longer
+      charges one: it shows the goods total «+ доставка» and says the courier is paid separately.
+      If he settles on a price, he types it into «Настройки → Стоимость доставки курьером» and the
+      site goes back to adding it to the total (0 keeps «+ доставка»).
 - [ ] How buyers pay (cash, transfer, on delivery?). The site does not say anything about it yet.
 - [ ] Delivery area: all of Yerevan, or only some districts?
 - [ ] Any cut-off rule, such as "orders after 15:00 are delivered the next day"? The field is empty now.
 
 ### Texts
 
-- [ ] «О нас» text. It is still a `PLACEHOLDER`, and its first paragraph shows on the home page.
-- [ ] Approve our wording of the home page title and subtitle:
-      «Домашние пельмени ручной лепки» / «Пельмени, манты и хинкали. Лепим в Ереване.»
+- [ ] «О нас» text. It is his own story as he told it in the chat (пельмени with his parents as a
+      child, years as a cook, started in Краснодар, continued in Yerevan), tidied up by us. He
+      should read the wording and can change it in «Настройки»; its first paragraph also shows on
+      the home page.
+- [ ] «О нас» photo. The portrait he sent (with the bowl of filling) is shown beside the text on
+      the home page and on the «О нас» page. It is a file in the site
+      (`apps/web/public/about/`), not something he can change in the admin: a new photo goes
+      through the developer.
+- [ ] Approve the top of the home page: the name «Алёша Пельменыч», the title «Лепим от души,
+      как для себя» (his own words) and the line «Доставка по Еревану» under it. The last one
+      depends on the delivery area below: if he does not deliver to all of Yerevan, it must change.
 - [ ] Site description for search engines and link previews — `apps/web/index.html`
-- [ ] Wording of the personal-data consent checkbox, if he wants it different —
-      `apps/web/src/i18n/ru.ts` (`checkout.consent`)
+- [ ] Personal data. The spec asked for a consent checkbox on the checkout page; it was removed
+      at Rafayel's request, so the form now takes a name, phone and address with no word about
+      what they are used for. He should decide whether that is fine for him, or whether a line
+      such as «Оформляя заказ, вы соглашаетесь на обработку данных для его выполнения» should
+      stand under the button (no checkbox needed).
 
 ### Contacts
 
@@ -69,7 +83,7 @@ What is still a guess is marked `TODO_CLIENT` or `PLACEHOLDER` in the code and l
 | --- | --- | --- |
 | Original logo file (SVG, or PNG with a transparent background) | Round badge redrawn from the logo in the brand film | `apps/web/src/components/Logo.tsx` |
 | Armenian line on the logo — confirm the spelling | «Ալյոշա Պելմենիչ», copied from `intro.html` | `apps/web/src/components/Logo.tsx` |
-| Palette — approve the direction | The logo's light blue, cream and amber, with a deep navy header and footer | `apps/web/src/styles/tokens.css` |
+| Palette — approve the direction | Warm dough and cream with an amber button colour; the top and bottom of each page fade from dough into a little of the logo's light blue. The logo itself keeps its blue disc. | `apps/web/src/styles/tokens.css` |
 | Favicon | Drawn dumpling | `apps/web/public/favicon.svg` |
 
 ### Telegram notifications
@@ -96,7 +110,11 @@ What is still a guess is marked `TODO_CLIENT` or `PLACEHOLDER` in the code and l
 - A «Хинкали» category (the spec listed пельмени, вареники, манты, other). «Вареники» stays
   available as a category but has no products.
 - A TikTok link next to Instagram.
+- Order statistics in the admin («Заказы → Статистика»): for one day or a run of days, how many
+  orders were placed, how many were cancelled, the sums, and what was sold. The spec listed
+  "analytics dashboards" as not for v1; this is a plain summary Rafayel asked for, with no charts,
+  forecasts or planning.
 
 ## For the developer (not the client)
 
-- [ ] Footer credit link «Сайт сделан: Rafayel» — `apps/web/src/config.ts`
+- [ ] Footer credit («Разработка сайта — Rafayel»): removed from the page for now at Rafayel's request; the name and an optional link are kept in `apps/web/src/config.ts` for when it comes back

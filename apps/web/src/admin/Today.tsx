@@ -4,15 +4,11 @@ import { LoadState, PageHead, useLoad } from './shared';
 
 /** SPEC §7 "today view": how many orders are waiting and how much of each product they need. */
 export function TodayPage() {
-  const { data, error, loading, reload } = useLoad(() => adminApi.today(), [], { refreshOnFocus: true });
+  const { data, error, reload } = useLoad(() => adminApi.today(), [], { refreshOnFocus: true });
 
   return (
     <>
-      <PageHead title="Сегодня">
-        <button type="button" className="btn" onClick={reload} disabled={loading}>
-          {loading ? 'Обновляем…' : 'Обновить'}
-        </button>
-      </PageHead>
+      <PageHead title="Сегодня" />
 
       {!data ? (
         <LoadState error={error} onRetry={reload} />

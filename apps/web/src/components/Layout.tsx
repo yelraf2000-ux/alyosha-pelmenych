@@ -1,19 +1,14 @@
-import { useEffect } from 'react';
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import { IS_DEMO, resetDemo } from '../api';
-import { SITE_CREDIT } from '../config';
 import { t } from '../i18n';
-import { formatAmd, telHref } from '../lib/format';
+import { formatAmd, paragraphs } from '../lib/format';
 import { useCart } from '../state/CartContext';
 import { useShop } from '../state/ShopContext';
-import { Logo } from './Logo';
-
-const NAV = [
-  { to: '/catalog', label: t.nav.catalog },
-  { to: '/about', label: t.nav.about },
-  { to: '/delivery', label: t.nav.delivery },
-  { to: '/contacts', label: t.nav.contacts },
-];
+import { ContactMenu } from './ContactMenu';
+import { SocialLinks } from './InfoBlocks';
+import { Intro, shouldPlayIntro } from './Intro';
+import { LogoBadge } from './Logo';
 
 function DemoBanner() {
   const { refresh } = useShop();
@@ -36,22 +31,47 @@ function DemoBanner() {
   );
 }
 
-function Header() {
+/** True once the page has moved by more than `after` pixels: the sticky header then needs a surface of its own. */
+function useScrolled(after: number): boolean {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const update = () => setScrolled(window.scrollY > after);
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    return () => window.removeEventListener('scroll', update);
+  }, [after]);
+  return scrolled;
+}
+
+/** `logoWaiting`: the entry animation is still carrying the logo to its place here. */
+function Header({ logoRef, logoWaiting }: { logoRef: RefObject<HTMLAnchorElement>; logoWaiting: boolean }) {
   const cart = useCart();
+  const { settings } = useShop();
+  const { pathname } = useLocation();
+  const home = pathname === '/';
+  // On the home page, while it is at the very top, the logo stands big in the middle above the
+  // title; the first scroll sends it to its corner (see `.header--home` in the styles).
+  const scrolled = useScrolled(home ? 16 : 4);
+  const hours = settings ? paragraphs(settings.contactsText)[0] : undefined;
+  const className = ['header', home && 'header--home', scrolled && 'header--scrolled']
+    .filter(Boolean)
+    .join(' ');
   return (
-    <header className="header">
+    <header className={className}>
       <div className="container header__inner">
-        <Link to="/" className="header__logo" aria-label={`${t.brand} — ${t.nav.home}`}>
-          <Logo />
+        <Link
+          ref={logoRef}
+          to="/"
+          className={logoWaiting ? 'header__logo header__logo--waiting' : 'header__logo'}
+          aria-label={`${t.brand} — ${t.nav.home}`}
+        >
+          <LogoBadge className="logo__mark" openName />
         </Link>
-        <nav className="nav" aria-label={t.nav.main}>
-          {NAV.map((item) => (
-            <NavLink key={item.to} to={item.to} className="nav__link">
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-        <Link to="/cart" className="cart-link">
+        {/* The working hours (the first paragraph of the «Контакты» text in the settings). */}
+        {hours && <p className="header__hours">{hours}</p>}
+        <div className="header__actions">
+          {settings && <ContactMenu settings={settings} />}
+          <Link to="/cart" className="cart-link">
           <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
             <path
               d="M3 4h2.2l2.1 10.2a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.2L20.5 7H6.2"
@@ -71,7 +91,8 @@ function Header() {
               {cart.count}
             </span>
           )}
-        </Link>
+          </Link>
+        </div>
       </div>
     </header>
   );
@@ -82,46 +103,8 @@ function Footer() {
   return (
     <footer className="footer">
       <div className="container footer__inner">
-        <div>
-          <Logo />
-          {settings && (
-            <p className="footer__contacts">
-              {settings.phonePublic && <a href={telHref(settings.phonePublic)}>{settings.phonePublic}</a>}
-              {settings.telegramPublic && (
-                <a href={`https://t.me/${settings.telegramPublic}`} target="_blank" rel="noreferrer">
-                  Telegram
-                </a>
-              )}
-              {settings.instagramUrl && (
-                <a href={settings.instagramUrl} target="_blank" rel="noreferrer">
-                  Instagram
-                </a>
-              )}
-              {settings.tiktokUrl && (
-                <a href={settings.tiktokUrl} target="_blank" rel="noreferrer">
-                  TikTok
-                </a>
-              )}
-            </p>
-          )}
-        </div>
-        <nav className="footer__nav" aria-label={t.nav.main}>
-          {NAV.map((item) => (
-            <Link key={item.to} to={item.to}>
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <p className="footer__credit">
-          {t.footer.madeBy}{' '}
-          {SITE_CREDIT.url ? (
-            <a href={SITE_CREDIT.url} target="_blank" rel="noreferrer">
-              {SITE_CREDIT.name}
-            </a>
-          ) : (
-            SITE_CREDIT.name
-          )}
-        </p>
+        <p className="footer__brand">© {t.brand}</p>
+        {settings && <SocialLinks settings={settings} />}
       </div>
     </footer>
   );
@@ -156,12 +139,16 @@ function ScrollToTop() {
 export function Layout() {
   const { loading, error, settings } = useShop();
   const { pathname } = useLocation();
+  const logoRef = useRef<HTMLAnchorElement>(null);
+  const [intro, setIntro] = useState(shouldPlayIntro);
+  const endIntro = useCallback(() => setIntro(false), []);
 
   return (
     <div className="page">
       <ScrollToTop />
+      {intro && <Intro target={logoRef} onDone={endIntro} />}
       {IS_DEMO && <DemoBanner />}
-      <Header />
+      <Header logoRef={logoRef} logoWaiting={intro} />
       <main className={loading ? 'main main--loading' : 'main'}>
         {loading ? (
           <p className="container state">{t.loading}</p>

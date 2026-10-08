@@ -29,6 +29,20 @@
       "when": 1791480466973,
       "tag": "0003_product_video",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791481789764,
+      "tag": "0004_about_text_draft",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791492016232,
+      "tag": "0005_order_delivery_extra",
+      "breakpoints": true
     }
   ]
 }

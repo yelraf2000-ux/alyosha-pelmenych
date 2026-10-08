@@ -140,7 +140,6 @@ export function orderBody(items: OrderInput['items'], overrides: Partial<OrderIn
     comment: null,
     deliveryMethod: 'pickup',
     deliveryAddress: null,
-    consent: true,
     website: '',
     items,
     ...overrides,

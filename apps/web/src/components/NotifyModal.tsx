@@ -99,7 +99,6 @@ export function NotifyModal({ product, onClose }: { product: Product; onClose: (
               autoCapitalize="none"
               autoCorrect="off"
               placeholder="@username"
-              hint={t.form.telegramHint}
               error={showErrors ? errors.telegram : null}
             />
             {status === 'failed' && (

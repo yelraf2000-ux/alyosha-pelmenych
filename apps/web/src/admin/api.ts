@@ -5,6 +5,7 @@ import type {
   AdminOrder,
   AdminOrderSummary,
   AdminProduct,
+  OrderStats,
   OrderStatus,
   SaveProductResult,
   Settings,
@@ -103,6 +104,8 @@ export const adminApi = {
       `/orders?offset=${offset}${status ? `&status=${status}` : ''}`,
     ),
   order: (id: number) => request<AdminOrder>('GET', `/orders/${id}`),
+  /** Both dates as YYYY-MM-DD in the shop's time zone, both days included. */
+  orderStats: (from: string, to: string) => request<OrderStats>('GET', `/orders/stats?from=${from}&to=${to}`),
   setOrderStatus: (id: number, status: OrderStatus) =>
     request<{ ok: true; order: AdminOrder }>('PATCH', `/orders/${id}`, { status }),
 

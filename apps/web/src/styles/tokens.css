@@ -1,12 +1,16 @@
 /* Design tokens.
-   The palette is built around the logo: its light blue, dough and cream, a warm amber for
-   buttons, and a deep navy for the header, footer and headings.
+   The palette is built around the logo: dough and cream first, a warm amber for buttons, and a
+   little of the logo's light blue. The top and the bottom of a page glow in those colours (--glow);
+   small accents use the blue half transparent (--blue-glass); text is the brown of the logo's lettering.
    Changing the look of the whole site means changing the values in this file. */
 :root {
-  --night-950: #070b1f;
-  --night-900: #0d1236;
-  --night-800: #161c4a;
-  --night-700: #2a1f55;
+  --blue-glass: rgba(169, 207, 230, 0.5);
+
+  /* Mostly dough, turning to the logo's blue at the far end. It passes through cream on the way:
+     dough mixed straight into blue would give a muddy grey-green. */
+  --glow: linear-gradient(100deg, #fbe5b8 0%, #fdf1da 52%, #f4f3ee 72%, #cfe4f1 100%);
+  --glow-reversed: linear-gradient(280deg, #fbe5b8 0%, #fdf1da 52%, #f4f3ee 72%, #cfe4f1 100%);
+  --glow-height: 520px;
 
   --cream: #fdfbf7;
   --flour: #f6efe4;
@@ -19,12 +23,22 @@
 
   --sky-100: #e6f1f8;
   --sky-300: #a9cfe6;
+  /* A deeper shade of the same blue, for small things that must stand out (checkboxes, outlines). */
+  --sky-500: #6fa9cf;
+  /* The logo's blue deepened until it can be read as text on white and cream. */
+  --sky-700: #2f7fb5;
+
+  /* The contact icons in the header wear the colours people know them by. */
+  --contact-phone: #2fa052;
+  --contact-telegram: #26a5e4;
 
   --terracotta: #c84b31;
   --terracotta-soft: #fbeae5;
 
-  --ink: #2b2520;
-  --ink-muted: #6f6259;
+  /* All text is the brown of the logo's lettering (it used to be a near-black, #2b2520, with
+     #6f6259 for the muted one). */
+  --ink: #6b3f1d;
+  --ink-muted: #8a6a54;
   --line: #ebe1d3;
 
   --bg: var(--cream);

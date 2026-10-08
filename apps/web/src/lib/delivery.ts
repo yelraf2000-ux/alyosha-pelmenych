@@ -1,1 +1,1 @@
-export { calcDeliveryFee } from '@alyosha/shared';
+export { calcDeliveryFee, isDeliveryExtra } from '@alyosha/shared';

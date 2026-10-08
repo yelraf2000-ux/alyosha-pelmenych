@@ -1,4 +1,4 @@
-import { calcDeliveryFee, type OrderView, type StockShortage, type ValidOrder } from '@alyosha/shared';
+import { calcDeliveryFee, isDeliveryExtra, type OrderView, type StockShortage, type ValidOrder } from '@alyosha/shared';
 import { eq, inArray, sql } from 'drizzle-orm';
 import type { Db } from '../db/client';
 import { orderItems, orders, products } from '../db/schema';
@@ -61,7 +61,9 @@ export async function placeOrder(db: Db, order: ValidOrder): Promise<PlaceOrderR
 
     // Prices and the delivery fee are taken from the database, never from the request.
     const itemsTotalAmd = items.reduce((sum, item) => sum + item.priceAmd * item.qty, 0);
-    const deliveryFeeAmd = calcDeliveryFee(order.deliveryMethod, itemsTotalAmd, await getSettings(tx));
+    const settings = await getSettings(tx);
+    const deliveryFeeAmd = calcDeliveryFee(order.deliveryMethod, itemsTotalAmd, settings);
+    const deliveryExtra = isDeliveryExtra(order.deliveryMethod, itemsTotalAmd, settings);
     const deliveryAddress = order.deliveryMethod === 'courier' ? order.deliveryAddress : null;
 
     const [created] = await tx
@@ -75,6 +77,7 @@ export async function placeOrder(db: Db, order: ValidOrder): Promise<PlaceOrderR
         deliveryAddress,
         itemsTotalAmd,
         deliveryFeeAmd,
+        deliveryExtra,
         totalAmd: itemsTotalAmd + deliveryFeeAmd,
       })
       .returning({ id: orders.id, publicNumber: orders.publicNumber });
@@ -96,6 +99,7 @@ export async function placeOrder(db: Db, order: ValidOrder): Promise<PlaceOrderR
         items,
         itemsTotalAmd,
         deliveryFeeAmd,
+        deliveryExtra,
         totalAmd: itemsTotalAmd + deliveryFeeAmd,
         deliveryMethod: order.deliveryMethod,
         deliveryAddress,

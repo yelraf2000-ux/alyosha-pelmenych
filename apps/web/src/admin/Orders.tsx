@@ -53,9 +53,9 @@ export function OrdersPage() {
   return (
     <>
       <PageHead title="Заказы">
-        <button type="button" className="btn" onClick={first.reload} disabled={first.loading}>
-          {first.loading ? 'Обновляем…' : 'Обновить'}
-        </button>
+        <Link to="stats" className="btn">
+          Статистика
+        </Link>
       </PageHead>
 
       <div className="chips" role="group" aria-label="Статус">
@@ -235,11 +235,20 @@ export function OrderPage() {
             </tr>
             <tr>
               <td>Доставка</td>
-              <td className="adm-num">{order.deliveryFeeAmd === 0 ? 'бесплатно' : formatAmd(order.deliveryFeeAmd)}</td>
+              <td className="adm-num">
+                {order.deliveryExtra
+                  ? 'отдельно, курьеру'
+                  : order.deliveryFeeAmd === 0
+                    ? 'бесплатно'
+                    : formatAmd(order.deliveryFeeAmd)}
+              </td>
             </tr>
             <tr className="adm-total">
               <td>Итого</td>
-              <td className="adm-num">{formatAmd(order.totalAmd)}</td>
+              <td className="adm-num">
+                {formatAmd(order.totalAmd)}
+                {order.deliveryExtra && ' + доставка'}
+              </td>
             </tr>
           </tfoot>
         </table>

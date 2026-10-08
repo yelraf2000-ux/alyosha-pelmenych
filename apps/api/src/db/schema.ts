@@ -68,6 +68,8 @@ export const orders = pgTable(
     deliveryAddress: text('delivery_address'),
     itemsTotalAmd: integer('items_total_amd').notNull(),
     deliveryFeeAmd: integer('delivery_fee_amd').notNull(),
+    /** True when the courier is paid separately, on top of `totalAmd` (no fixed fee in the settings). */
+    deliveryExtra: boolean('delivery_extra').notNull().default(false),
     totalAmd: integer('total_amd').notNull(),
     status: orderStatus('status').notNull().default('new'),
     ...timestamps,

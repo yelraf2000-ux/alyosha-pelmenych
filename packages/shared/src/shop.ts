@@ -50,7 +50,6 @@ export interface OrderInput {
   comment: string | null;
   deliveryMethod: DeliveryMethod;
   deliveryAddress: string | null;
-  consent: boolean;
   /** Honeypot: real buyers never fill it. */
   website: string;
   items: { productId: number; qty: number }[];
@@ -68,6 +67,8 @@ export interface OrderView {
   items: OrderItemView[];
   itemsTotalAmd: number;
   deliveryFeeAmd: number;
+  /** Delivery is not in the total: the buyer pays the courier separately (see `isDeliveryExtra`). */
+  deliveryExtra: boolean;
   totalAmd: number;
   deliveryMethod: DeliveryMethod;
   deliveryAddress: string | null;
@@ -121,6 +122,19 @@ export function calcDeliveryFee(
 ): number {
   if (method === 'pickup') return 0;
   return itemsTotalAmd >= settings.freeDeliveryFromAmd ? 0 : settings.courierFeeAmd;
+}
+
+/**
+ * The shop has no fixed courier price (the fee in the settings is 0): below the free-delivery
+ * threshold the buyer pays the courier separately, on top of the order. The site then shows
+ * «+ доставка» where a fee would be, and the order's total is the goods alone.
+ */
+export function isDeliveryExtra(
+  method: DeliveryMethod,
+  itemsTotalAmd: number,
+  settings: Pick<Settings, 'courierFeeAmd' | 'freeDeliveryFromAmd'>,
+): boolean {
+  return method === 'courier' && settings.courierFeeAmd === 0 && itemsTotalAmd < settings.freeDeliveryFromAmd;
 }
 
 const NBSP = String.fromCharCode(0xa0);

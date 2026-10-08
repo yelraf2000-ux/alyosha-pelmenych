@@ -1,5 +1,5 @@
 import { formatAmd, smallImagePath, type AdminProduct, type AdminStockRequest } from '@alyosha/shared';
-import { useEffect, useState } from 'react';
+import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { t } from '../i18n';
 import { plural } from '../lib/format';
@@ -61,49 +61,40 @@ function WaitingHint({
   );
 }
 
+/** Parts of a row that do something of their own when pressed, so a press there never starts a drag. */
+const INTERACTIVE = 'a, button, input, select, textarea, label';
+
 function ProductRow({
   product,
   position,
   total,
+  dragging,
   waiting,
   onSaved,
   onMove,
+  onDragStart,
   onError,
   onWaiting,
 }: {
   product: AdminProduct;
   position: number;
   total: number;
+  dragging: boolean;
   waiting: AdminStockRequest[] | undefined;
   onSaved: (product: AdminProduct) => void;
   onMove: (direction: -1 | 1) => void;
+  onDragStart: (event: ReactPointerEvent) => void;
   onError: (message: string) => void;
   onWaiting: (requests: AdminStockRequest[] | null) => void;
 }) {
-  const [stock, setStock] = useState(String(product.stockQty));
-  const [busy, setBusy] = useState(false);
-
-  // The stock may change under us: an order came in, or the list was refreshed.
-  useEffect(() => setStock(String(product.stockQty)), [product.stockQty]);
-
-  const stockValue = /^\d+$/.test(stock.trim()) ? Number(stock) : null;
-  const stockChanged = stockValue !== null && stockValue !== product.stockQty;
-
-  async function save(patch: { stockQty?: number; isActive?: boolean; isNew?: boolean }) {
-    setBusy(true);
-    try {
-      const result = await adminApi.updateProduct(product.id, patch);
-      onSaved(result.product);
-      if (result.waiting.length > 0) onWaiting(result.waiting);
-    } catch (reason) {
-      onError(errorText(reason));
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
-    <li className={`adm-product${product.isActive ? '' : ' adm-product--hidden'}`}>
+    <li
+      className={`adm-product${product.isActive ? '' : ' adm-product--hidden'}${dragging ? ' adm-product--dragging' : ''}`}
+      // With a mouse the row can be taken anywhere that is not a link, a button or a field.
+      onPointerDown={(event) => {
+        if (event.pointerType === 'mouse' && !(event.target as Element).closest(INTERACTIVE)) onDragStart(event);
+      }}
+    >
       <div className="adm-product__top">
         {product.imagePath ? (
           <img className="adm-product__thumb" src={smallImagePath(product.imagePath)} alt="" loading="lazy" />
@@ -129,66 +120,35 @@ function ProductRow({
             )}
           </span>
         </div>
-        <div className="adm-product__order">
-          <button type="button" aria-label="Выше" disabled={position === 0} onClick={() => onMove(-1)}>
-            ↑
-          </button>
-          <button type="button" aria-label="Ниже" disabled={position === total - 1} onClick={() => onMove(1)}>
-            ↓
-          </button>
-        </div>
-      </div>
-
-      <div className="adm-product__controls">
-        <label className="adm-stock">
-          <span>На складе</span>
-          <span className="adm-stock__field">
-            <button
-              type="button"
-              aria-label="Меньше"
-              disabled={stockValue === null || stockValue <= 0}
-              onClick={() => setStock(String((stockValue ?? 0) - 1))}
-            >
-              −
-            </button>
-            <input
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={stock}
-              aria-invalid={stockValue === null || undefined}
-              onChange={(event) => setStock(event.target.value)}
-            />
-            <button type="button" aria-label="Больше" onClick={() => setStock(String((stockValue ?? 0) + 1))}>
-              +
-            </button>
-          </span>
-        </label>
-        {stockChanged && (
-          <button type="button" className="btn btn--primary" disabled={busy} onClick={() => save({ stockQty: stockValue })}>
-            Сохранить
-          </button>
-        )}
-        <label className="adm-check">
-          <input
-            type="checkbox"
-            checked={product.isActive}
-            disabled={busy}
-            onChange={(event) => save({ isActive: event.target.checked })}
-          />
-          На сайте
-        </label>
-        <label className="adm-check">
-          <input
-            type="checkbox"
-            checked={product.isNew}
-            disabled={busy}
-            onChange={(event) => save({ isNew: event.target.checked })}
-          />
-          Новинка
-        </label>
-        <Link to={String(product.id)} className="btn adm-product__edit">
-          Изменить
-        </Link>
+        {/* The grip: the place to take the row by on a touch screen (a finger anywhere else scrolls
+            the page), and the way to move it from the keyboard, with the up and down arrows. */}
+        <button
+          type="button"
+          className="adm-product__grip"
+          aria-label="Перетащите, чтобы изменить порядок (или стрелки вверх и вниз)"
+          title="Перетащите, чтобы изменить порядок"
+          onPointerDown={onDragStart}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowUp' && position > 0) {
+              event.preventDefault();
+              onMove(-1);
+            } else if (event.key === 'ArrowDown' && position < total - 1) {
+              event.preventDefault();
+              onMove(1);
+            }
+          }}
+        >
+          <svg viewBox="0 0 16 24" width="16" height="24" aria-hidden="true" focusable="false">
+            <g fill="currentColor">
+              <circle cx="4" cy="5" r="1.8" />
+              <circle cx="12" cy="5" r="1.8" />
+              <circle cx="4" cy="12" r="1.8" />
+              <circle cx="12" cy="12" r="1.8" />
+              <circle cx="4" cy="19" r="1.8" />
+              <circle cx="12" cy="19" r="1.8" />
+            </g>
+          </svg>
+        </button>
       </div>
 
       {waiting && waiting.length > 0 && (
@@ -222,11 +182,10 @@ export function ProductsPage() {
     return passed ? { [passed.productId]: passed.requests } : {};
   });
 
-  async function move(index: number, direction: -1 | 1) {
-    if (!products) return;
-    const next = [...products];
-    const [moved] = next.splice(index, 1);
-    next.splice(index + direction, 0, moved!);
+  const list = useRef<HTMLUListElement>(null);
+  const [draggingId, setDraggingId] = useState<number | null>(null);
+
+  async function saveOrder(next: AdminProduct[]) {
     setData(next); // show the new order at once
     try {
       setData(await adminApi.reorderProducts(next.map((product) => product.id)));
@@ -235,6 +194,69 @@ export function ProductsPage() {
       setActionError(errorText(reason));
       reload();
     }
+  }
+
+  /** One step up or down: the keyboard's way of moving a product. */
+  function move(index: number, direction: -1 | 1) {
+    if (!products) return;
+    const next = [...products];
+    const [moved] = next.splice(index, 1);
+    next.splice(index + direction, 0, moved!);
+    void saveOrder(next);
+  }
+
+  /**
+   * Dragging a product to a new place. The row follows the pointer by changing places with its
+   * neighbours as it passes the middle of each; the new order is saved when it is let go.
+   */
+  function startDrag(event: ReactPointerEvent, id: number) {
+    if (!products || (event.pointerType === 'mouse' && event.button !== 0)) return;
+    const startY = event.clientY;
+    let order = products;
+    let active = false;
+
+    const onMove = (moveEvent: PointerEvent) => {
+      // A press that barely moves is a click, not a drag.
+      if (!active) {
+        if (Math.abs(moveEvent.clientY - startY) < 6) return;
+        active = true;
+        setDraggingId(id);
+        // The press may have started selecting text before it turned out to be a drag.
+        window.getSelection()?.removeAllRanges();
+      }
+      moveEvent.preventDefault();
+
+      const rows = Array.from(list.current?.children ?? []);
+      let target = rows.findIndex((row) => {
+        const box = row.getBoundingClientRect();
+        return moveEvent.clientY < box.top + box.height / 2;
+      });
+      if (target === -1) target = rows.length;
+      const from = order.findIndex((product) => product.id === id);
+      const to = target > from ? target - 1 : target;
+      if (from !== -1 && to !== from) {
+        const next = [...order];
+        const [moved] = next.splice(from, 1);
+        next.splice(to, 0, moved!);
+        order = next;
+        setData(next);
+      }
+
+      // Near the top or bottom of the screen the page scrolls along.
+      if (moveEvent.clientY < 80) window.scrollBy(0, -14);
+      else if (moveEvent.clientY > window.innerHeight - 80) window.scrollBy(0, 14);
+    };
+    const stop = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', stop);
+      window.removeEventListener('pointercancel', stop);
+      if (!active) return;
+      setDraggingId(null);
+      if (order !== products) void saveOrder(order);
+    };
+    window.addEventListener('pointermove', onMove, { passive: false });
+    window.addEventListener('pointerup', stop);
+    window.addEventListener('pointercancel', stop);
   }
 
   return (
@@ -256,15 +278,20 @@ export function ProductsPage() {
       ) : products.length === 0 ? (
         <p className="adm-muted">Товаров пока нет. Добавьте первый.</p>
       ) : (
-        <ul className={`adm-list${loading ? ' adm-list--loading' : ''}`}>
+        <ul
+          ref={list}
+          className={`adm-list${loading ? ' adm-list--loading' : ''}${draggingId !== null ? ' adm-list--dragging' : ''}`}
+        >
           {products.map((product, index) => (
             <ProductRow
               key={product.id}
               product={product}
               position={index}
               total={products.length}
+              dragging={draggingId === product.id}
               waiting={waiting[product.id]}
               onMove={(direction) => move(index, direction)}
+              onDragStart={(event) => startDrag(event, product.id)}
               onError={setActionError}
               onSaved={(saved) => {
                 setActionError(null);

@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ProductPhoto } from '../components/ProductPhoto';
 import { QtyStepper } from '../components/QtyStepper';
@@ -11,7 +12,32 @@ export default function CartPage() {
   useTitle(t.cart.title);
   const cart = useCart();
   const { settings } = useShop();
+  const list = useRef<HTMLUListElement>(null);
+  // Products on their way out of the cart: struck through and folding away (`.line--leaving`).
+  const [leaving, setLeaving] = useState<ReadonlySet<number>>(new Set());
   if (!settings) return null;
+
+  const remove = (productId: number) => {
+    setLeaving((prev) => {
+      const next = new Set(prev);
+      next.delete(productId);
+      return next;
+    });
+    cart.remove(productId);
+  };
+
+  /** A line strikes the row through, the row folds away, and only then the product leaves the cart. */
+  const takeOut = (productId: number) => {
+    const row = list.current?.querySelector<HTMLElement>(`[data-line="${productId}"]`);
+    if (!row || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      remove(productId);
+      return;
+    }
+    row.style.setProperty('--line-height', `${row.offsetHeight}px`);
+    setLeaving((prev) => new Set(prev).add(productId));
+    // The way out if the browser never reports the end of the animation (a tab in the background).
+    window.setTimeout(() => remove(productId), 1200);
+  };
 
   if (cart.lines.length === 0) {
     return (
@@ -42,9 +68,16 @@ export default function CartPage() {
       )}
 
       <div className="split">
-        <ul className="lines">
+        <ul className="lines" ref={list}>
           {cart.lines.map(({ product, qty, lineTotal }) => (
-            <li key={product.id} className="line">
+            <li
+              key={product.id}
+              data-line={product.id}
+              className={leaving.has(product.id) ? 'line line--leaving' : 'line'}
+              onAnimationEnd={(event) => {
+                if (event.target === event.currentTarget && event.animationName === 'line-fold') remove(product.id);
+              }}
+            >
               <Link to={`/product/${product.slug}`} className="line__media" tabIndex={-1} aria-hidden="true">
                 <ProductPhoto product={product} />
               </Link>
@@ -58,16 +91,15 @@ export default function CartPage() {
                 {qty >= product.stockQty && <span className="buy__low">{t.cart.maxReached(product.stockQty)}</span>}
               </div>
               <div className="line__controls">
-                <QtyStepper value={qty} max={product.stockQty} onChange={(next) => cart.setQty(product.id, next)} />
+                {/* No separate «remove» button: minus at 1 takes the product out of the cart. */}
+                <QtyStepper
+                  value={qty}
+                  min={0}
+                  max={product.stockQty}
+                  decreaseLabel={qty === 1 ? t.cart.removeItem(product.name) : undefined}
+                  onChange={(next) => (next < 1 ? takeOut(product.id) : cart.setQty(product.id, next))}
+                />
                 <strong className="line__total">{formatAmd(lineTotal)}</strong>
-                <button
-                  type="button"
-                  className="link-btn"
-                  aria-label={t.cart.removeItem(product.name)}
-                  onClick={() => cart.remove(product.id)}
-                >
-                  {t.cart.remove}
-                </button>
               </div>
             </li>
           ))}
@@ -79,24 +111,17 @@ export default function CartPage() {
               <dt>{t.cart.subtotal}</dt>
               <dd>{formatAmd(cart.subtotal)}</dd>
             </div>
-            <div>
-              <dt>{t.cart.pickup}</dt>
-              <dd>{t.cart.free}</dd>
-            </div>
-            <div>
-              <dt>{t.cart.courier}</dt>
-              <dd>{untilFree <= 0 ? t.cart.free : formatAmd(settings.courierFeeAmd)}</dd>
-            </div>
           </dl>
-          <p className="muted small">
-            {untilFree > 0 ? t.cart.untilFree(formatAmd(untilFree)) : t.cart.freeFrom(formatAmd(settings.freeDeliveryFromAmd))}
-            . {t.cart.deliveryPreview}
-          </p>
+          {/* Below the threshold: how much is missing. At or above it: the good news, for as long as it holds. */}
+          {untilFree > 0 ? (
+            <p className="muted small">{t.cart.untilFree(formatAmd(untilFree))}.</p>
+          ) : (
+            <p className="summary__free" role="status">
+              {t.cart.deliveryIsFree}
+            </p>
+          )}
           <Link to="/checkout" className="btn btn--primary btn--block btn--lg">
             {t.cart.checkout}
-          </Link>
-          <Link to="/catalog" className="more-link summary__back">
-            {t.cart.continue}
           </Link>
         </aside>
       </div>

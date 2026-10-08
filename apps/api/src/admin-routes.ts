@@ -1,4 +1,6 @@
 import {
+  daysInRange,
+  isIsoDate,
   loginSchema,
   ORDER_STATUSES,
   orderStatusSchema,
@@ -6,6 +8,7 @@ import {
   productPatchSchema,
   reorderSchema,
   settingsSchema,
+  STATS_MAX_DAYS,
   stockRequestStatusSchema,
   type OrderStatus,
 } from '@alyosha/shared';
@@ -26,7 +29,7 @@ import {
   type AdminAuth,
 } from './auth';
 import type { Db } from './db/client';
-import { changeOrderStatus, getOrder, getToday, listOrders } from './services/admin-orders';
+import { changeOrderStatus, getOrder, getOrderStats, getToday, listOrders } from './services/admin-orders';
 import { deleteProductImage, InvalidImageError, MAX_UPLOAD_BYTES, saveProductImage } from './services/images';
 import {
   createProduct,
@@ -281,6 +284,15 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
         // One extra row tells the client whether there is another page.
         const rows = await listOrders(db, { status, offset, limit: PAGE_SIZE + 1 });
         return { orders: rows.slice(0, PAGE_SIZE), hasMore: rows.length > PAGE_SIZE };
+      });
+
+      // Statistics for one day or a run of days: ?from=YYYY-MM-DD&to=YYYY-MM-DD (both included).
+      admin.get('/orders/stats', async (request, reply) => {
+        const { from, to } = request.query as { from?: string; to?: string };
+        if (!isIsoDate(from) || !isIsoDate(to) || from > to || daysInRange(from, to) > STATS_MAX_DAYS) {
+          return fail(reply, 400, 'invalid');
+        }
+        return getOrderStats(db, from, to);
       });
 
       admin.get('/orders/:id', async (request, reply) => {

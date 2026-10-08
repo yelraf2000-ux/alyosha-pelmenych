@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Dumpling } from '../components/Dumpling';
 import { t } from '../i18n';
 import { formatAmd } from '../lib/format';
@@ -28,11 +28,11 @@ function loadLastOrder(): OrderView | null {
 
 export default function OrderSuccessPage() {
   useTitle(t.success.title);
-  const { number } = useParams();
   const location = useLocation();
   const fromState = (location.state as { order?: OrderView } | null)?.order;
-  const candidate = fromState ?? loadLastOrder();
-  const order = candidate && candidate.publicNumber === number ? candidate : null;
+  // The address does not name the order (the buyer is not shown its number): it is the one just
+  // placed in this tab.
+  const order = fromState ?? loadLastOrder();
 
   return (
     <div className="section container narrow success">
@@ -49,9 +49,7 @@ export default function OrderSuccessPage() {
 
       {order && (
         <div className="panel success__order">
-          <p className="success__number">
-            {t.success.number}: <strong>{order.publicNumber}</strong>
-          </p>
+          {/* The order's number is for the shop (the admin and the owner's message); the buyer is not shown it. */}
           <ul className="summary__items">
             {order.items.map((item) => (
               <li key={item.productId}>
@@ -65,7 +63,13 @@ export default function OrderSuccessPage() {
           <dl className="totals">
             <div>
               <dt>{order.deliveryMethod === 'pickup' ? t.cart.pickup : t.checkout.courier}</dt>
-              <dd>{order.deliveryFeeAmd === 0 ? t.cart.free : formatAmd(order.deliveryFeeAmd)}</dd>
+              <dd>
+                {order.deliveryExtra
+                  ? t.cart.deliveryExtra
+                  : order.deliveryFeeAmd === 0
+                    ? t.cart.free
+                    : formatAmd(order.deliveryFeeAmd)}
+              </dd>
             </div>
             {order.deliveryAddress && (
               <div>
@@ -75,7 +79,7 @@ export default function OrderSuccessPage() {
             )}
             <div className="totals__total">
               <dt>{t.cart.total}</dt>
-              <dd>{formatAmd(order.totalAmd)}</dd>
+              <dd>{order.deliveryExtra ? t.cart.plusDelivery(formatAmd(order.totalAmd)) : formatAmd(order.totalAmd)}</dd>
             </div>
           </dl>
         </div>

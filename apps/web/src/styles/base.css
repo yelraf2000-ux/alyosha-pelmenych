@@ -46,7 +46,7 @@ p {
 }
 
 a {
-  color: var(--night-800);
+  color: var(--ink);
   text-underline-offset: 3px;
 }
 

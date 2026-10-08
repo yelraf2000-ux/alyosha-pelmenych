@@ -20,14 +20,19 @@ const GROUPS: { title: string; fields: FieldSpec[] }[] = [
     title: 'Главная страница',
     fields: [
       { key: 'heroTitle', label: 'Заголовок' },
-      { key: 'heroSubtitle', label: 'Подзаголовок' },
+      { key: 'heroSubtitle', label: 'Подзаголовок (можно оставить пустым)' },
     ],
   },
   {
     title: 'Доставка',
     fields: [
       { key: 'pickupAddress', label: 'Адрес самовывоза' },
-      { key: 'courierFeeAmd', label: 'Стоимость доставки курьером, ֏', numeric: true },
+      {
+        key: 'courierFeeAmd',
+        label: 'Стоимость доставки курьером, ֏',
+        numeric: true,
+        hint: '0 — цена не фиксирована: сайт пишет «+ доставка», покупатель платит курьеру отдельно.',
+      },
       {
         key: 'freeDeliveryFromAmd',
         label: 'Бесплатная доставка от, ֏',
@@ -41,8 +46,8 @@ const GROUPS: { title: string; fields: FieldSpec[] }[] = [
     title: 'Тексты страниц',
     fields: [
       { key: 'aboutText', label: 'О нас', multiline: true, hint: 'Пустая строка начинает новый абзац. Первый абзац показывается на главной.' },
-      { key: 'deliveryText', label: 'Доставка и оплата', multiline: true },
-      { key: 'contactsText', label: 'Контакты', multiline: true },
+      { key: 'deliveryText', label: 'Доставка и оплата', multiline: true, hint: 'Показывается на главной, под блоком о доставке.' },
+      { key: 'contactsText', label: 'Контакты', multiline: true, hint: 'Первый абзац показывается вверху каждой страницы, жирной строкой.' },
     ],
   },
   {

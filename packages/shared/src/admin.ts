@@ -54,6 +54,8 @@ export interface AdminOrder extends AdminOrderSummary {
   deliveryAddress: string | null;
   itemsTotalAmd: number;
   deliveryFeeAmd: number;
+  /** Delivery is not in the total: the buyer pays the courier separately. */
+  deliveryExtra: boolean;
   items: { productId: number; name: string; priceAmd: number; qty: number }[];
   updatedAt: string;
 }
@@ -69,6 +71,63 @@ export interface TodayView {
   confirmedOrders: number;
   /** Total quantity per product across orders that are new or confirmed. */
   totals: { productId: number; name: string; qty: number }[];
+}
+
+/** The shop's clock: an order belongs to the day it was placed on in Yerevan. */
+export const SHOP_TIME_ZONE = 'Asia/Yerevan';
+
+/** The longest period the statistics are counted for at once. */
+export const STATS_MAX_DAYS = 366;
+
+export interface OrderCountAndSum {
+  count: number;
+  totalAmd: number;
+}
+
+/**
+ * What happened to the orders placed between two days (both included, dates as YYYY-MM-DD in the
+ * shop's time zone). Everything except `byStatus`, `cancelled` and the `cancelled` column of
+ * `days` leaves cancelled orders out.
+ */
+export interface OrderStats {
+  from: string;
+  to: string;
+  /** Every order placed in the period, whatever became of it. */
+  placed: OrderCountAndSum;
+  /** The ones that were not cancelled: the real sales. */
+  kept: OrderCountAndSum;
+  cancelled: OrderCountAndSum;
+  byStatus: Record<OrderStatus, OrderCountAndSum>;
+  pickupCount: number;
+  courierCount: number;
+  /** What was sold, most first. */
+  products: { productId: number; name: string; qty: number; totalAmd: number }[];
+  /** One line per day that had orders, oldest first. */
+  days: { date: string; count: number; cancelledCount: number; totalAmd: number }[];
+}
+
+/** YYYY-MM-DD and a real calendar day. */
+export function isIsoDate(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+/** Today's date in the shop's time zone, as YYYY-MM-DD. */
+export function shopToday(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: SHOP_TIME_ZONE }).format(now);
+}
+
+/** A date `days` away from `date` (YYYY-MM-DD in, YYYY-MM-DD out). */
+export function addDays(date: string, days: number): string {
+  const value = new Date(`${date}T00:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
+/** How many days the period covers, both ends included. */
+export function daysInRange(from: string, to: string): number {
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000) + 1;
 }
 
 // ---------- Helpers ----------

@@ -458,6 +458,92 @@ describe('admin orders', () => {
   });
 });
 
+describe('order statistics', () => {
+  /** Moves an order to a moment of our choosing. */
+  async function placedAt(orderId: number, iso: string) {
+    await ctx.db.execute(sql`UPDATE orders SET created_at = ${iso}::timestamptz WHERE id = ${orderId}`);
+  }
+  const stats = (query: string) => asAdmin({ url: `/api/admin/orders/stats?${query}` });
+
+  it('counts a day and a run of days on the shop clock, with cancelled orders apart', async () => {
+    const pelmeni = await addProduct(ctx.db, { name: 'Пельмени', priceAmd: 2000, stockQty: 50 });
+    const manty = await addProduct(ctx.db, { name: 'Манты', priceAmd: 3000, stockQty: 50 });
+
+    // 9 October in Yerevan (UTC+4): one order at noon, one at 23:30, one cancelled.
+    const noon = await placeOrderFor(pelmeni, 2);
+    await placedAt(noon, '2026-10-09T12:00:00+04:00');
+    const lateEvening = await placeOrderFor(manty, 1);
+    await placedAt(lateEvening, '2026-10-09T23:30:00+04:00');
+    const cancelled = await placeOrderFor(pelmeni, 5);
+    await placedAt(cancelled, '2026-10-09T15:00:00+04:00');
+    await setStatus(cancelled, 'cancelled');
+    // 10 October at 00:30 in Yerevan is still the 9th in UTC: it must count for the 10th.
+    const afterMidnight = await placeOrderFor(pelmeni, 1);
+    await placedAt(afterMidnight, '2026-10-10T00:30:00+04:00');
+    await setStatus(afterMidnight, 'done');
+    const courier = await postOrder(
+      ctx.app,
+      orderBody([{ productId: manty, qty: 2 }], { deliveryMethod: 'courier', deliveryAddress: 'ул. Тестовая, 1' }),
+    );
+    expect(courier.statusCode).toBe(201);
+    await placedAt(5, '2026-10-10T18:00:00+04:00');
+
+    const day = (await stats('from=2026-10-09&to=2026-10-09')).json();
+    expect(day).toMatchObject({
+      from: '2026-10-09',
+      to: '2026-10-09',
+      placed: { count: 3, totalAmd: 17000 },
+      kept: { count: 2, totalAmd: 7000 },
+      cancelled: { count: 1, totalAmd: 10000 },
+      pickupCount: 2,
+      courierCount: 0,
+      products: [
+        { productId: pelmeni, name: 'Пельмени', qty: 2, totalAmd: 4000 },
+        { productId: manty, name: 'Манты', qty: 1, totalAmd: 3000 },
+      ],
+      days: [{ date: '2026-10-09', count: 2, cancelledCount: 1, totalAmd: 7000 }],
+    });
+    expect(day.byStatus).toMatchObject({ new: { count: 2 }, confirmed: { count: 0 }, done: { count: 0 }, cancelled: { count: 1 } });
+
+    const both = (await stats('from=2026-10-09&to=2026-10-10')).json();
+    expect(both).toMatchObject({
+      placed: { count: 5 },
+      // The courier order adds the test settings' fee of 1 000 to its 6 000 of goods.
+      kept: { count: 4, totalAmd: 7000 + 2000 + 7000 },
+      cancelled: { count: 1 },
+      pickupCount: 3,
+      courierCount: 1,
+      days: [
+        { date: '2026-10-09', count: 2, cancelledCount: 1, totalAmd: 7000 },
+        { date: '2026-10-10', count: 2, cancelledCount: 0, totalAmd: 9000 },
+      ],
+    });
+    expect(both.products).toEqual([
+      { productId: pelmeni, name: 'Пельмени', qty: 3, totalAmd: 6000 },
+      { productId: manty, name: 'Манты', qty: 3, totalAmd: 9000 },
+    ]);
+    expect(both.byStatus.done).toEqual({ count: 1, totalAmd: 2000 });
+
+    const empty = (await stats('from=2026-10-01&to=2026-10-02')).json();
+    expect(empty).toMatchObject({ placed: { count: 0, totalAmd: 0 }, products: [], days: [] });
+  });
+
+  it.each([
+    ['no dates', ''],
+    ['a date that is not one', 'from=2026-02-30&to=2026-03-01'],
+    ['another format', 'from=09.10.2026&to=09.10.2026'],
+    ['an end before the start', 'from=2026-10-10&to=2026-10-09'],
+    ['more than a year at once', 'from=2025-01-01&to=2026-10-09'],
+  ])('refuses %s', async (_name, query) => {
+    expect((await stats(query)).statusCode).toBe(400);
+  });
+
+  it('is for the admin only', async () => {
+    const response = await ctx.app.inject({ url: '/api/admin/orders/stats?from=2026-10-09&to=2026-10-09' });
+    expect(response.statusCode).toBe(401);
+  });
+});
+
 describe('stock requests and settings', () => {
   it('groups open requests by product and lets each be marked', async () => {
     const a = await addProduct(ctx.db, { name: 'Манты', stockQty: 0, sortOrder: 10 });

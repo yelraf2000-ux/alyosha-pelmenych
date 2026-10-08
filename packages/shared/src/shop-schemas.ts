@@ -46,7 +46,6 @@ export const orderInputSchema = z
     comment: optionalText(500),
     deliveryMethod: z.enum(DELIVERY_METHODS),
     deliveryAddress: optionalText(200),
-    consent: z.literal(true),
     website: z.string().max(0).optional(),
     items: z
       .array(

@@ -222,8 +222,8 @@ Both are uploaded on a product's page in the admin and stored in the uploads fol
   server, and one video is converted at a time. On the product page the video is only downloaded
   when a buyer presses play.
 
-The converter (ffmpeg) is installed with the project's dependencies, so nothing extra is needed
-on the server. Until a product has a real photo it shows the picture built by
+The converter (ffmpeg) needs nothing extra: in development it is installed with the project's
+dependencies, and the Docker image takes it from the system packages (`FFMPEG_BIN` points at it). Until a product has a real photo it shows the picture built by
 `node scripts/product-art/build.mjs`; put replacement pictures into `scripts/product-art/incoming`
 under the product's slug and run that script again.
 

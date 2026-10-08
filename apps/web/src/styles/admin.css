@@ -49,12 +49,13 @@
   justify-content: space-between;
   gap: 12px;
   padding: 8px 16px;
-  background: var(--night-900);
-  color: #fff;
+  border-bottom: 1px solid var(--border);
+  background: var(--glow);
+  color: var(--ink);
 }
 
 .adm-bar a {
-  color: #fff;
+  color: var(--ink);
 }
 
 .adm-bar__brand {
@@ -81,10 +82,10 @@
 .adm-bar__out {
   min-height: 40px;
   padding: 0 14px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(43, 37, 32, 0.25);
   border-radius: var(--radius-pill);
   background: none;
-  color: #fff;
+  color: var(--ink);
   cursor: pointer;
 }
 
@@ -118,7 +119,7 @@
 
 .adm-bar .adm-tabs__link.active {
   border-top-color: var(--amber-500);
-  color: var(--night-900);
+  color: var(--ink);
 }
 
 /* ---------- Page ---------- */
@@ -219,8 +220,56 @@
 }
 
 .adm-stat--hot {
-  background: var(--night-900);
-  color: #fff;
+  background: var(--blue-glass);
+  color: var(--ink);
+}
+
+/* ---------- Order statistics ---------- */
+
+.adm-stats--three {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+/* A sum of money is longer than a count: it gets smaller type so it stays on one line. */
+.adm-stat__value--money {
+  font-size: 1.5rem;
+  line-height: 1.33;
+  white-space: nowrap;
+}
+
+.adm-stat--warn {
+  background: var(--terracotta-soft);
+}
+
+.adm-period {
+  display: grid;
+  gap: 12px;
+}
+
+.adm-period .chips {
+  margin: 0;
+}
+
+.adm-period__dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+.adm-period__dates label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.adm-period__dates input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-s);
+  background: #fff;
+  font-weight: 600;
 }
 
 .adm-stat__value {
@@ -343,12 +392,12 @@
 
 .adm-status--new {
   background: var(--amber-400);
-  color: var(--night-900);
+  color: var(--ink);
 }
 
 .adm-status--confirmed {
   background: var(--sky-300);
-  color: var(--night-900);
+  color: var(--ink);
 }
 
 .adm-status--done {
@@ -380,7 +429,7 @@
 
 .adm-tag--wait {
   background: var(--amber-400);
-  color: var(--night-900);
+  color: var(--ink);
 }
 
 /* ---------- Products ---------- */
@@ -438,67 +487,49 @@
   text-decoration: none;
 }
 
-.adm-product__order {
+/* A product is put in its place by dragging it: with a mouse by the row itself, with a finger by
+   this grip (so that the rest of the row still scrolls the page). */
+.adm-product {
+  cursor: grab;
+}
+
+.adm-product__grip {
   display: grid;
-  gap: 4px;
-}
-
-.adm-product__order button,
-.adm-stock__field button {
-  width: 44px;
+  place-items: center;
+  width: 36px;
   height: 44px;
-  border: 1.5px solid var(--border);
+  border: 0;
   border-radius: var(--radius-s);
-  background: #fff;
-  font-size: 1.125rem;
-  cursor: pointer;
-}
-
-.adm-product__order button {
-  height: 34px;
-}
-
-.adm-product__order button:disabled,
-.adm-stock__field button:disabled {
+  background: none;
   color: #c9bdb1;
-  cursor: not-allowed;
+  cursor: grab;
+  /* A finger on the grip drags the row instead of scrolling the page. */
+  touch-action: none;
+  transition: color 0.2s, background-color 0.2s;
 }
 
-.adm-product__controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 16px;
+.adm-product:hover .adm-product__grip,
+.adm-product__grip:focus-visible {
+  color: var(--ink);
+  background: var(--flour);
 }
 
-.adm-product__edit {
-  margin-left: auto;
+/* The row being carried. */
+.adm-product--dragging {
+  position: relative;
+  z-index: 1;
+  box-shadow: var(--shadow-m);
+  outline: 2px solid var(--amber-400);
 }
 
-.adm-stock {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 600;
+/* While something is carried: nothing gets selected, and the hand stays closed everywhere. */
+.adm-list--dragging {
+  user-select: none;
 }
 
-.adm-stock__field {
-  display: inline-flex;
-  gap: 4px;
-}
-
-.adm-stock__field input {
-  width: 68px;
-  height: 44px;
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-s);
-  font-size: 1.0625rem;
-  font-weight: 700;
-  text-align: center;
-}
-
-.adm-stock__field input[aria-invalid] {
-  border-color: var(--terracotta);
+.adm-list--dragging,
+.adm-list--dragging * {
+  cursor: grabbing !important;
 }
 
 .adm-check {
@@ -513,7 +544,7 @@
   width: 22px;
   height: 22px;
   margin: 0;
-  accent-color: var(--night-800);
+  accent-color: var(--sky-500);
 }
 
 .adm-waiting {
@@ -590,7 +621,7 @@
   max-height: 60vh;
   margin-bottom: 12px;
   border-radius: var(--radius-s);
-  background: var(--night-950);
+  background: var(--ink);
 }
 
 .adm-file {
@@ -649,12 +680,12 @@
   }
 
   .adm-bar .adm-tabs__link {
-    color: rgba(255, 255, 255, 0.75);
+    color: rgba(43, 37, 32, 0.75);
   }
 
   .adm-bar .adm-tabs__link.active {
     background: var(--amber-400);
-    color: var(--night-900);
+    color: var(--ink);
   }
 
   .adm-main {

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { submitOrder } from '../api';
 import { Field } from '../components/Field';
 import { t } from '../i18n';
-import { calcDeliveryFee } from '../lib/delivery';
+import { calcDeliveryFee, isDeliveryExtra } from '../lib/delivery';
 import { formatAmd } from '../lib/format';
 import { useTitle } from '../lib/useTitle';
 import { normalizePhone, normalizeTelegram, validateName, validatePhone, validateTelegram } from '../lib/validation';
@@ -24,7 +24,6 @@ export default function CheckoutPage() {
   const [comment, setComment] = useState('');
   const [method, setMethod] = useState<DeliveryMethod>('pickup');
   const [address, setAddress] = useState('');
-  const [consent, setConsent] = useState(false);
   const [website, setWebsite] = useState(''); // honeypot
 
   const [showErrors, setShowErrors] = useState(false);
@@ -53,11 +52,13 @@ export default function CheckoutPage() {
     phone: validatePhone(phone),
     telegram: validateTelegram(telegram),
     address: method === 'courier' && !address.trim() ? t.form.errors.address : null,
-    consent: consent ? null : t.form.errors.consent,
   };
   const hasErrors = Object.values(errors).some(Boolean);
 
   const deliveryFee = calcDeliveryFee(method, cart.subtotal, settings);
+  // No fixed courier price: delivery is paid separately and is not part of the total.
+  const deliveryExtra = isDeliveryExtra(method, cart.subtotal, settings);
+  const courierExtra = isDeliveryExtra('courier', cart.subtotal, settings);
   const total = cart.subtotal + deliveryFee;
 
   async function handleSubmit(event: FormEvent) {
@@ -83,7 +84,6 @@ export default function CheckoutPage() {
         comment: comment.trim() || null,
         deliveryMethod: method,
         deliveryAddress: method === 'courier' ? address.trim() : null,
-        consent,
         website,
         items: cart.lines.map((line) => ({ productId: line.product.id, qty: line.qty })),
       });
@@ -92,7 +92,7 @@ export default function CheckoutPage() {
         saveLastOrder(result.order);
         cart.clear();
         void refresh();
-        navigate(`/order/${result.order.publicNumber}`, { replace: true, state: { order: result.order } });
+        navigate('/order/thanks', { replace: true, state: { order: result.order } });
         return;
       }
 
@@ -120,6 +120,65 @@ export default function CheckoutPage() {
 
       <form className="split" ref={formRef} onSubmit={handleSubmit} noValidate>
         <div className="checkout">
+          <fieldset className="panel">
+            <legend>{t.checkout.methodTitle}</legend>
+            <div className="options">
+              <label className={`option${method === 'pickup' ? ' option--active' : ''}`}>
+                <input
+                  type="radio"
+                  name="delivery"
+                  checked={method === 'pickup'}
+                  onChange={() => setMethod('pickup')}
+                />
+                <span className="option__title">{t.checkout.pickup}</span>
+                <span className="option__note">{t.cart.free}</span>
+              </label>
+              <label className={`option${method === 'courier' ? ' option--active' : ''}`}>
+                <input
+                  type="radio"
+                  name="delivery"
+                  checked={method === 'courier'}
+                  onChange={() => setMethod('courier')}
+                />
+                <span className="option__title">{t.checkout.courier}</span>
+                <span className="option__note">
+                  {courierExtra
+                    ? t.cart.deliveryExtra
+                    : calcDeliveryFee('courier', cart.subtotal, settings) === 0
+                      ? t.cart.free
+                      : formatAmd(settings.courierFeeAmd)}
+                </span>
+              </label>
+            </div>
+
+            {method === 'pickup' ? (
+              <p className="method-note">
+                <strong>{t.checkout.pickupAddress}:</strong> {settings.pickupAddress}
+              </p>
+            ) : (
+              <>
+                <Field
+                  label={t.checkout.address}
+                  value={address}
+                  onChange={setAddress}
+                  required
+                  autoComplete="street-address"
+                  hint={t.checkout.addressHint}
+                  error={showErrors ? errors.address : null}
+                />
+                <p className="method-note">
+                  {deliveryExtra
+                    ? `${t.checkout.courierExtra}. ${t.cart.freeFrom(formatAmd(settings.freeDeliveryFromAmd))}`
+                    : deliveryFee === 0
+                      ? t.checkout.courierFree
+                      : `${t.checkout.courierFee(formatAmd(deliveryFee))}. ${t.cart.freeFrom(formatAmd(settings.freeDeliveryFromAmd))}`}
+                  .
+                </p>
+              </>
+            )}
+            {settings.deliveryNote && <p className="muted small">{settings.deliveryNote}</p>}
+          </fieldset>
+
           <fieldset className="panel">
             <legend>{t.checkout.contactsTitle}</legend>
             <Field
@@ -149,10 +208,9 @@ export default function CheckoutPage() {
               autoCapitalize="none"
               autoCorrect="off"
               placeholder="@username"
-              hint={t.form.telegramHint}
               error={showErrors ? errors.telegram : null}
             />
-            <Field label={t.form.comment} value={comment} onChange={setComment} multiline hint={t.form.commentHint} />
+            <Field label={t.form.comment} value={comment} onChange={setComment} multiline />
 
             {/* Honeypot: hidden from people, tempting for bots. */}
             <div className="hp" aria-hidden="true">
@@ -168,61 +226,6 @@ export default function CheckoutPage() {
                 />
               </label>
             </div>
-          </fieldset>
-
-          <fieldset className="panel">
-            <legend>{t.checkout.methodTitle}</legend>
-            <div className="options">
-              <label className={`option${method === 'pickup' ? ' option--active' : ''}`}>
-                <input
-                  type="radio"
-                  name="delivery"
-                  checked={method === 'pickup'}
-                  onChange={() => setMethod('pickup')}
-                />
-                <span className="option__title">{t.checkout.pickup}</span>
-                <span className="option__note">{t.cart.free}</span>
-              </label>
-              <label className={`option${method === 'courier' ? ' option--active' : ''}`}>
-                <input
-                  type="radio"
-                  name="delivery"
-                  checked={method === 'courier'}
-                  onChange={() => setMethod('courier')}
-                />
-                <span className="option__title">{t.checkout.courier}</span>
-                <span className="option__note">
-                  {calcDeliveryFee('courier', cart.subtotal, settings) === 0
-                    ? t.cart.free
-                    : formatAmd(settings.courierFeeAmd)}
-                </span>
-              </label>
-            </div>
-
-            {method === 'pickup' ? (
-              <p className="method-note">
-                <strong>{t.checkout.pickupAddress}:</strong> {settings.pickupAddress}
-              </p>
-            ) : (
-              <>
-                <Field
-                  label={t.checkout.address}
-                  value={address}
-                  onChange={setAddress}
-                  required
-                  autoComplete="street-address"
-                  hint={t.checkout.addressHint}
-                  error={showErrors ? errors.address : null}
-                />
-                <p className="method-note">
-                  {deliveryFee === 0
-                    ? t.checkout.courierFree
-                    : `${t.checkout.courierFee(formatAmd(deliveryFee))}. ${t.cart.freeFrom(formatAmd(settings.freeDeliveryFromAmd))}`}
-                  .
-                </p>
-              </>
-            )}
-            {settings.deliveryNote && <p className="muted small">{settings.deliveryNote}</p>}
           </fieldset>
         </div>
 
@@ -245,19 +248,13 @@ export default function CheckoutPage() {
             </div>
             <div>
               <dt>{method === 'pickup' ? t.cart.pickup : t.cart.delivery}</dt>
-              <dd>{deliveryFee === 0 ? t.cart.free : formatAmd(deliveryFee)}</dd>
+              <dd>{deliveryExtra ? t.cart.deliveryExtra : deliveryFee === 0 ? t.cart.free : formatAmd(deliveryFee)}</dd>
             </div>
             <div className="totals__total">
               <dt>{t.cart.total}</dt>
-              <dd>{formatAmd(total)}</dd>
+              <dd>{deliveryExtra ? t.cart.plusDelivery(formatAmd(total)) : formatAmd(total)}</dd>
             </div>
           </dl>
-
-          <label className={`check${showErrors && errors.consent ? ' check--error' : ''}`}>
-            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-            <span>{t.checkout.consent} *</span>
-          </label>
-          {showErrors && errors.consent && <p className="field__error">{errors.consent}</p>}
 
           {showErrors && hasErrors && (
             <p className="alert alert--error" role="alert">

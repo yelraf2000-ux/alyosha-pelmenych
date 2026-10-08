@@ -6,6 +6,7 @@ import { LogoBadge } from '../components/Logo';
 import '../styles/admin.css';
 import { adminApi, ApiError, setUnauthorizedHandler } from './api';
 import { OrderPage, OrdersPage } from './Orders';
+import { OrderStatsPage } from './OrderStats';
 import { ProductFormPage } from './ProductForm';
 import { ProductsPage } from './Products';
 import { RequestsPage } from './Requests';
@@ -161,9 +162,6 @@ export default function AdminApp() {
           ))}
         </nav>
         <div className="adm-bar__actions">
-          <a href="/" target="_blank" rel="noreferrer">
-            Сайт
-          </a>
           <button type="button" className="adm-bar__out" onClick={signOut}>
             Выйти
           </button>
@@ -174,6 +172,7 @@ export default function AdminApp() {
         <Routes>
           <Route index element={<TodayPage />} />
           <Route path="orders" element={<OrdersPage />} />
+          <Route path="orders/stats" element={<OrderStatsPage />} />
           <Route path="orders/:id" element={<OrderPage />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="products/new" element={<ProductFormPage />} />

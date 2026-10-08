@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ContactsList, DeliveryCards } from '../components/InfoBlocks';
+import { AboutPhoto } from '../components/InfoBlocks';
 import { t } from '../i18n';
 import { paragraphs } from '../lib/format';
 import { useTitle } from '../lib/useTitle';
@@ -20,37 +20,12 @@ export function AboutPage() {
   const { settings } = useShop();
   if (!settings) return null;
   return (
-    <div className="section container narrow prose">
-      <h1>{t.nav.about}</h1>
-      <Text text={settings.aboutText} />
-    </div>
-  );
-}
-
-export function DeliveryPage() {
-  useTitle(t.nav.delivery);
-  const { settings } = useShop();
-  if (!settings) return null;
-  return (
-    <div className="section container narrow prose">
-      <h1>{t.nav.delivery}</h1>
-      <DeliveryCards settings={settings} />
-      <Text text={settings.deliveryText} />
-    </div>
-  );
-}
-
-export function ContactsPage() {
-  useTitle(t.nav.contacts);
-  const { settings } = useShop();
-  if (!settings) return null;
-  return (
-    <div className="section container narrow prose">
-      <h1>{t.nav.contacts}</h1>
-      <ContactsList settings={settings} />
-      <Text text={settings.contactsText} />
-      <h2>{t.delivery.pickupTitle}</h2>
-      <p>{settings.pickupAddress}</p>
+    <div className="section container about about--page">
+      <AboutPhoto />
+      <div className="prose">
+        <h1>{t.nav.about}</h1>
+        <Text text={settings.aboutText} />
+      </div>
     </div>
   );
 }

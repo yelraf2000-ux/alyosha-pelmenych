@@ -15,6 +15,10 @@ COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
+# The ffmpeg-static package would download a 70 MB binary from GitHub while installing, and a
+# failed download fails the whole build. Nothing in this stage runs ffmpeg, so its installer is
+# told the binary is already there (it only checks that FFMPEG_BIN is a file).
+ENV FFMPEG_BIN=/bin/true
 RUN npm ci
 
 COPY packages/shared packages/shared
@@ -31,6 +35,12 @@ RUN npm run build -w @alyosha/api \
 FROM node:22-bookworm-slim AS api
 ENV NODE_ENV=production
 WORKDIR /app
+
+# ffmpeg, which converts product videos, comes from Debian rather than from the download the
+# ffmpeg-static package makes on install: FFMPEG_BIN tells its installer to skip the download
+# and tells the app which binary to run.
+RUN apt-get update  && apt-get install -y --no-install-recommends ffmpeg  && rm -rf /var/lib/apt/lists/*
+ENV FFMPEG_BIN=/usr/bin/ffmpeg
 
 # Runtime dependencies only (no Vite, TypeScript or test tools).
 COPY package.json package-lock.json ./

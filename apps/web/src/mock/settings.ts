@@ -3,15 +3,17 @@ import type { Settings } from '../types';
 // Settings for the static demo build. They mirror the real seed (apps/api/src/db/seed.ts).
 
 export const MOCK_SETTINGS: Settings = {
-  heroTitle: 'Домашние пельмени ручной лепки', // TODO_CLIENT: our wording, to be approved
-  heroSubtitle: 'Пельмени, манты и хинкали. Лепим в Ереване.', // TODO_CLIENT: our wording, to be approved
+  heroTitle: 'Лепим от души, как для себя', // TODO_CLIENT: built from his own words; he should approve it
+  heroSubtitle: 'Доставка по Еревану', // TODO_CLIENT: the delivery area is not confirmed yet
+  // TODO_CLIENT: his own story as he told it in the chat, tidied up by us. He should read the wording.
   aboutText:
-    'PLACEHOLDER: здесь будет рассказ о вас — кто лепит, из чего и почему это вкусно.\n\n' +
-    'PLACEHOLDER: второй абзац — два-три предложения о том, как всё начиналось.', // TODO_CLIENT
-  deliveryText: 'После оформления заказа мы сами свяжемся с вами и уточним детали.',
-  contactsText: 'Работаем каждый день с 11:00 до 22:00, без выходных.',
+    'Меня зовут Алексей, и пельмени я любил всегда. Ещё в детстве мы лепили их вместе с родителями.\n\n' +
+    'Несколько лет я работал поваром в общепите и видел, как многие стараются экономить на продуктах. А я люблю делать всё от души — как для себя. Поэтому захотел работать на себя и решил делать пельмени.\n\n' +
+    'Начинал ещё в Краснодаре, а потом переехал в Ереван и с новыми силами продолжил.',
+  deliveryText: '',
+  contactsText: 'Работаем каждый день с 11:00 до 22:00',
   pickupAddress: 'Ереван, проспект Тигран Мец, 59',
-  courierFeeAmd: 1000, // TODO_CLIENT: the fee below the free threshold is not known yet
+  courierFeeAmd: 0, // no fixed price: «+ доставка», paid to the courier separately (TODO_CLIENT: his price, if he has one)
   freeDeliveryFromAmd: 20000,
   deliveryNote: '',
   phonePublic: '+374 55 443639',

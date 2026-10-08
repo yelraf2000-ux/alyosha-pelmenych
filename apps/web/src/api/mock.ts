@@ -5,7 +5,7 @@
 // which makes the demo behave like the real thing: an order lowers stock,
 // and a second tab with a stale cart is refused on submit.
 
-import { calcDeliveryFee } from '../lib/delivery';
+import { calcDeliveryFee, isDeliveryExtra } from '../lib/delivery';
 import { normalizePhone } from '../lib/validation';
 import { MOCK_PRODUCTS } from '../mock/products';
 import { MOCK_SETTINGS } from '../mock/settings';
@@ -90,7 +90,6 @@ export async function submitOrder(input: OrderInput): Promise<SubmitOrderResult>
   const courierWithoutAddress = input.deliveryMethod === 'courier' && !input.deliveryAddress?.trim();
   if (
     input.website ||
-    !input.consent ||
     !phone ||
     input.customerName.trim().length < 2 ||
     courierWithoutAddress ||
@@ -135,6 +134,7 @@ export async function submitOrder(input: OrderInput): Promise<SubmitOrderResult>
       items,
       itemsTotalAmd,
       deliveryFeeAmd,
+      deliveryExtra: isDeliveryExtra(input.deliveryMethod, itemsTotalAmd, MOCK_SETTINGS),
       totalAmd: itemsTotalAmd + deliveryFeeAmd,
       deliveryMethod: input.deliveryMethod,
       deliveryAddress: input.deliveryMethod === 'courier' ? (input.deliveryAddress?.trim() ?? null) : null,

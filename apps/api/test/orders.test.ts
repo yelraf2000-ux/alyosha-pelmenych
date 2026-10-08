@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { formatOrderMessage } from '../src/notify';
 import { addProduct, countRows, createTestContext, orderBody, postOrder, stockOf, type TestContext } from './helpers';
 
 let ctx: TestContext;
@@ -139,6 +140,7 @@ describe('order contents', () => {
       items: [{ productId: id, name: 'Пельмени домашние', priceAmd: 2400, qty: 3 }],
       itemsTotalAmd: 7200,
       deliveryFeeAmd: 0,
+      deliveryExtra: false,
       totalAmd: 7200,
       deliveryMethod: 'pickup',
       deliveryAddress: null,
@@ -163,6 +165,28 @@ describe('order contents', () => {
 
     const large = await postOrder(ctx.app, orderBody([{ productId: id, qty: 5 }], courier));
     expect(large.json().order).toMatchObject({ itemsTotalAmd: 10000, deliveryFeeAmd: 0, totalAmd: 10000 });
+  });
+
+  it('leaves delivery out of the total, marked as paid separately, when the shop has no fixed courier fee', async () => {
+    await ctx.db.execute(sql`UPDATE settings SET value = '0' WHERE key = 'courier_fee_amd'`);
+    const id = await addProduct(ctx.db, { stockQty: 50, priceAmd: 2000 });
+    const courier = { deliveryMethod: 'courier' as const, deliveryAddress: 'ул. Тестовая, 1' };
+
+    const small = await postOrder(ctx.app, orderBody([{ productId: id, qty: 4 }], courier));
+    expect(small.json().order).toMatchObject({ deliveryFeeAmd: 0, deliveryExtra: true, totalAmd: 8000 });
+    // The owner's message says so too, so he does not read the total as the whole sum.
+    const message = formatOrderMessage(small.json().order, { name: 'Тест', phone: '+37491000000', telegram: null, comment: null });
+    expect(message).toContain('Курьер: доставка оплачивается отдельно');
+    expect(message).toMatch(/Итого: 8\s000\s֏ \+ доставка/);
+
+    // Above the threshold delivery is simply free, and so is pickup at any sum.
+    const large = await postOrder(ctx.app, orderBody([{ productId: id, qty: 5 }], courier));
+    expect(large.json().order).toMatchObject({ deliveryFeeAmd: 0, deliveryExtra: false, totalAmd: 10000 });
+    const pickup = await postOrder(ctx.app, orderBody([{ productId: id, qty: 1 }]));
+    expect(pickup.json().order).toMatchObject({ deliveryFeeAmd: 0, deliveryExtra: false, totalAmd: 2000 });
+
+    const stored = await ctx.db.execute(sql`SELECT delivery_extra FROM orders ORDER BY id`);
+    expect(stored.rows.map((row) => row.delivery_extra)).toEqual([true, false, false]);
   });
 
   it('stores the customer with a normalised phone and Telegram name', async () => {
@@ -206,7 +230,6 @@ describe('validation', () => {
   it.each([
     ['a bad phone', { customerPhone: '12345' }],
     ['a missing name', { customerName: ' ' }],
-    ['no consent', { consent: false }],
     ['courier without an address', { deliveryMethod: 'courier' as const, deliveryAddress: ' ' }],
     ['a bad Telegram name', { customerTelegram: 'a b' }],
     ['a filled honeypot', { website: 'http://spam.example' }],
