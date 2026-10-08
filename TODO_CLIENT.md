@@ -107,9 +107,11 @@ What is still a guess is marked `TODO_CLIENT` or `PLACEHOLDER` in the code and l
 
 ## Added beyond the original spec, because of his data
 
-- A «Хинкали» category (the spec listed пельмени, вареники, манты, other). «Вареники» stays
-  available as a category but has no products.
+- A «Хинкали» category (the spec listed пельмени, вареники, манты, other). «Вареники» and «Другое»
+  exist but have no products, so buyers do not see them; he can delete them if he never needs them.
 - A TikTok link next to Instagram.
+- Categories are the owner's own: he adds, renames and deletes them in the admin («Товары →
+  Категории», or «+ Новая категория…» right in a product's form). The spec had a fixed list.
 - Order statistics in the admin («Заказы → Статистика»): for one day or a run of days, how many
   orders were placed, how many were cancelled, the sums, and what was sold. The spec listed
   "analytics dashboards" as not for v1; this is a plain summary Rafayel asked for, with no charts,

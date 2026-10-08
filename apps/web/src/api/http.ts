@@ -1,6 +1,6 @@
 // The real API (apps/api). In development Vite proxies /api to it; in production nginx does.
 
-import type { OrderInput, Product, Settings, StockRequestInput, SubmitOrderResult } from '../types';
+import type { Category, OrderInput, Product, Settings, StockRequestInput, SubmitOrderResult } from '../types';
 
 const BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -21,6 +21,10 @@ function post(path: string, body: unknown): Promise<Response> {
 
 export function getProducts(): Promise<Product[]> {
   return get<Product[]>('/api/products');
+}
+
+export function getCategories(): Promise<Category[]> {
+  return get<Category[]>('/api/categories');
 }
 
 export function getSettings(): Promise<Settings> {

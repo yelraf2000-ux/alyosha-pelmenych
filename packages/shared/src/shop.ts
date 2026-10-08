@@ -3,8 +3,14 @@
 
 // ---------- Domain types ----------
 
-export const CATEGORIES = ['pelmeni', 'vareniki', 'manty', 'khinkali', 'other'] as const;
-export type Category = (typeof CATEGORIES)[number];
+/**
+ * A group of products in the catalog. The owner adds and names them in the admin.
+ * Products point at one by `slug`; people read `name`.
+ */
+export interface Category {
+  slug: string;
+  name: string;
+}
 
 export const DELIVERY_METHODS = ['pickup', 'courier'] as const;
 export type DeliveryMethod = (typeof DELIVERY_METHODS)[number];
@@ -14,7 +20,8 @@ export interface Product {
   slug: string;
   name: string;
   description: string;
-  category: Category;
+  /** The slug of its `Category`. */
+  category: string;
   priceAmd: number;
   weightLabel: string;
   stockQty: number;
@@ -113,6 +120,11 @@ export function normalizePhone(raw: string): string | null {
 export function normalizeTelegram(raw: string): string | null {
   const value = raw.trim().replace(/^@/, '');
   return /^[a-zA-Z][a-zA-Z0-9_]{4,31}$/.test(value) ? value : null;
+}
+
+/** The name of a product's category, or its slug if the category is not in the list. */
+export function categoryName(categories: readonly Category[], slug: string): string {
+  return categories.find((category) => category.slug === slug)?.name ?? slug;
 }
 
 export function calcDeliveryFee(

@@ -1,11 +1,11 @@
 import { useId } from 'react';
-import type { Category } from '../types';
 
 // Hand-drawn stand-ins used in the logo placeholder, the hero and the PLACEHOLDER product photos.
 
 const STROKE = '#7a4a1e';
 
-export function Dumpling({ kind = 'pelmeni', className }: { kind?: Category; className?: string }) {
+/** `kind` is a category slug: вареники, хинкали and манты have a shape of their own, everything else is a пельмень. */
+export function Dumpling({ kind = 'pelmeni', className }: { kind?: string; className?: string }) {
   const gradientId = useId();
   const fill = `url(#${gradientId})`;
 

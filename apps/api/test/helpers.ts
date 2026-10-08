@@ -76,6 +76,8 @@ export async function createTestContext(): Promise<TestContext> {
       sql`TRUNCATE order_items, orders, stock_requests, products, settings RESTART IDENTITY CASCADE`,
     );
     await db.execute(sql`ALTER SEQUENCE order_number_seq RESTART WITH 1`);
+    // The base categories come from the migration; whatever a test added goes.
+    await db.execute(sql`DELETE FROM categories WHERE slug NOT IN ('pelmeni', 'vareniki', 'manty', 'khinkali', 'other')`);
     await db.insert(settings).values([
       { key: SETTING_KEYS.courierFeeAmd, value: '1000' },
       { key: SETTING_KEYS.freeDeliveryFromAmd, value: '10000' },

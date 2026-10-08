@@ -14,6 +14,7 @@ import { products, stockRequests } from './db/schema';
 import type { Notifier } from './notify';
 import { placeOrder } from './services/orders';
 import { toProduct } from './services/products';
+import { listCategories } from './services/categories';
 import { getSettings } from './services/settings';
 
 export interface AppOptions {
@@ -115,6 +116,8 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
       .orderBy(asc(products.sortOrder), asc(products.id));
     return rows.map(toProduct);
   });
+
+  app.get('/api/categories', async () => listCategories(db));
 
   app.get('/api/settings', async () => getSettings(db));
 

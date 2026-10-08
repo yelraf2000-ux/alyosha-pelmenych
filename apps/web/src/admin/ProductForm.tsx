@@ -1,8 +1,7 @@
-import { CATEGORIES, type AdminProduct, type Category } from '@alyosha/shared';
+import type { AdminCategory, AdminProduct } from '@alyosha/shared';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Field } from '../components/Field';
-import { t } from '../i18n';
 import { adminApi, type ProductInput } from './api';
 import type { ProductsLocationState } from './Products';
 import { errorText, LoadState, PageHead, useLoad } from './shared';
@@ -13,7 +12,8 @@ const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 
 interface FormState {
   name: string;
-  category: Category;
+  /** A category's slug; empty until the list of categories has arrived (a new product). */
+  category: string;
   priceAmd: string;
   weightLabel: string;
   description: string;
@@ -25,7 +25,7 @@ interface FormState {
 
 const EMPTY: FormState = {
   name: '',
-  category: 'pelmeni',
+  category: '',
   priceAmd: '',
   weightLabel: '',
   description: '',
@@ -51,6 +51,9 @@ function fromProduct(product: AdminProduct): FormState {
 
 const wholeNumber = (value: string) => /^\d+$/.test(value.trim());
 
+/** The picker's last option: it opens a field for a new category instead of choosing one. */
+const NEW_CATEGORY = '+new';
+
 /** Create and edit form: every product field plus the photo (SPEC §7). */
 export function ProductFormPage() {
   const params = useParams();
@@ -68,6 +71,36 @@ export function ProductFormPage() {
   const [showErrors, setShowErrors] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const categoryList = useLoad(() => adminApi.categories(), []);
+  const [categories, setCategories] = useState<AdminCategory[]>([]);
+  /** The name being typed for a new category, or null when the picker shows the list. */
+  const [newCategory, setNewCategory] = useState<string | null>(null);
+  const [addingCategory, setAddingCategory] = useState(false);
+
+  useEffect(() => {
+    if (!categoryList.data) return;
+    setCategories(categoryList.data);
+    // A new product starts in the first category.
+    setForm((current) => (current.category ? current : { ...current, category: categoryList.data![0]?.slug ?? '' }));
+  }, [categoryList.data]);
+
+  async function addCategory() {
+    const name = newCategory?.trim();
+    if (!name || addingCategory) return;
+    setAddingCategory(true);
+    setError(null);
+    try {
+      const created = await adminApi.createCategory(name);
+      setCategories((current) => [...current, created]);
+      setForm((current) => ({ ...current, category: created.slug }));
+      setNewCategory(null);
+    } catch (reason) {
+      setError(errorText(reason));
+    } finally {
+      setAddingCategory(false);
+    }
+  }
 
   // Fill the form once, when the product arrives; later reloads must not overwrite what is being typed.
   useEffect(() => {
@@ -100,6 +133,7 @@ export function ProductFormPage() {
 
   const errors = {
     name: form.name.trim() ? null : 'Напишите название',
+    category: form.category ? null : 'Выберите категорию',
     priceAmd: wholeNumber(form.priceAmd) ? null : 'Цена — целое число в драмах',
     stockQty: wholeNumber(form.stockQty) ? null : 'Количество — целое число',
     slug: !form.slug.trim() || /^[a-z0-9]+(-[a-z0-9]+)*$/.test(form.slug.trim()) ? null : 'Только латинские буквы, цифры и дефис',
@@ -223,18 +257,49 @@ export function ProductFormPage() {
             <label className="field__label" htmlFor="product-category">
               Категория <span aria-hidden="true">*</span>
             </label>
-            <select
-              id="product-category"
-              className="field__input"
-              value={form.category}
-              onChange={(event) => set('category', event.target.value as Category)}
-            >
-              {CATEGORIES.map((category) => (
-                <option key={category} value={category}>
-                  {t.categories[category]}
-                </option>
-              ))}
-            </select>
+            {newCategory === null ? (
+              <select
+                id="product-category"
+                className="field__input"
+                value={form.category}
+                onChange={(event) => (event.target.value === NEW_CATEGORY ? setNewCategory('') : set('category', event.target.value))}
+              >
+                {categories.map((category) => (
+                  <option key={category.slug} value={category.slug}>
+                    {category.name}
+                  </option>
+                ))}
+                <option value={NEW_CATEGORY}>+ Новая категория…</option>
+              </select>
+            ) : (
+              // Typing a new category in place: it is saved at once and chosen for this product.
+              <div className="adm-category__name">
+                <input
+                  id="product-category"
+                  className="field__input"
+                  value={newCategory}
+                  maxLength={40}
+                  autoFocus
+                  placeholder="Название новой категории"
+                  onChange={(event) => setNewCategory(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault(); // not the product form's submit
+                      void addCategory();
+                    } else if (event.key === 'Escape') {
+                      setNewCategory(null);
+                    }
+                  }}
+                />
+                <button type="button" className="btn btn--primary" disabled={addingCategory || !newCategory.trim()} onClick={addCategory}>
+                  Добавить
+                </button>
+                <button type="button" className="btn" disabled={addingCategory} onClick={() => setNewCategory(null)}>
+                  Отмена
+                </button>
+              </div>
+            )}
+            {showErrors && errors.category && <p className="field__error">{errors.category}</p>}
           </div>
 
           <div className="adm-form__pair">

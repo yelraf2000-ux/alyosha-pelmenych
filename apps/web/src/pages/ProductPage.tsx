@@ -1,3 +1,4 @@
+import { categoryName } from '@alyosha/shared';
 import { Link, useParams } from 'react-router-dom';
 import { ProductPhoto } from '../components/ProductPhoto';
 import { ProductVideo } from '../components/ProductVideo';
@@ -9,7 +10,7 @@ import { useShop } from '../state/ShopContext';
 
 export default function ProductPage() {
   const { slug } = useParams();
-  const { products } = useShop();
+  const { products, categories } = useShop();
   const product = products.find((p) => p.slug === slug);
   useTitle(product?.name ?? t.product.notFoundTitle);
 
@@ -30,7 +31,7 @@ export default function ProductPage() {
       <nav className="crumbs" aria-label={t.nav.breadcrumbs}>
         <Link to="/catalog">{t.nav.catalog}</Link>
         <span aria-hidden="true">/</span>
-        <span>{t.categories[product.category]}</span>
+        <span>{categoryName(categories, product.category)}</span>
       </nav>
       <div className="product">
         <div className="product__media">

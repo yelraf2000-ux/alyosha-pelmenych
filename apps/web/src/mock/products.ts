@@ -1,8 +1,17 @@
-import type { Product } from '../types';
+import type { Category, Product } from '../types';
 
 // Products for the static demo build: the real names and prices from Алексей's price list.
 // Stock and the «Новинка» marks are made up, chosen to show every card state
 // (in stock, low stock, out of stock); the demo banner says the data are examples.
+
+/** The categories every shop database starts with (migration 0006 in apps/api). */
+export const MOCK_CATEGORIES: Category[] = [
+  { slug: 'pelmeni', name: 'Пельмени' },
+  { slug: 'vareniki', name: 'Вареники' },
+  { slug: 'manty', name: 'Манты' },
+  { slug: 'khinkali', name: 'Хинкали' },
+  { slug: 'other', name: 'Другое' },
+];
 
 type MockProduct = Pick<Product, 'slug' | 'name' | 'category' | 'priceAmd' | 'weightLabel' | 'stockQty'> & {
   isNew?: boolean;

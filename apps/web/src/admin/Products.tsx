@@ -1,7 +1,13 @@
-import { formatAmd, smallImagePath, type AdminProduct, type AdminStockRequest } from '@alyosha/shared';
+import {
+  categoryName,
+  formatAmd,
+  smallImagePath,
+  type AdminProduct,
+  type AdminStockRequest,
+  type Category,
+} from '@alyosha/shared';
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { t } from '../i18n';
 import { plural } from '../lib/format';
 import { adminApi } from './api';
 import { ContactLinks, errorText, LoadState, PageHead, useLoad } from './shared';
@@ -66,6 +72,7 @@ const INTERACTIVE = 'a, button, input, select, textarea, label';
 
 function ProductRow({
   product,
+  categories,
   position,
   total,
   dragging,
@@ -77,6 +84,7 @@ function ProductRow({
   onWaiting,
 }: {
   product: AdminProduct;
+  categories: Category[];
   position: number;
   total: number;
   dragging: boolean;
@@ -106,7 +114,7 @@ function ProductRow({
             {product.name}
           </Link>
           <span className="adm-muted">
-            {t.categories[product.category]}
+            {categoryName(categories, product.category)}
             {product.weightLabel && ` · ${product.weightLabel}`} · {formatAmd(product.priceAmd)}
           </span>
           <span className="adm-tags">
@@ -175,6 +183,8 @@ export function ProductsPage() {
   const { data: products, setData, error, loading, reload } = useLoad(() => adminApi.products(), [], {
     refreshOnFocus: true,
   });
+  // Only for the names shown in the rows; while they load, a row shows the category's slug.
+  const { data: categories } = useLoad(() => adminApi.categories(), []);
   const [actionError, setActionError] = useState<string | null>(null);
   const [waiting, setWaiting] = useState<WaitingMap>(() => {
     // The product form hands over who is waiting when it raised the stock from zero.
@@ -262,6 +272,9 @@ export function ProductsPage() {
   return (
     <>
       <PageHead title="Товары">
+        <Link to="categories" className="btn">
+          Категории
+        </Link>
         <Link to="new" className="btn btn--primary">
           + Добавить
         </Link>
@@ -286,6 +299,7 @@ export function ProductsPage() {
             <ProductRow
               key={product.id}
               product={product}
+              categories={categories ?? []}
               position={index}
               total={products.length}
               dragging={draggingId === product.id}

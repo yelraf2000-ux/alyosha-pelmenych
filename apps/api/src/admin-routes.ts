@@ -1,4 +1,5 @@
 import {
+  categoryNameSchema,
   daysInRange,
   isIsoDate,
   loginSchema,
@@ -30,6 +31,7 @@ import {
 } from './auth';
 import type { Db } from './db/client';
 import { changeOrderStatus, getOrder, getOrderStats, getToday, listOrders } from './services/admin-orders';
+import { categoryExists, createCategory, deleteCategory, listAdminCategories, renameCategory } from './services/categories';
 import { deleteProductImage, InvalidImageError, MAX_UPLOAD_BYTES, saveProductImage } from './services/images';
 import {
   createProduct,
@@ -144,7 +146,7 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
 
       admin.post('/products', async (request, reply) => {
         const parsed = productCreateSchema.safeParse(request.body);
-        if (!parsed.success) return fail(reply, 400, 'invalid');
+        if (!parsed.success || !(await categoryExists(db, parsed.data.category))) return fail(reply, 400, 'invalid');
         reply.code(201);
         return { product: await createProduct(db, parsed.data), waiting: [] };
       });
@@ -154,6 +156,7 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
         const parsed = productPatchSchema.safeParse(request.body);
         if (!id) return fail(reply, 404, 'not_found');
         if (!parsed.success) return fail(reply, 400, 'invalid');
+        if (parsed.data.category && !(await categoryExists(db, parsed.data.category))) return fail(reply, 400, 'invalid');
 
         const result = await updateProduct(db, id, parsed.data);
         if (!result.ok) return fail(reply, result.error === 'not_found' ? 404 : 409, result.error);
@@ -255,6 +258,31 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
       });
 
       // ---------- "Notify me" requests ----------
+
+      // ----- Categories: the owner's own groups of the catalog -----
+
+      admin.get('/categories', async () => listAdminCategories(db));
+
+      admin.post('/categories', async (request, reply) => {
+        const parsed = categoryNameSchema.safeParse(request.body);
+        if (!parsed.success) return fail(reply, 400, 'invalid');
+        reply.code(201);
+        return createCategory(db, parsed.data.name);
+      });
+
+      admin.patch('/categories/:slug', async (request, reply) => {
+        const parsed = categoryNameSchema.safeParse(request.body);
+        if (!parsed.success) return fail(reply, 400, 'invalid');
+        const { slug } = request.params as { slug: string };
+        return (await renameCategory(db, slug, parsed.data.name)) ?? fail(reply, 404, 'not_found');
+      });
+
+      admin.delete('/categories/:slug', async (request, reply) => {
+        const { slug } = request.params as { slug: string };
+        const result = await deleteCategory(db, slug);
+        if (!result.ok) return fail(reply, result.error === 'not_found' ? 404 : 409, result.error);
+        return { ok: true };
+      });
 
       admin.get('/stock-requests', async (request) => {
         const all = (request.query as { all?: string }).all === '1';

@@ -458,6 +458,97 @@ describe('admin orders', () => {
   });
 });
 
+describe('categories', () => {
+  const BASE = ['pelmeni', 'vareniki', 'manty', 'khinkali', 'other'];
+  const add = (name: unknown) => asAdmin({ method: 'POST', url: '/api/admin/categories', payload: { name } });
+
+  it('starts with the five the shop always had, for buyers and for the admin', async () => {
+    const forBuyers = (await ctx.app.inject({ url: '/api/categories' })).json();
+    expect(forBuyers.map((c: { slug: string }) => c.slug)).toEqual(BASE);
+    expect(forBuyers[0]).toEqual({ slug: 'pelmeni', name: 'Пельмени' });
+
+    await addProduct(ctx.db, { category: 'manty' });
+    await addProduct(ctx.db, { category: 'manty', isActive: false });
+    const forAdmin = (await asAdmin({ url: '/api/admin/categories' })).json();
+    expect(forAdmin.find((c: { slug: string }) => c.slug === 'manty')).toEqual({ slug: 'manty', name: 'Манты', productCount: 2 });
+    expect(forAdmin.find((c: { slug: string }) => c.slug === 'other').productCount).toBe(0);
+  });
+
+  it('adds a category at the end, and a product can then be put into it', async () => {
+    const created = await add('  Чебуреки ');
+    expect(created.statusCode).toBe(201);
+    expect(created.json()).toEqual({ slug: 'chebureki', name: 'Чебуреки', productCount: 0 });
+
+    const list = (await ctx.app.inject({ url: '/api/categories' })).json();
+    expect(list.at(-1)).toEqual({ slug: 'chebureki', name: 'Чебуреки' });
+
+    const product = await asAdmin({
+      method: 'POST',
+      url: '/api/admin/products',
+      payload: { name: 'Чебурек с мясом', category: 'chebureki', priceAmd: 900 },
+    });
+    expect(product.statusCode).toBe(201);
+    expect(product.json().product.category).toBe('chebureki');
+    expect((await ctx.app.inject({ url: '/api/products' })).json()[0].category).toBe('chebureki');
+  });
+
+  it('gives a second category of the same name its own address, and one with no Latin letters a neutral one', async () => {
+    expect((await add('Чебуреки')).json().slug).toBe('chebureki');
+    expect((await add('Чебуреки')).json().slug).toBe('chebureki-2');
+    expect((await add('★★★')).json().slug).toBe('category');
+  });
+
+  it('renames a category without touching its products', async () => {
+    const id = await addProduct(ctx.db, { category: 'other' });
+    const renamed = await asAdmin({ method: 'PATCH', url: '/api/admin/categories/other', payload: { name: 'Соусы' } });
+    expect(renamed.json()).toEqual({ slug: 'other', name: 'Соусы', productCount: 1 });
+    expect((await asAdmin({ url: `/api/admin/products/${id}` })).json().category).toBe('other');
+
+    const missing = await asAdmin({ method: 'PATCH', url: '/api/admin/categories/nope', payload: { name: 'X' } });
+    expect(missing.statusCode).toBe(404);
+    // ctx.reset() does not rename categories back, so do it here.
+    await asAdmin({ method: 'PATCH', url: '/api/admin/categories/other', payload: { name: 'Другое' } });
+  });
+
+  it('deletes an empty category only', async () => {
+    await add('Чебуреки');
+    const id = await addProduct(ctx.db, { category: 'chebureki' });
+    const remove = () => asAdmin({ method: 'DELETE', url: '/api/admin/categories/chebureki' });
+
+    const busy = await remove();
+    expect(busy.statusCode).toBe(409);
+    expect(busy.json().error).toBe('has_products');
+
+    await asAdmin({ method: 'PATCH', url: `/api/admin/products/${id}`, payload: { category: 'pelmeni' } });
+    expect((await remove()).statusCode).toBe(200);
+    expect((await remove()).statusCode).toBe(404);
+    expect((await ctx.app.inject({ url: '/api/categories' })).json().map((c: { slug: string }) => c.slug)).toEqual(BASE);
+  });
+
+  it.each([
+    ['an empty name', '   '],
+    ['a name that is too long', 'я'.repeat(41)],
+    ['something that is not text', 42],
+  ])('refuses %s', async (_label, name) => {
+    expect((await add(name)).statusCode).toBe(400);
+  });
+
+  it('refuses a product in a category that does not exist', async () => {
+    const response = await asAdmin({
+      method: 'POST',
+      url: '/api/admin/products',
+      payload: { name: 'Пицца', category: 'pizza', priceAmd: 1000 },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('is managed by the admin only', async () => {
+    expect((await ctx.app.inject({ url: '/api/admin/categories' })).statusCode).toBe(401);
+    const anonymous = await ctx.app.inject({ method: 'POST', url: '/api/admin/categories', payload: { name: 'X' } });
+    expect(anonymous.statusCode).toBe(401);
+  });
+});
+
 describe('order statistics', () => {
   /** Moves an order to a moment of our choosing. */
   async function placedAt(orderId: number, iso: string) {

@@ -7,9 +7,10 @@
 
 import { calcDeliveryFee, isDeliveryExtra } from '../lib/delivery';
 import { normalizePhone } from '../lib/validation';
-import { MOCK_PRODUCTS } from '../mock/products';
+import { MOCK_CATEGORIES, MOCK_PRODUCTS } from '../mock/products';
 import { MOCK_SETTINGS } from '../mock/settings';
 import type {
+  Category,
   OrderInput,
   OrderItemView,
   Product,
@@ -76,6 +77,11 @@ export async function getProducts(): Promise<Product[]> {
   return MOCK_PRODUCTS.filter((p) => p.isActive)
     .map((p) => ({ ...p, stockQty: stockOf(db, p) }))
     .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+export async function getCategories(): Promise<Category[]> {
+  await delay(60);
+  return [...MOCK_CATEGORIES];
 }
 
 export async function getSettings(): Promise<Settings> {

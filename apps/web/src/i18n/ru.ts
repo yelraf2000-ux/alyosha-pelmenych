@@ -22,15 +22,6 @@ export const ru = {
     breadcrumbs: 'Вы здесь',
   },
 
-  categories: {
-    all: 'Все',
-    pelmeni: 'Пельмени',
-    vareniki: 'Вареники',
-    manty: 'Манты',
-    khinkali: 'Хинкали',
-    other: 'Другое',
-  },
-
   home: {
     newTitle: 'Новинки',
     catalogTitle: 'Каталог',
@@ -42,6 +33,7 @@ export const ru = {
   catalog: {
     title: 'Каталог',
     filterLabel: 'Категория',
+    all: 'Все',
     empty: 'В этой категории пока ничего нет.',
   },
 

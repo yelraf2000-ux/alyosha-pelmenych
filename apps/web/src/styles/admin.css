@@ -224,6 +224,42 @@
   color: var(--ink);
 }
 
+/* ---------- Categories ---------- */
+
+.adm-category {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 12px 16px;
+  border-radius: var(--radius-m);
+  background: #fff;
+  box-shadow: var(--shadow-s);
+}
+
+/* A name field with its button(s) beside it; also the "new category" field in the product form. */
+.adm-category__name {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.adm-category__name .field__input {
+  flex: 1 1 180px;
+  width: auto;
+}
+
+.adm-category-add {
+  display: grid;
+  gap: 8px;
+}
+
+@media (min-width: 640px) {
+  .adm-category {
+    grid-template-columns: 1fr auto auto;
+  }
+}
+
 /* ---------- Order statistics ---------- */
 
 .adm-stats--three {

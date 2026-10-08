@@ -1,6 +1,6 @@
 // Types and helpers for the admin panel (SPEC §7). The input schemas are in admin-schemas.ts.
 
-import type { DeliveryMethod, Product, StockShortage } from './shop';
+import type { Category, DeliveryMethod, Product, StockShortage } from './shop';
 
 export const ORDER_STATUSES = ['new', 'confirmed', 'done', 'cancelled'] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
@@ -13,6 +13,11 @@ export type StockRequestStatus = (typeof STOCK_REQUEST_STATUSES)[number];
 export interface AdminProduct extends Product {
   /** Open "notify me" requests for this product. */
   waitingCount: number;
+}
+
+export interface AdminCategory extends Category {
+  /** Products in it, hidden ones included. Only an empty category can be deleted. */
+  productCount: number;
 }
 
 export interface AdminStockRequest {

@@ -1,9 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { getProducts, getSettings } from '../api';
-import type { Product, Settings } from '../types';
+import { getCategories, getProducts, getSettings } from '../api';
+import type { Category, Product, Settings } from '../types';
 
 interface ShopState {
   products: Product[];
+  /** Every category the shop has, in the owner's order (empty ones included). */
+  categories: Category[];
   settings: Settings | null;
   loading: boolean;
   error: boolean;
@@ -15,6 +17,7 @@ const ShopContext = createContext<ShopState | null>(null);
 
 export function ShopProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -29,10 +32,11 @@ export function ShopProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getProducts(), getSettings()])
-      .then(([loadedProducts, loadedSettings]) => {
+    Promise.all([getProducts(), getSettings(), getCategories()])
+      .then(([loadedProducts, loadedSettings, loadedCategories]) => {
         if (cancelled) return;
         setProducts(loadedProducts);
+        setCategories(loadedCategories);
         setSettings(loadedSettings);
       })
       .catch(() => {
@@ -47,8 +51,8 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ products, settings, loading, error, refresh }),
-    [products, settings, loading, error, refresh],
+    () => ({ products, categories, settings, loading, error, refresh }),
+    [products, categories, settings, loading, error, refresh],
   );
 
   return <ShopContext.Provider value={value}>{children}</ShopContext.Provider>;

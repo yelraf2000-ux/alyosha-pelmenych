@@ -14,7 +14,6 @@ import {
 
 // Data model from SPEC §5. Money is whole AMD, stored as integers.
 
-export const productCategory = pgEnum('product_category', ['pelmeni', 'vareniki', 'manty', 'khinkali', 'other']);
 export const deliveryMethod = pgEnum('delivery_method', ['pickup', 'courier']);
 export const orderStatus = pgEnum('order_status', ['new', 'confirmed', 'done', 'cancelled']);
 export const stockRequestStatus = pgEnum('stock_request_status', ['open', 'notified', 'closed']);
@@ -27,6 +26,13 @@ const timestamps = {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 };
 
+/** The groups of the catalog. The owner adds them in the admin; products refer to `slug`. */
+export const categories = pgTable('categories', {
+  slug: text('slug').primaryKey(),
+  name: text('name').notNull(),
+  sortOrder: integer('sort_order').notNull().default(0),
+});
+
 export const products = pgTable(
   'products',
   {
@@ -34,7 +40,9 @@ export const products = pgTable(
     slug: text('slug').notNull().unique(),
     name: text('name').notNull(),
     description: text('description').notNull().default(''),
-    category: productCategory('category').notNull(),
+    category: text('category')
+      .notNull()
+      .references(() => categories.slug, { onUpdate: 'cascade' }),
     priceAmd: integer('price_amd').notNull(),
     weightLabel: text('weight_label').notNull().default(''),
     stockQty: integer('stock_qty').notNull().default(0),

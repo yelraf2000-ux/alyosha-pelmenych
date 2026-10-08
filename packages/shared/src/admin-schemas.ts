@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 import { ORDER_STATUSES, STOCK_REQUEST_STATUSES } from './admin';
-import { CATEGORIES, normalizeTelegram } from './shop';
+import { normalizeTelegram } from './shop';
 
 const productFields = {
   name: z.string().trim().min(1).max(120),
@@ -14,7 +14,8 @@ const productFields = {
     .max(80)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   description: z.string().trim().max(5000),
-  category: z.enum(CATEGORIES),
+  /** The slug of a category; the API checks that there is one. */
+  category: z.string().trim().min(1).max(80),
   priceAmd: z.number().int().min(0).max(10_000_000),
   weightLabel: z.string().trim().max(40),
   stockQty: z.number().int().min(0).max(100_000),
@@ -35,6 +36,8 @@ export type ProductCreate = z.output<typeof productCreateSchema>;
 
 export const productPatchSchema = z.object(productFields).partial();
 export type ProductPatch = z.output<typeof productPatchSchema>;
+
+export const categoryNameSchema = z.object({ name: z.string().trim().min(1).max(40) });
 
 export const reorderSchema = z.object({
   ids: z.array(z.number().int().positive()).min(1).max(1000),

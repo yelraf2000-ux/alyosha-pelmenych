@@ -9,11 +9,12 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <!--
       Started while the script is still downloading, so the first screen does not wait for them:
-      the two API answers every storefront page begins with.
+      the three API answers every storefront page begins with.
       (The demo build has no API; vite.config.ts removes the data-api-preload lines from it.)
     -->
     <link rel="preload" as="fetch" href="/api/products" crossorigin data-api-preload />
     <link rel="preload" as="fetch" href="/api/settings" crossorigin data-api-preload />
+    <link rel="preload" as="fetch" href="/api/categories" crossorigin data-api-preload />
     <title>Алёша Пельменыч</title>
   </head>
   <body>

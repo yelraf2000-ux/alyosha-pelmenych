@@ -2,6 +2,7 @@
 // so there is no token to keep here: the browser sends the cookie by itself.
 
 import type {
+  AdminCategory,
   AdminOrder,
   AdminOrderSummary,
   AdminProduct,
@@ -55,7 +56,8 @@ export type ProductInput = {
   name: string;
   slug?: string;
   description: string;
-  category: AdminProduct['category'];
+  /** A category's slug. */
+  category: string;
   priceAmd: number;
   weightLabel: string;
   stockQty: number;
@@ -90,6 +92,12 @@ export const adminApi = {
     return request<SaveProductResult>('POST', `/products/${id}/video`, form);
   },
   deleteVideo: (id: number) => request<SaveProductResult>('DELETE', `/products/${id}/video`),
+
+  categories: () => request<AdminCategory[]>('GET', '/categories'),
+  createCategory: (name: string) => request<AdminCategory>('POST', '/categories', { name }),
+  renameCategory: (slug: string, name: string) =>
+    request<AdminCategory>('PATCH', `/categories/${encodeURIComponent(slug)}`, { name }),
+  deleteCategory: (slug: string) => request<{ ok: true }>('DELETE', `/categories/${encodeURIComponent(slug)}`),
 
   stockRequests: (includeHandled: boolean) =>
     request<StockRequestGroup[]>('GET', `/stock-requests${includeHandled ? '?all=1' : ''}`),

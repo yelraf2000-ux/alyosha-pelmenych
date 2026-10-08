@@ -1,35 +1,39 @@
-import { CATEGORIES } from '@alyosha/shared';
 import { useMemo, useState } from 'react';
 import { t } from '../i18n';
 import { useShop } from '../state/ShopContext';
-import type { Category } from '../types';
 import { ProductCard } from './ProductCard';
 import { Reveal } from './Reveal';
 
+const ALL = '';
+
 /** Category chips and the product grid. Used on the home page and on /catalog. */
 export function Catalog() {
-  const { products } = useShop();
-  const [active, setActive] = useState<Category | 'all'>('all');
+  const { products, categories } = useShop();
+  /** The slug of the chosen category, or ALL. */
+  const [active, setActive] = useState(ALL);
 
-  const categories = useMemo(
-    () => CATEGORIES.filter((category) => products.some((p) => p.category === category)),
-    [products],
+  // Only the categories that have something to show, in the owner's order.
+  const shown = useMemo(
+    () => categories.filter((category) => products.some((product) => product.category === category.slug)),
+    [categories, products],
   );
-  const visible = active === 'all' ? products : products.filter((p) => p.category === active);
+  // If the chosen category has just lost its last product, fall back to everything.
+  const chosen = shown.some((category) => category.slug === active) ? active : ALL;
+  const visible = chosen === ALL ? products : products.filter((product) => product.category === chosen);
 
   return (
     <div className="catalog">
-      {categories.length > 1 && (
+      {shown.length > 1 && (
         <div className="chips" role="group" aria-label={t.catalog.filterLabel}>
-          {(['all', ...categories] as const).map((category) => (
+          {[{ slug: ALL, name: t.catalog.all }, ...shown].map((category) => (
             <button
-              key={category}
+              key={category.slug}
               type="button"
-              className={`chip${active === category ? ' chip--active' : ''}`}
-              aria-pressed={active === category}
-              onClick={() => setActive(category)}
+              className={`chip${chosen === category.slug ? ' chip--active' : ''}`}
+              aria-pressed={chosen === category.slug}
+              onClick={() => setActive(category.slug)}
             >
-              {t.categories[category]}
+              {category.name}
             </button>
           ))}
         </div>

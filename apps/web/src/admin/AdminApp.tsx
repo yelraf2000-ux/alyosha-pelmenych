@@ -5,6 +5,7 @@ import { Field } from '../components/Field';
 import { LogoBadge } from '../components/Logo';
 import '../styles/admin.css';
 import { adminApi, ApiError, setUnauthorizedHandler } from './api';
+import { CategoriesPage } from './Categories';
 import { OrderPage, OrdersPage } from './Orders';
 import { OrderStatsPage } from './OrderStats';
 import { ProductFormPage } from './ProductForm';
@@ -175,6 +176,7 @@ export default function AdminApp() {
           <Route path="orders/stats" element={<OrderStatsPage />} />
           <Route path="orders/:id" element={<OrderPage />} />
           <Route path="products" element={<ProductsPage />} />
+          <Route path="products/categories" element={<CategoriesPage />} />
           <Route path="products/new" element={<ProductFormPage />} />
           <Route path="products/:id" element={<ProductFormPage />} />
           <Route path="requests" element={<RequestsPage />} />

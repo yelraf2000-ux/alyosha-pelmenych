@@ -9,6 +9,7 @@ export const IS_DEMO = import.meta.env.VITE_DEMO === '1';
 const api = IS_DEMO ? mock : http;
 
 export const getProducts = api.getProducts;
+export const getCategories = api.getCategories;
 export const getSettings = api.getSettings;
 export const submitOrder = api.submitOrder;
 export const createStockRequest = api.createStockRequest;
