@@ -97,6 +97,11 @@ function Footer() {
                   Instagram
                 </a>
               )}
+              {settings.tiktokUrl && (
+                <a href={settings.tiktokUrl} target="_blank" rel="noreferrer">
+                  TikTok
+                </a>
+              )}
             </p>
           )}
         </div>

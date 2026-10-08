@@ -1,11 +1,58 @@
-# TODO_CLIENT — what Алексей needs to provide
+# TODO_CLIENT — what Алексей still needs to provide
 
-Everything below is a placeholder. In code it is marked `TODO_CLIENT` or `PLACEHOLDER`.
-Products and site texts live in the database and are first filled from `apps/api/src/db/seed.ts`.
-Алексей can now replace all of them himself in the admin panel at `/admin`: products with photos, prices and stock
-under «Товары», every text, fee and contact under «Настройки».
+On 8 Oct 2026 Алексей sent his price list, pickup address, free-delivery threshold, phone, links
+and working hours. Those are now the shop's starting data (`apps/api/src/db/seed.ts`).
+He changes everything himself in the admin panel at `/admin`: products, photos, prices and stock
+under «Товары»; every text, fee and contact under «Настройки».
 
-## Brand
+What is still a guess is marked `TODO_CLIENT` or `PLACEHOLDER` in the code and listed here.
+
+## Already from the client
+
+| What | Value |
+| --- | --- |
+| Products and prices | 5 пельмени (500 г), 2 манты (6 шт.), 2 хинкали (6 шт.), as in the price list |
+| Pickup address | Ереван, проспект Тигран Мец, 59 |
+| Free courier delivery from | 20 000 ֏ |
+| Phone | +374 55 443639 |
+| Telegram | channel `@apelmenych` |
+| Instagram, TikTok | `bbllbbd` on both |
+| Working hours | every day, 11:00–22:00 |
+
+## Still needed
+
+### Products
+
+- [ ] **Stock for each product.** Every product starts at 10, which is not a real number. Set the
+      real counts before the shop opens: buyers can order whatever the site says is in stock.
+- [ ] Descriptions and compositions (he said he will write them himself; the product page hides
+      the section while it is empty)
+- [ ] Photos. Until then each product shows a drawn plate marked `PLACEHOLDER`.
+      Landscape 4:3, at least 1000 px wide, one product per photo.
+- [ ] Which products are «Новинка» (none are marked now, so the «Новинки» block is hidden)
+
+### Delivery and payment
+
+- [ ] **Courier fee for orders under 20 000 ֏.** The site says 1 000 ֏, which is our guess.
+- [ ] How buyers pay (cash, transfer, on delivery?). The site does not say anything about it yet.
+- [ ] Delivery area: all of Yerevan, or only some districts?
+- [ ] Any cut-off rule, such as "orders after 15:00 are delivered the next day"? The field is empty now.
+
+### Texts
+
+- [ ] «О нас» text. It is still a `PLACEHOLDER`, and its first paragraph shows on the home page.
+- [ ] Approve our wording of the home page title and subtitle:
+      «Домашние пельмени ручной лепки» / «Пельмени, манты и хинкали. Лепим в Ереване.»
+- [ ] Site description for search engines and link previews — `apps/web/index.html`
+- [ ] Wording of the personal-data consent checkbox, if he wants it different —
+      `apps/web/src/i18n/ru.ts` (`checkout.consent`)
+
+### Contacts
+
+- [ ] The Telegram link on the site opens the **channel** he sent. If buyers should write to him
+      directly instead, put his personal username into «Настройки → Telegram».
+
+### Brand
 
 | What | Now | Where |
 | --- | --- | --- |
@@ -15,62 +62,31 @@ under «Товары», every text, fee and contact under «Настройки»
 | OK to use the brand film on the site? | Hero background loop, «Смотреть историю» player, two frames on the home page | `apps/web/public/media/` |
 | Tagline «Рецепт не с этой планеты» — OK as the site's line? | Taken from the film's end card | `apps/web/src/i18n/ru.ts` (`home.tagline`) |
 | Favicon | Drawn dumpling | `apps/web/public/favicon.svg` |
-| Domain (`pelmeni.am` or another `.am`) | Not chosen | — |
 
-## Products — `apps/api/src/db/seed.ts`
-
-The three seeded products are examples (the static demo build has six, in `apps/web/src/mock/products.ts`). For each real product we need:
-
-- [ ] Name
-- [ ] Category (пельмени / вареники / манты / другое)
-- [ ] Description (composition, taste, how to cook)
-- [ ] Weight or pack size (now `500 г` / `800 г`)
-- [ ] Price in AMD (now 1 800 – 3 200 ֏, invented)
-- [ ] Current stock
-- [ ] Which ones are «Новинка»
-- [ ] Photo (now a drawn `PLACEHOLDER` picture). Landscape 4:3, at least 1000 px wide, one product per photo
-
-Seeded examples: Пельмени домашние, Вареники с картошкой, Манты.
-
-## Site texts and settings — `apps/api/src/db/seed.ts`
-
-| Setting | Now (placeholder) |
-| --- | --- |
-| Hero title | «Домашние пельмени ручной лепки» |
-| Hero subtitle | «Пельмени, вареники и манты. Лепим в Ереване, привозим замороженными.» |
-| «О нас» text | `PLACEHOLDER` (two short paragraphs) |
-| «Доставка и оплата» text, including how buyers pay | `PLACEHOLDER` |
-| «Контакты» text (working hours, when to call) | `PLACEHOLDER` |
-| Pickup address | `PLACEHOLDER: адрес самовывоза, Ереван` |
-| Courier fee | 1 000 ֏ (invented) |
-| Free delivery from | 10 000 ֏ (invented) |
-| Delivery note | «Заказы после 15:00 — на следующий день» (example from the spec) |
-| Public phone | `+374 00 000000` |
-| Public Telegram | `@TODO_CLIENT` |
-| Instagram link | `https://instagram.com/TODO_CLIENT` |
-
-## Telegram notifications
+### Telegram notifications
 
 - [ ] Алексей creates a bot with @BotFather and sends the bot token
 - [ ] He presses Start in that bot, so it is allowed to write to him; we then read his chat id
-- Both go into the server's `.env` (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`); steps are in README, "Telegram bot". Until then order messages are only written to the API log.
+- Both go into the server's settings (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`); steps are in
+  README, "Telegram bot". Until then order messages are only written to the server log.
 
-## Admin password
+### Admin password
 
-- [ ] Алексей chooses the admin password; it is set on the server during deployment
-  (README, "Admin password"). The development login is refused in production.
+- [ ] Алексей chooses the admin password; it is set during deployment (README, "Admin password").
+      The development login is refused in production.
 
-## Hosting
+### Hosting
 
-- [ ] Domain registered in Алексей's name, with its DNS A record pointed at the server
+- [ ] Domain registered in Алексей's name (`pelmeni.am` or another `.am`), with its DNS A record
+      pointed at the server
 - [ ] VPS paid in Алексей's name: Ubuntu 24.04, 1 vCPU, 1 GB memory is enough
 - [ ] Somewhere off the server to keep copies of the nightly backups
 
-## Other
+## Added beyond the original spec, because of his data
 
-- [ ] Site description for search engines and link previews — `apps/web/index.html`
-- [ ] Wording of the personal-data consent checkbox, if he wants it different — `apps/web/src/i18n/ru.ts` (`checkout.consent`)
-- [ ] Delivery area: all of Yerevan, or only some districts? (affects the delivery text)
+- A «Хинкали» category (the spec listed пельмени, вареники, манты, other). «Вареники» stays
+  available as a category but has no products.
+- A TikTok link next to Instagram.
 
 ## For the developer (not the client)
 

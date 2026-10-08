@@ -1,3 +1,4 @@
+import { CATEGORIES } from '@alyosha/shared';
 import { useMemo, useState } from 'react';
 import { t } from '../i18n';
 import { useShop } from '../state/ShopContext';
@@ -5,15 +6,13 @@ import type { Category } from '../types';
 import { ProductCard } from './ProductCard';
 import { Reveal } from './Reveal';
 
-const CATEGORY_ORDER: Category[] = ['pelmeni', 'vareniki', 'manty', 'other'];
-
 /** Category chips and the product grid. Used on the home page and on /catalog. */
 export function Catalog() {
   const { products } = useShop();
   const [active, setActive] = useState<Category | 'all'>('all');
 
   const categories = useMemo(
-    () => CATEGORY_ORDER.filter((category) => products.some((p) => p.category === category)),
+    () => CATEGORIES.filter((category) => products.some((p) => p.category === category)),
     [products],
   );
   const visible = active === 'all' ? products : products.filter((p) => p.category === active);

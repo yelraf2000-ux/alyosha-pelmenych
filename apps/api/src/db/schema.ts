@@ -14,7 +14,7 @@ import {
 
 // Data model from SPEC §5. Money is whole AMD, stored as integers.
 
-export const productCategory = pgEnum('product_category', ['pelmeni', 'vareniki', 'manty', 'other']);
+export const productCategory = pgEnum('product_category', ['pelmeni', 'vareniki', 'manty', 'khinkali', 'other']);
 export const deliveryMethod = pgEnum('delivery_method', ['pickup', 'courier']);
 export const orderStatus = pgEnum('order_status', ['new', 'confirmed', 'done', 'cancelled']);
 export const stockRequestStatus = pgEnum('stock_request_status', ['open', 'notified', 'closed']);

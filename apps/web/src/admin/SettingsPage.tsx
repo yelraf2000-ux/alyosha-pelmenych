@@ -49,8 +49,9 @@ const GROUPS: { title: string; fields: FieldSpec[] }[] = [
     title: 'Контакты на сайте',
     fields: [
       { key: 'phonePublic', label: 'Телефон' },
-      { key: 'telegramPublic', label: 'Telegram', hint: 'Имя пользователя, например @alyosha. Пусто — ссылки не будет.' },
+      { key: 'telegramPublic', label: 'Telegram', hint: 'Имя пользователя или канала, например @apelmenych. Пусто — ссылки не будет.' },
       { key: 'instagramUrl', label: 'Instagram', hint: 'Ссылка целиком, начиная с https://. Пусто — ссылки не будет.' },
+      { key: 'tiktokUrl', label: 'TikTok', hint: 'Ссылка целиком, начиная с https://. Пусто — ссылки не будет.' },
     ],
   },
 ];

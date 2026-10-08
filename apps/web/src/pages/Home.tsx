@@ -1,3 +1,4 @@
+import { CATEGORIES } from '@alyosha/shared';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Catalog } from '../components/Catalog';
@@ -10,9 +11,11 @@ import { t } from '../i18n';
 import { paragraphs } from '../lib/format';
 import { useTitle } from '../lib/useTitle';
 import { useShop } from '../state/ShopContext';
+import type { Category } from '../types';
 
-function Marquee() {
-  const words = [t.categories.pelmeni, t.categories.vareniki, t.categories.manty, t.home.handmade, t.home.city];
+/** The moving strip names only what is actually in the catalog. */
+function Marquee({ categories }: { categories: Category[] }) {
+  const words = [...categories.map((category) => t.categories[category]), t.home.handmade, t.home.city];
   // The track holds the list four times and slides by half its width, so the loop has no seam.
   return (
     <div className="marquee" aria-hidden="true">
@@ -42,7 +45,9 @@ export default function Home() {
   return (
     <>
       <Hero settings={settings} onWatchFilm={() => setFilmOpen(true)} />
-      <Marquee />
+      <Marquee
+        categories={CATEGORIES.filter((category) => category !== 'other' && products.some((p) => p.category === category))}
+      />
 
       {newProducts.length > 0 && (
         <section className="section container" aria-labelledby="new-title">

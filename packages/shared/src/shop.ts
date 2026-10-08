@@ -3,7 +3,7 @@
 
 // ---------- Domain types ----------
 
-export const CATEGORIES = ['pelmeni', 'vareniki', 'manty', 'other'] as const;
+export const CATEGORIES = ['pelmeni', 'vareniki', 'manty', 'khinkali', 'other'] as const;
 export type Category = (typeof CATEGORIES)[number];
 
 export const DELIVERY_METHODS = ['pickup', 'courier'] as const;
@@ -37,6 +37,7 @@ export interface Settings {
   phonePublic: string;
   telegramPublic: string;
   instagramUrl: string;
+  tiktokUrl: string;
 }
 
 /** What the checkout form sends. The server validates it with `orderInputSchema`. */

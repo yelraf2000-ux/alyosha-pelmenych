@@ -27,6 +27,7 @@ export const ru = {
     pelmeni: 'Пельмени',
     vareniki: 'Вареники',
     manty: 'Манты',
+    khinkali: 'Хинкали',
     other: 'Другое',
   },
 
@@ -88,7 +89,7 @@ export const ru = {
   cart: {
     title: 'Корзина',
     emptyTitle: 'В корзине пока пусто',
-    emptyText: 'Загляните в каталог — там пельмени, вареники и манты.',
+    emptyText: 'Загляните в каталог — там пельмени, манты и хинкали.',
     remove: 'Убрать',
     removeItem: (name: string) => `Убрать «${name}» из корзины`,
     subtotal: 'Товары',
@@ -173,9 +174,10 @@ export const ru = {
     phone: 'Телефон',
     telegram: 'Telegram',
     instagram: 'Instagram',
-    openInstagram: 'Открыть профиль',
+    tiktok: 'TikTok',
+    openProfile: 'Открыть профиль',
     call: 'Позвонить',
-    write: 'Написать',
+    openTelegram: 'Открыть в Telegram',
   },
 
   footer: {

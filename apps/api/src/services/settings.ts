@@ -16,6 +16,7 @@ export const SETTING_KEYS = {
   phonePublic: 'phone_public',
   telegramPublic: 'telegram_public',
   instagramUrl: 'instagram_url',
+  tiktokUrl: 'tiktok_url',
 } as const satisfies Record<keyof Settings, string>;
 
 function toAmd(value: string | undefined): number {
@@ -41,6 +42,7 @@ export async function getSettings(db: Db | Tx): Promise<Settings> {
     phonePublic: text('phonePublic'),
     telegramPublic: text('telegramPublic'),
     instagramUrl: text('instagramUrl'),
+    tiktokUrl: text('tiktokUrl'),
   };
 }
 

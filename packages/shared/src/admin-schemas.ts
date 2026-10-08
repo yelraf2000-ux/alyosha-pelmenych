@@ -48,6 +48,12 @@ const longText = z.string().trim().max(5000);
 const shortText = z.string().trim().max(200);
 const amd = z.number().int().min(0).max(10_000_000);
 
+const httpsLinkOrEmpty = z
+  .string()
+  .trim()
+  .max(200)
+  .refine((value) => value === '' || /^https:\/\/[^\s]+$/.test(value), 'must be an https link or empty');
+
 export const settingsSchema = z.object({
   aboutText: longText,
   deliveryText: longText,
@@ -73,9 +79,6 @@ export const settingsSchema = z.object({
       }
       return username;
     }),
-  instagramUrl: z
-    .string()
-    .trim()
-    .max(200)
-    .refine((value) => value === '' || /^https:\/\/[^\s]+$/.test(value), 'must be an https link or empty'),
+  instagramUrl: httpsLinkOrEmpty,
+  tiktokUrl: httpsLinkOrEmpty,
 });

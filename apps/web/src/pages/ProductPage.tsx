@@ -42,10 +42,14 @@ export default function ProductPage() {
           <p className="product__price">{formatAmd(product.priceAmd)}</p>
           {/* key: reset the stepper when moving between products */}
           <PurchaseControls key={product.id} product={product} />
-          <h2 className="product__subtitle">{t.product.description}</h2>
-          {paragraphs(product.description).map((text, i) => (
-            <p key={i}>{text}</p>
-          ))}
+          {product.description.trim() && (
+            <>
+              <h2 className="product__subtitle">{t.product.description}</h2>
+              {paragraphs(product.description).map((text, i) => (
+                <p key={i}>{text}</p>
+              ))}
+            </>
+          )}
         </div>
       </div>
     </div>

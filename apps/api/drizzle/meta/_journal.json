@@ -8,6 +8,13 @@
       "when": 1791455235963,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791464728889,
+      "tag": "0001_add_khinkali_category",
+      "breakpoints": true
     }
   ]
 }

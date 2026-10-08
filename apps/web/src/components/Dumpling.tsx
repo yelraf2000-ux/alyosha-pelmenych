@@ -35,6 +35,23 @@ export function Dumpling({ kind = 'pelmeni', className }: { kind?: Category; cla
             <path d="M35,8 L31,0" />
           </g>
         </>
+      ) : kind === 'khinkali' ? (
+        <>
+          <path
+            d="M0,-40 C-8,-40 -10,-30 -7,-23 C-30,-18 -46,0 -46,17 C-46,33 -24,41 0,41 C24,41 46,33 46,17 C46,0 30,-18 7,-23 C10,-30 8,-40 0,-40 Z"
+            fill={fill}
+            stroke={STROKE}
+            strokeWidth="3.5"
+            strokeLinejoin="round"
+          />
+          <g fill="none" stroke={STROKE} strokeWidth="2.6" strokeLinecap="round">
+            <path d="M-5,-20 C-12,-8 -24,4 -34,12" />
+            <path d="M-2,-20 C-6,-4 -12,10 -16,24" />
+            <path d="M0,-20 L0,26" />
+            <path d="M2,-20 C6,-4 12,10 16,24" />
+            <path d="M5,-20 C12,-8 24,4 34,12" />
+          </g>
+        </>
       ) : kind === 'manty' ? (
         <>
           <path

@@ -664,6 +664,10 @@
   background: radial-gradient(circle at 30% 20%, #fff 0%, #f6e3dc 60%, #eab9a6 130%);
 }
 
+.photo--khinkali {
+  background: radial-gradient(circle at 30% 20%, #fff 0%, #ece7f6 60%, #c9bfe8 130%);
+}
+
 .photo__plate {
   position: relative;
   width: 62%;

@@ -500,6 +500,7 @@ describe('stock requests and settings', () => {
     phonePublic: '+374 91 123456',
     telegramPublic: '@alyosha_pelmenych',
     instagramUrl: 'https://instagram.com/alyosha',
+    tiktokUrl: '',
   };
 
   it('saves the settings, and the shop uses them straight away', async () => {

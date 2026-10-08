@@ -19,7 +19,7 @@ export function ContactsList({ settings }: { settings: Settings }) {
           <a className="contact" href={`https://t.me/${settings.telegramPublic}`} target="_blank" rel="noreferrer">
             <span className="contact__label">{t.contacts.telegram}</span>
             <span className="contact__value">@{settings.telegramPublic}</span>
-            <span className="contact__action">{t.contacts.write} →</span>
+            <span className="contact__action">{t.contacts.openTelegram} →</span>
           </a>
         </li>
       )}
@@ -28,7 +28,16 @@ export function ContactsList({ settings }: { settings: Settings }) {
           <a className="contact" href={settings.instagramUrl} target="_blank" rel="noreferrer">
             <span className="contact__label">{t.contacts.instagram}</span>
             <span className="contact__value">Instagram</span>
-            <span className="contact__action">{t.contacts.openInstagram} →</span>
+            <span className="contact__action">{t.contacts.openProfile} →</span>
+          </a>
+        </li>
+      )}
+      {settings.tiktokUrl && (
+        <li>
+          <a className="contact" href={settings.tiktokUrl} target="_blank" rel="noreferrer">
+            <span className="contact__label">{t.contacts.tiktok}</span>
+            <span className="contact__value">TikTok</span>
+            <span className="contact__action">{t.contacts.openProfile} →</span>
           </a>
         </li>
       )}
