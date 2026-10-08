@@ -30,6 +30,7 @@ export function toProduct(row: ProductRow): Product {
     isActive: row.isActive,
     sortOrder: row.sortOrder,
     imagePath: row.imagePath,
+    videoPath: row.videoPath,
   };
 }
 
@@ -161,8 +162,18 @@ export async function setProductImage(db: Db, id: number, imagePath: string | nu
   });
 }
 
+/** Same as setProductImage, for the product's video. */
+export async function setProductVideo(db: Db, id: number, videoPath: string | null): Promise<{ previous: string | null } | null> {
+  return db.transaction(async (tx) => {
+    const [current] = await tx.select({ videoPath: products.videoPath }).from(products).where(eq(products.id, id)).for('update');
+    if (!current) return null;
+    await tx.update(products).set({ videoPath, updatedAt: new Date() }).where(eq(products.id, id));
+    return { previous: current.videoPath };
+  });
+}
+
 export type DeleteProductResult =
-  | { ok: true; imagePath: string | null }
+  | { ok: true; imagePath: string | null; videoPath: string | null }
   | { ok: false; error: 'not_found' | 'has_orders' };
 
 /** A product that appears in any order is part of the order history and can only be hidden. */
@@ -173,7 +184,7 @@ export async function deleteProduct(db: Db, id: number): Promise<DeleteProductRe
     const [ordered] = await tx.select({ id: orderItems.id }).from(orderItems).where(eq(orderItems.productId, id)).limit(1);
     if (ordered) return { ok: false, error: 'has_orders' };
     await tx.delete(products).where(eq(products.id, id));
-    return { ok: true, imagePath: current.imagePath };
+    return { ok: true, imagePath: current.imagePath, videoPath: current.videoPath };
   });
 }
 

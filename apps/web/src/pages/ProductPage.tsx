@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router-dom';
 import { ProductPhoto } from '../components/ProductPhoto';
+import { ProductVideo } from '../components/ProductVideo';
 import { PurchaseControls } from '../components/PurchaseControls';
 import { t } from '../i18n';
 import { formatAmd, paragraphs } from '../lib/format';
@@ -52,6 +53,16 @@ export default function ProductPage() {
           )}
         </div>
       </div>
+
+      {product.videoPath && (
+        <section className="product-video" aria-labelledby="product-video-title">
+          <h2 id="product-video-title" className="product__subtitle">
+            {t.product.video}
+          </h2>
+          {/* key: a fresh player when moving between products */}
+          <ProductVideo key={product.videoPath} path={product.videoPath} label={`${t.product.video}: ${product.name}`} />
+        </section>
+      )}
     </div>
   );
 }

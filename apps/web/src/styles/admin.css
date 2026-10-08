@@ -583,6 +583,16 @@
   object-fit: cover;
 }
 
+.adm-video {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  max-height: 60vh;
+  margin-bottom: 12px;
+  border-radius: var(--radius-s);
+  background: var(--night-950);
+}
+
 .adm-file {
   position: absolute;
   width: 1px;

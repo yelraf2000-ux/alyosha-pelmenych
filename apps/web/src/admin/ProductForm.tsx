@@ -9,6 +9,7 @@ import { errorText, LoadState, PageHead, useLoad } from './shared';
 
 const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
 const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 
 interface FormState {
   name: string;
@@ -61,6 +62,9 @@ export function ProductFormPage() {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [video, setVideo] = useState<File | null>(null);
+  /** What the save button says while it works; converting a video is the slow part. */
+  const [progress, setProgress] = useState<string | null>(null);
   const [showErrors, setShowErrors] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -110,6 +114,14 @@ export function ProductFormPage() {
     setPhoto(file);
   }
 
+  function chooseVideo(file: File | undefined) {
+    setError(null);
+    if (!file) return setVideo(null);
+    if (!file.type.startsWith('video/')) return setError('Это не видео. Выберите ролик из галереи телефона.');
+    if (file.size > MAX_VIDEO_BYTES) return setError('Видео слишком большое. Максимум — 100 МБ; ролик до минуты обычно меньше.');
+    setVideo(file);
+  }
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     setShowErrors(true);
@@ -129,17 +141,37 @@ export function ProductFormPage() {
 
     setBusy(true);
     setError(null);
+    setProgress('Сохраняем…');
     try {
       const saved = product ? await adminApi.updateProduct(product.id, input) : await adminApi.createProduct(input);
-      // From here the product exists: a failed photo upload must not create it a second time.
+      // From here the product exists: a failed photo or video upload must not create it a second time.
       setProduct(saved.product);
       if (photo) {
-        await adminApi.uploadImage(saved.product.id, photo);
+        setProduct((await adminApi.uploadImage(saved.product.id, photo)).product);
         setPhoto(null);
+      }
+      if (video) {
+        setProgress('Загружаем и обрабатываем видео. Это может занять пару минут, не закрывайте страницу…');
+        setProduct((await adminApi.uploadVideo(saved.product.id, video)).product);
+        setVideo(null);
       }
       const state: ProductsLocationState =
         saved.waiting.length > 0 ? { waiting: { productId: saved.product.id, requests: saved.waiting } } : {};
       navigate('/admin/products', { state });
+    } catch (reason) {
+      setError(errorText(reason));
+    } finally {
+      setBusy(false);
+      setProgress(null);
+    }
+  }
+
+  async function removeVideo() {
+    if (!product || !window.confirm('Удалить видео товара?')) return;
+    setBusy(true);
+    setError(null);
+    try {
+      setProduct((await adminApi.deleteVideo(product.id)).product);
     } catch (reason) {
       setError(errorText(reason));
     } finally {
@@ -266,6 +298,46 @@ export function ProductFormPage() {
         </section>
 
         <section className="adm-card">
+          <h2>Видео</h2>
+          {video ? (
+            <p>
+              Выбрано: <strong>{video.name}</strong> ({Math.max(1, Math.round(video.size / 1024 / 1024))} МБ). Оно
+              загрузится и обработается, когда вы нажмёте «Сохранить».
+            </p>
+          ) : product?.videoPath ? (
+            <video className="adm-video" src={product.videoPath} controls playsInline muted preload="metadata" />
+          ) : (
+            <p className="adm-muted">
+              Видео пока нет. Подойдёт короткий ролик с телефона, до минуты. На сайте оно показывается без звука.
+            </p>
+          )}
+          <div className="adm-actions">
+            <label className="btn">
+              {video || product?.videoPath ? 'Заменить видео' : 'Выбрать видео'}
+              <input
+                type="file"
+                className="adm-file"
+                accept="video/*"
+                onChange={(event) => {
+                  chooseVideo(event.target.files?.[0]);
+                  event.target.value = '';
+                }}
+              />
+            </label>
+            {video && (
+              <button type="button" className="btn" onClick={() => setVideo(null)}>
+                Отменить выбор
+              </button>
+            )}
+            {!video && product?.videoPath && (
+              <button type="button" className="btn adm-danger" disabled={busy} onClick={removeVideo}>
+                Удалить видео
+              </button>
+            )}
+          </div>
+        </section>
+
+        <section className="adm-card">
           <h2>Наличие и показ</h2>
           <Field
             label="На складе, шт."
@@ -311,6 +383,11 @@ export function ProductFormPage() {
         {error && (
           <p className="alert alert--error" role="alert">
             {error}
+          </p>
+        )}
+        {busy && progress && (
+          <p className="alert" role="status">
+            {progress}
           </p>
         )}
 

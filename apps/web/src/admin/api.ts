@@ -82,6 +82,13 @@ export const adminApi = {
     return request<SaveProductResult>('POST', `/products/${id}/image`, form);
   },
   deleteImage: (id: number) => request<SaveProductResult>('DELETE', `/products/${id}/image`),
+  /** The server converts the clip before it answers, so this can take a minute or two. */
+  uploadVideo: (id: number, file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return request<SaveProductResult>('POST', `/products/${id}/video`, form);
+  },
+  deleteVideo: (id: number) => request<SaveProductResult>('DELETE', `/products/${id}/video`),
 
   stockRequests: (includeHandled: boolean) =>
     request<StockRequestGroup[]>('GET', `/stock-requests${includeHandled ? '?all=1' : ''}`),

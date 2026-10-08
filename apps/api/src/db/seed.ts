@@ -28,6 +28,8 @@ const SEED_PRODUCTS: (typeof products.$inferInsert)[] = PRICE_LIST.map((product,
   ...product,
   // Алексей will write the compositions himself; the product page hides an empty description.
   description: '',
+  // The picture built by scripts/product-art/build.mjs, until he uploads a real photo.
+  imagePath: `/products/${product.slug}-1000.webp`,
   // TODO_CLIENT: not a real count. He sets the real stock in the admin before the shop opens.
   stockQty: 10,
   sortOrder: (index + 1) * 10,

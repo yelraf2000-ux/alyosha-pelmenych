@@ -210,6 +210,25 @@ Steps:
 Migrations run on every start, and a new database gets the placeholder products and texts
 automatically. Every push to the repository's main branch is deployed.
 
+## Product photos and videos
+
+Both are uploaded on a product's page in the admin and stored in the uploads folder
+(`apps/api/uploads` locally, the `uploads` volume on the server).
+
+- **Photos** (JPG, PNG or WebP, up to 12 MB) are resized to 400 px and 1000 px WebP.
+- **Videos** (any clip a phone records, up to 100 MB) are converted to a small MP4: at most 720 px
+  on the short side, cut to one minute, **without sound**. A poster picture is made from the clip.
+  Converting happens while the owner waits, about a minute for a typical clip on a one-core
+  server, and one video is converted at a time. On the product page the video is only downloaded
+  when a buyer presses play.
+
+The converter (ffmpeg) is installed with the project's dependencies, so nothing extra is needed
+on the server. Until a product has a real photo it shows the picture built by
+`node scripts/product-art/build.mjs`; put replacement pictures into `scripts/product-art/incoming`
+under the product's slug and run that script again.
+
+Videos need a disk, so they do not survive on Render's free plan.
+
 ## Backups
 
 The `backup` service writes into `backups/` on the server every night at 23:00 UTC (03:00 in Yerevan):

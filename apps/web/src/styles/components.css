@@ -1015,6 +1015,31 @@
   font-size: 1rem;
 }
 
+.product-video {
+  margin-top: 32px;
+}
+
+/* The box takes the clip's own shape (set inline from its frame size), so nothing jumps when it loads. */
+.video {
+  width: min(100%, 720px);
+  max-height: 80vh;
+  border-radius: var(--radius-l);
+  background: var(--night-950);
+  box-shadow: var(--shadow-s);
+  overflow: hidden;
+}
+
+.video--portrait {
+  width: min(100%, 360px);
+}
+
+.video video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 /* ---------- Cart and checkout ---------- */
 
 .split {

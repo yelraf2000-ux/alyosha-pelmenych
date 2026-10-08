@@ -11,6 +11,12 @@ import {
 } from '@alyosha/shared';
 import multipart from '@fastify/multipart';
 import type { FastifyContextConfig, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { randomBytes } from 'node:crypto';
+import { createWriteStream } from 'node:fs';
+import { unlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { pipeline } from 'node:stream/promises';
 import {
   checkPassword,
   createSessionToken,
@@ -31,10 +37,12 @@ import {
   markProductRequestsNotified,
   reorderProducts,
   setProductImage,
+  setProductVideo,
   setStockRequestStatus,
   updateProduct,
 } from './services/products';
 import { getSettings, saveSettings } from './services/settings';
+import { deleteProductVideo, InvalidVideoError, MAX_VIDEO_BYTES, saveProductVideo, VideoBusyError } from './services/videos';
 
 declare module 'fastify' {
   interface FastifyContextConfig {
@@ -155,6 +163,7 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
         const result = await deleteProduct(db, id);
         if (!result.ok) return fail(reply, result.error === 'not_found' ? 404 : 409, result.error);
         await deleteProductImage(uploadsDir, result.imagePath);
+        await deleteProductVideo(uploadsDir, result.videoPath);
         return { ok: true };
       });
 
@@ -196,6 +205,49 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
         const saved = id ? await setProductImage(db, id, null) : null;
         if (!id || !saved) return fail(reply, 404, 'not_found');
         await deleteProductImage(uploadsDir, saved.previous);
+        return { product: await getAdminProduct(db, id), waiting: [] };
+      });
+
+      // A clip from the owner's phone. It is converted before this answers, which can take a minute
+      // or two; if the phone drops the connection meanwhile, the video is saved all the same.
+      admin.post('/products/:id/video', async (request, reply) => {
+        const id = idParam(request);
+        if (!id || !(await getAdminProduct(db, id))) return fail(reply, 404, 'not_found');
+
+        // Videos are far larger than photos, so this route raises the upload limit for itself.
+        const file = await request.file({ limits: { fileSize: MAX_VIDEO_BYTES } });
+        if (!file) return fail(reply, 400, 'invalid');
+
+        // Written to disk, not held in memory: 100 MB in RAM is too much for a small server.
+        const input = join(tmpdir(), `alyosha-video-${randomBytes(8).toString('hex')}`);
+        let videoPath: string;
+        try {
+          await pipeline(file.file, createWriteStream(input));
+          if (file.file.truncated) return fail(reply, 413, 'too_large');
+          videoPath = await saveProductVideo(uploadsDir, input);
+        } catch (error) {
+          if (error instanceof InvalidVideoError) return fail(reply, 400, 'bad_video');
+          if (error instanceof VideoBusyError) return fail(reply, 409, 'video_busy');
+          if ((error as { statusCode?: number }).statusCode === 413) return fail(reply, 413, 'too_large');
+          throw error;
+        } finally {
+          await unlink(input).catch(() => undefined);
+        }
+
+        const saved = await setProductVideo(db, id, videoPath);
+        if (!saved) {
+          await deleteProductVideo(uploadsDir, videoPath);
+          return fail(reply, 404, 'not_found');
+        }
+        await deleteProductVideo(uploadsDir, saved.previous);
+        return { product: await getAdminProduct(db, id), waiting: [] };
+      });
+
+      admin.delete('/products/:id/video', async (request, reply) => {
+        const id = idParam(request);
+        const saved = id ? await setProductVideo(db, id, null) : null;
+        if (!id || !saved) return fail(reply, 404, 'not_found');
+        await deleteProductVideo(uploadsDir, saved.previous);
         return { product: await getAdminProduct(db, id), waiting: [] };
       });
 

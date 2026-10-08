@@ -70,6 +70,7 @@ export const ru = {
     notFoundText: 'Возможно, он закончился или ссылка устарела.',
     toCatalog: 'В каталог',
     description: 'Описание',
+    video: 'Видео',
   },
 
   notify: {

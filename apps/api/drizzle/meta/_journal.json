@@ -15,6 +15,20 @@
       "when": 1791464728889,
       "tag": "0001_add_khinkali_category",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791476819561,
+      "tag": "0002_product_illustrations",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791480466973,
+      "tag": "0003_product_video",
+      "breakpoints": true
     }
   ]
 }

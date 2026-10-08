@@ -66,6 +66,8 @@ describe('admin access', () => {
     { method: 'POST', url: '/api/admin/products/reorder', payload: { ids: [1] } },
     { method: 'POST', url: '/api/admin/products/1/image' },
     { method: 'DELETE', url: '/api/admin/products/1/image' },
+    { method: 'POST', url: '/api/admin/products/1/video' },
+    { method: 'DELETE', url: '/api/admin/products/1/video' },
     { method: 'GET', url: '/api/admin/orders' },
     { method: 'GET', url: '/api/admin/orders/1' },
     { method: 'PATCH', url: '/api/admin/orders/1', payload: { status: 'cancelled' } },

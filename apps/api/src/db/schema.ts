@@ -42,6 +42,7 @@ export const products = pgTable(
     isActive: boolean('is_active').notNull().default(true),
     sortOrder: integer('sort_order').notNull().default(0),
     imagePath: text('image_path'),
+    videoPath: text('video_path'),
     ...timestamps,
   },
   (t) => [

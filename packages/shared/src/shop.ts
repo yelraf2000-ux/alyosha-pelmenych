@@ -22,6 +22,8 @@ export interface Product {
   isActive: boolean;
   sortOrder: number;
   imagePath: string | null;
+  /** A short clip shown on the product page, or null. See `videoInfo`. */
+  videoPath: string | null;
 }
 
 export interface Settings {
@@ -122,6 +124,16 @@ export function calcDeliveryFee(
 }
 
 const NBSP = String.fromCharCode(0xa0);
+
+/**
+ * Product videos are stored as `…/<id>-<width>x<height>.mp4` with a poster picture beside them.
+ * Returns the poster's path and the frame size, or null for a path that is not in that form.
+ */
+export function videoInfo(videoPath: string): { poster: string; width: number; height: number } | null {
+  const match = /-(\d+)x(\d+)\.mp4$/.exec(videoPath);
+  if (!match) return null;
+  return { poster: videoPath.replace(/\.mp4$/, '.webp'), width: Number(match[1]), height: Number(match[2]) };
+}
 
 /** 1640 → "1 640 ֏" (SPEC §5). */
 export function formatAmd(amount: number): string {

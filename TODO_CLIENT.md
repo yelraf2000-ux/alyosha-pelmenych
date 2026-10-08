@@ -28,9 +28,19 @@ What is still a guess is marked `TODO_CLIENT` or `PLACEHOLDER` in the code and l
       real counts before the shop opens: buyers can order whatever the site says is in stock.
 - [ ] Descriptions and compositions (he said he will write them himself; the product page hides
       the section while it is empty)
-- [ ] Photos. Until then each product shows a drawn plate marked `PLACEHOLDER`.
-      Landscape 4:3, at least 1000 px wide, one product per photo.
+- [ ] Real photos. Until then the products show stand-in pictures:
+      - four пельмени use the generated, photo-like pictures from the mockup Rafayel showed him.
+        They are not photos of his food, so he should confirm he is happy for buyers to see them.
+        The one on «куриные из бедра» shows beef, and the one on «с креветкой» shows no shrimp.
+      - the other five use our own drawn illustrations (a plate with the right number of pieces
+        and a hint of the filling), which cannot be mistaken for photos.
+      Uploading a photo in the admin replaces a picture. Landscape 4:3, at least 1000 px wide,
+      one product per photo. A product he adds himself shows the plain drawn plate until it
+      gets a photo.
 - [ ] Which products are «Новинка» (none are marked now, so the «Новинки» block is hidden)
+
+- [ ] Videos, if he wants them: one short clip per product (up to a minute, straight from the
+      phone), added on the product's page in the admin. The site shows it without sound.
 
 ### Delivery and payment
 
