@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import type { Settings } from '@alyosha/shared';
+import { count } from 'drizzle-orm';
 import { SETTING_KEYS } from '../services/settings';
 import { createDb } from './client';
 import { products, settings } from './schema';
@@ -68,8 +69,20 @@ const SEED_SETTINGS: Settings = {
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error('DATABASE_URL is not set. See apps/api/.env.example.');
 
+// With --if-empty the seed only fills a brand-new database. Hosts without a shell (Render) run it
+// on every start, and it must not bring back placeholder products the owner has deleted.
+const onlyIfEmpty = process.argv.includes('--if-empty');
+
 const { db, pool } = createDb(url);
 try {
+  if (onlyIfEmpty) {
+    const [existing] = await db.select({ n: count() }).from(settings);
+    if (existing && existing.n > 0) {
+      console.log('The database already has data: nothing seeded.');
+      process.exit(0);
+    }
+  }
+
   // Safe to run again: existing products and settings are left as they are.
   const insertedProducts = await db
     .insert(products)

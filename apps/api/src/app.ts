@@ -25,6 +25,11 @@ export interface AppOptions {
   admin?: AdminAuth | null;
   /** Folder for uploaded product photos, served at /uploads. */
   uploadsDir: string;
+  /**
+   * Folder with the built storefront. When set, the API serves the site as well, for hosts that
+   * run a single container (Render). With Docker Compose this is unset and Caddy serves the site.
+   */
+  webDir?: string;
   /** Off in tests, which fire many requests from one address on purpose. */
   rateLimit?: boolean;
   trustProxy?: boolean;
@@ -41,7 +46,25 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     bodyLimit: 64 * 1024,
   });
 
-  await app.register(helmet);
+  await app.register(helmet, {
+    // The same policy as deploy/Caddyfile. It matters when the API also serves the storefront;
+    // for JSON answers it changes nothing.
+    contentSecurityPolicy: {
+      useDefaults: false,
+      directives: {
+        defaultSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:', 'blob:'],
+        styleSrc: ["'self'"],
+        fontSrc: ["'self'"],
+        mediaSrc: ["'self'"],
+        connectSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+  });
   await app.register(cors, { origin: options.corsOrigin, methods: ['GET', 'POST'] });
   await app.register(rateLimit, { global: false });
   await app.register(cookie);
@@ -149,6 +172,34 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     reply.code(201);
     return { ok: true };
   });
+
+  if (options.webDir) {
+    const webDir = options.webDir;
+
+    await app.register(fastifyStatic, {
+      root: webDir,
+      prefix: '/',
+      // reply.sendFile() already exists from the uploads registration above.
+      decorateReply: false,
+      setHeaders(reply, filePath) {
+        const path = filePath.replaceAll('\\', '/');
+        // Vite puts a content hash into every file name under /assets, so those never change.
+        if (path.includes('/assets/')) reply.header('cache-control', 'public, max-age=31536000, immutable');
+        else if (path.includes('/media/')) reply.header('cache-control', 'public, max-age=604800');
+        else reply.header('cache-control', 'no-cache');
+      },
+    });
+
+    // Client-side routes (/catalog, /admin/orders, …) have no file: they all get index.html.
+    app.setNotFoundHandler((request, reply) => {
+      const isPage =
+        (request.method === 'GET' || request.method === 'HEAD') &&
+        !request.url.startsWith('/api/') &&
+        !request.url.startsWith('/uploads/');
+      if (!isPage) return reply.code(404).send({ ok: false, error: 'not_found' });
+      return reply.header('cache-control', 'no-cache').sendFile('index.html', webDir, { cacheControl: false });
+    });
+  }
 
   return app;
 }

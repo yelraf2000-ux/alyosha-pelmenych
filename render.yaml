@@ -1,0 +1,43 @@
+# Render Blueprint: the whole shop as one free web service plus a free Postgres.
+# For a trial or a demo only. On Render's free plan:
+#   - the service sleeps after 15 minutes without visitors; the next visitor waits about a minute
+#   - there is no disk: uploaded product photos disappear whenever the service restarts or sleeps
+#   - the free database is deleted 30 days after it is created
+# The real deployment is docker-compose.yml on a VPS (README, "Deploying to a server").
+
+services:
+  - type: web
+    name: alyosha-pelmenych
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: alyosha-db
+          property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+      # Asked for once, when the Blueprint is created. Make the value with:
+      #   npm run admin:password -w @alyosha/api -- --print
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      # Optional: leave empty and notifications are only written to the service log.
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      # Render's proxy is the only thing in front of the service, and it sets X-Forwarded-For.
+      - key: TRUST_PROXY
+        value: "1"
+
+databases:
+  - name: alyosha-db
+    plan: free
+    region: frankfurt
+    databaseName: alyosha
+    user: alyosha
+    postgresMajorVersion: "17"

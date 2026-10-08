@@ -180,6 +180,36 @@ docker compose logs -f api
 
 Replace `api` with `web` (HTTPS and certificates), `db` or `backup`.
 
+## Trying it on Render (free)
+
+For a trial or a demo without a server or a card. [render.yaml](render.yaml) describes the whole
+shop as one free web service (the API also serves the storefront) plus a free Postgres.
+
+Render's free plan has limits that make it unsuitable for the real shop:
+
+- the service sleeps after 15 minutes without visitors, and the next visitor waits about a minute;
+- there is no disk, so product photos uploaded in the admin disappear when the service restarts
+  or sleeps (the shop then shows the drawn placeholder again);
+- the free database is deleted 30 days after it is created;
+- there are no backups.
+
+Steps:
+
+1. Push this repository to GitHub.
+2. Create the admin password hash on your own machine and copy the printed value (the part after `=`):
+
+   ```bash
+   npm run admin:password -w @alyosha/api -- --print
+   ```
+
+3. On https://dashboard.render.com choose **New → Blueprint**, connect the GitHub repository, and
+   paste the hash into `ADMIN_PASSWORD_HASH` when asked. The two Telegram fields may stay empty.
+4. Press **Apply**. The first build takes several minutes. The shop then opens at the
+   `https://<name>.onrender.com` address Render shows; the admin is at `/admin`.
+
+Migrations run on every start, and a new database gets the placeholder products and texts
+automatically. Every push to the repository's main branch is deployed.
+
 ## Backups
 
 The `backup` service writes into `backups/` on the server every night at 23:00 UTC (03:00 in Yerevan):

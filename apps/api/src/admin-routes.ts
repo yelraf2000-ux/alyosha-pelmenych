@@ -88,7 +88,9 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
       });
 
       // Unknown admin paths go through the same hook, so they also answer 401 without a session.
-      admin.setNotFoundHandler((_request, reply) => fail(reply, 404, 'not_found'));
+      // A real catch-all route, not a not-found handler: when the API also serves the storefront,
+      // its `/*` file route would otherwise claim these paths first.
+      admin.all('/*', (_request, reply) => fail(reply, 404, 'not_found'));
 
       const cookieOptions = {
         path: '/api/admin',

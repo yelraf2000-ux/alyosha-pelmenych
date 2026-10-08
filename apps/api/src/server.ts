@@ -39,6 +39,7 @@ const app = await buildApp({
   admin,
   corsOrigin: env.PUBLIC_BASE_URL,
   uploadsDir: resolve(env.UPLOADS_DIR),
+  webDir: env.WEB_DIST_DIR ? resolve(env.WEB_DIST_DIR) : undefined,
   trustProxy: env.TRUST_PROXY,
   notifier: {
     orderPlaced: (order, customer) => notifier.orderPlaced(order, customer),

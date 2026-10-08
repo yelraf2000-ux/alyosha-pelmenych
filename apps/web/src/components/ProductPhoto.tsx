@@ -1,4 +1,5 @@
 import { smallImagePath } from '@alyosha/shared';
+import { useState } from 'react';
 import { t } from '../i18n';
 import type { Product } from '../types';
 import { Dumpling } from './Dumpling';
@@ -8,18 +9,24 @@ import { Dumpling } from './Dumpling';
  * Everywhere else it sits in a card, and phones get the 400px file.
  */
 export function ProductPhoto({ product, large = false }: { product: Product; large?: boolean }) {
-  if (product.imagePath) {
-    const small = smallImagePath(product.imagePath);
+  // A photo file can be missing (restored database without its uploads, hosting without a disk):
+  // show the drawn plate then, not a broken image.
+  const [failedPath, setFailedPath] = useState<string | null>(null);
+
+  if (product.imagePath && product.imagePath !== failedPath) {
+    const imagePath = product.imagePath;
+    const small = smallImagePath(imagePath);
     return (
       <div className="photo">
         <img
-          src={product.imagePath}
+          src={imagePath}
           // Uploaded photos come in two sizes; anything else has just the one file.
-          srcSet={small !== product.imagePath ? `${small} 400w, ${product.imagePath} 1000w` : undefined}
+          srcSet={small !== imagePath ? `${small} 400w, ${imagePath} 1000w` : undefined}
           sizes={large ? '(min-width: 900px) 50vw, 100vw' : '(min-width: 640px) 280px, 50vw'}
           alt={product.name}
           loading={large ? 'eager' : 'lazy'}
           decoding="async"
+          onError={() => setFailedPath(imagePath)}
         />
       </div>
     );

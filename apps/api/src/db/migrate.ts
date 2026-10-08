@@ -1,11 +1,18 @@
 import 'dotenv/config';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createDb } from './client';
 
-// In development the SQL files sit next to the source. The production image is a bundle,
-// so the Dockerfile points MIGRATIONS_DIR at the copied folder instead.
-const migrationsFolder = process.env.MIGRATIONS_DIR ?? fileURLToPath(new URL('../../drizzle', import.meta.url));
+// The SQL files are in apps/api/drizzle. Seen from this file that is two levels up in development
+// (src/db/) and one level up in the production bundle (dist/); MIGRATIONS_DIR overrides both.
+const candidates = [
+  process.env.MIGRATIONS_DIR,
+  fileURLToPath(new URL('../../drizzle', import.meta.url)),
+  fileURLToPath(new URL('../drizzle', import.meta.url)),
+].filter((dir): dir is string => Boolean(dir));
+const migrationsFolder = candidates.find((dir) => existsSync(join(dir, 'meta', '_journal.json'))) ?? candidates[0]!;
 
 /** Applies every migration in apps/api/drizzle that the database has not seen yet. */
 export async function runMigrations(connectionString: string): Promise<void> {

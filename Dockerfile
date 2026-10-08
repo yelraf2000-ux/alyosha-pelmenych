@@ -1,6 +1,10 @@
 # syntax=docker/dockerfile:1
-# One file, two images: `api` (Fastify) and `web` (Caddy with the built storefront).
-# docker-compose.yml builds both.
+# One file, three images:
+#   api       Fastify                           } docker-compose.yml builds these two
+#   web       Caddy with the built storefront   }
+#   allinone  the API serving the storefront itself: for hosts that run one container and bring
+#             their own HTTPS (Render, see render.yaml). It is the last stage, so it is what a
+#             plain `docker build .` produces.
 
 # ---------- Build: install everything, bundle the API, build the storefront ----------
 FROM node:22-bookworm-slim AS build
@@ -55,3 +59,11 @@ CMD ["sh", "-c", "node apps/api/dist/migrate.js && exec node --enable-source-map
 FROM caddy:2-alpine AS web
 COPY deploy/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /app/apps/web/dist /srv
+
+
+# ---------- All-in-one: API + storefront in a single container ----------
+FROM api AS allinone
+COPY --from=build /app/apps/web/dist /app/web
+ENV WEB_DIST_DIR=/app/web
+# No shell on free hosting, so first-time data is added here; --if-empty leaves a filled database alone.
+CMD ["sh", "-c", "node apps/api/dist/migrate.js && node apps/api/dist/seed.js --if-empty && exec node --enable-source-maps apps/api/dist/server.js"]

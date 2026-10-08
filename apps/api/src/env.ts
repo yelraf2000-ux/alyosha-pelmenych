@@ -22,7 +22,10 @@ export function decodePasswordHash(value: string): string {
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   PORT: z.coerce.number().int().positive().default(3000),
-  PUBLIC_BASE_URL: z.string().url().default('http://localhost:5173'),
+  // Render tells every service its own public address in RENDER_EXTERNAL_URL.
+  PUBLIC_BASE_URL: optional
+    .transform((value) => value ?? process.env.RENDER_EXTERNAL_URL ?? 'http://localhost:5173')
+    .pipe(z.string().url()),
   TELEGRAM_BOT_TOKEN: optional,
   TELEGRAM_CHAT_ID: optional,
   NODE_ENV: z.string().default('development'),
@@ -33,6 +36,8 @@ const envSchema = z.object({
   SESSION_SECRET: optional.refine((value) => !value || value.length >= 32, 'SESSION_SECRET must be at least 32 characters'),
   /** Where product photos are stored. Relative paths start from apps/api. */
   UPLOADS_DIR: z.string().default('uploads'),
+  /** Built storefront to serve from the API itself (single-container hosting). Unset otherwise. */
+  WEB_DIST_DIR: optional,
   TRUST_PROXY: z
     .string()
     .optional()
