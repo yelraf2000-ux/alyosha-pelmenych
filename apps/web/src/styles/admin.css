@@ -1,0 +1,657 @@
+/* Admin panel. Plain and functional (SPEC §7), built for a phone first:
+   one column, large tap targets, and the section tabs pinned to the bottom of the screen. */
+
+.adm {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-bottom: 76px;
+  background: var(--flour);
+}
+
+.adm--center {
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.adm h1 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.adm h2 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+
+.adm-muted {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.adm-big {
+  margin: 0 0 10px;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.adm-num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Bar and tabs ---------- */
+
+.adm-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--night-900);
+  color: #fff;
+}
+
+.adm-bar a {
+  color: #fff;
+}
+
+.adm-bar__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.adm-bar__logo {
+  width: 36px;
+  height: 36px;
+}
+
+.adm-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.9375rem;
+}
+
+.adm-bar__out {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-pill);
+  background: none;
+  color: #fff;
+  cursor: pointer;
+}
+
+.adm-tabs {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  padding-bottom: env(safe-area-inset-bottom);
+  border-top: 1px solid var(--border);
+  background: #fff;
+}
+
+.adm-tabs__link {
+  display: grid;
+  place-items: center;
+  min-height: 56px;
+  padding: 0 2px;
+  border-top: 3px solid transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
+
+.adm-bar .adm-tabs__link {
+  color: var(--text-muted);
+}
+
+.adm-bar .adm-tabs__link.active {
+  border-top-color: var(--amber-500);
+  color: var(--night-900);
+}
+
+/* ---------- Page ---------- */
+
+.adm-main {
+  max-width: 860px;
+  margin-inline: auto;
+  padding: 16px;
+}
+
+.adm-main > * + * {
+  margin-top: 14px;
+}
+
+.adm-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.adm-head h2 {
+  margin: 0;
+}
+
+.adm-head__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.adm-back {
+  display: inline-block;
+  font-weight: 600;
+}
+
+.adm-card {
+  padding: 16px;
+  border-radius: var(--radius-m);
+  background: #fff;
+  box-shadow: var(--shadow-s);
+}
+
+.adm-card > :last-child {
+  margin-bottom: 0;
+}
+
+.adm-card summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.adm-card[open] summary {
+  margin-bottom: 12px;
+}
+
+.adm-actions,
+.adm-contacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.adm-actions + .alert {
+  margin: 12px 0 0;
+}
+
+.adm .btn:hover {
+  transform: none;
+}
+
+.adm-danger {
+  border-color: #e9b9ae;
+  color: var(--terracotta);
+}
+
+.adm-note {
+  margin: 12px 0 0;
+}
+
+/* ---------- Today ---------- */
+
+.adm-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.adm-stat {
+  display: grid;
+  gap: 2px;
+  padding: 16px;
+  border-radius: var(--radius-m);
+  background: #fff;
+  box-shadow: var(--shadow-s);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.adm-stat--hot {
+  background: var(--night-900);
+  color: #fff;
+}
+
+.adm-stat__value {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.adm-stat__label {
+  font-size: 0.875rem;
+  opacity: 0.8;
+}
+
+.adm-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.adm-table th,
+.adm-table td {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.adm-table th.adm-num,
+.adm-table td.adm-num {
+  padding-left: 12px;
+  text-align: right;
+}
+
+.adm-table th {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.adm-table tbody tr:last-child td,
+.adm-table tfoot td {
+  border-bottom: 0;
+}
+
+.adm-table tfoot td {
+  padding: 4px 0;
+  color: var(--text-muted);
+}
+
+.adm-table tfoot tr:first-child td {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.adm-table .adm-total td {
+  color: var(--text);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+/* ---------- Lists ---------- */
+
+.adm-list {
+  display: grid;
+  gap: 10px;
+}
+
+.adm-list--loading {
+  opacity: 0.6;
+}
+
+.adm-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-m);
+  background: #fff;
+  box-shadow: var(--shadow-s);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.adm-row__main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.0625rem;
+}
+
+.adm-row__sub {
+  grid-column: 1;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.adm-row__side {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: grid;
+  justify-items: end;
+  align-content: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.adm-status,
+.adm-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--flour);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.adm-status--new {
+  background: var(--amber-400);
+  color: var(--night-900);
+}
+
+.adm-status--confirmed {
+  background: var(--sky-300);
+  color: var(--night-900);
+}
+
+.adm-status--done {
+  background: #dcefe0;
+  color: #23603a;
+}
+
+.adm-status--cancelled {
+  background: var(--terracotta-soft);
+  color: #7c2416;
+}
+
+.adm-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.adm-tag--new {
+  background: #dcefe0;
+  color: #23603a;
+}
+
+.adm-tag--out {
+  background: var(--terracotta-soft);
+  color: #7c2416;
+}
+
+.adm-tag--wait {
+  background: var(--amber-400);
+  color: var(--night-900);
+}
+
+/* ---------- Products ---------- */
+
+.adm-product {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-m);
+  background: #fff;
+  box-shadow: var(--shadow-s);
+}
+
+.adm-product--hidden {
+  background: #faf6ef;
+}
+
+.adm-product--hidden .adm-product__thumb {
+  opacity: 0.5;
+}
+
+.adm-product__top {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.adm-product__thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-s);
+  background: var(--flour);
+  object-fit: cover;
+}
+
+.adm-product__thumb--empty {
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  font-size: 0.625rem;
+  text-align: center;
+}
+
+.adm-product__info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.adm-product__name {
+  color: var(--text);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.adm-product__order {
+  display: grid;
+  gap: 4px;
+}
+
+.adm-product__order button,
+.adm-stock__field button {
+  width: 44px;
+  height: 44px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-s);
+  background: #fff;
+  font-size: 1.125rem;
+  cursor: pointer;
+}
+
+.adm-product__order button {
+  height: 34px;
+}
+
+.adm-product__order button:disabled,
+.adm-stock__field button:disabled {
+  color: #c9bdb1;
+  cursor: not-allowed;
+}
+
+.adm-product__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+
+.adm-product__edit {
+  margin-left: auto;
+}
+
+.adm-stock {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.adm-stock__field {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.adm-stock__field input {
+  width: 68px;
+  height: 44px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-s);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.adm-stock__field input[aria-invalid] {
+  border-color: var(--terracotta);
+}
+
+.adm-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.adm-check input {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--night-800);
+}
+
+.adm-waiting {
+  padding: 14px;
+  border: 2px solid var(--amber-400);
+  border-radius: var(--radius-s);
+  background: #fff8ea;
+}
+
+.adm-waiting ul,
+.adm-requests {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.adm-waiting li,
+.adm-requests li {
+  display: grid;
+  gap: 6px;
+}
+
+.adm-requests li + li {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.adm-requests .link-btn {
+  justify-self: start;
+}
+
+/* ---------- Forms ---------- */
+
+.adm-form {
+  display: grid;
+  gap: 14px;
+}
+
+.adm-form textarea {
+  min-height: 130px;
+}
+
+.adm-form .adm-check {
+  display: flex;
+}
+
+.adm-form__pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.adm-form__submit {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.adm-photo {
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 4 / 3;
+  margin-bottom: 12px;
+  border-radius: var(--radius-s);
+  background: var(--flour);
+  object-fit: cover;
+}
+
+.adm-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.adm-login {
+  display: grid;
+  gap: 14px;
+  width: min(100%, 380px);
+}
+
+.adm-login__logo {
+  width: 72px;
+  height: 72px;
+  margin-inline: auto;
+}
+
+.adm-login h1 {
+  text-align: center;
+}
+
+.adm-login .field {
+  margin: 0;
+}
+
+/* ---------- Wider screens: tabs move into the top bar ---------- */
+
+@media (min-width: 760px) {
+  .adm {
+    padding-bottom: 24px;
+  }
+
+  .adm-bar {
+    padding-inline: 24px;
+  }
+
+  .adm-tabs {
+    position: static;
+    display: flex;
+    gap: 4px;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  .adm-tabs__link {
+    min-height: 44px;
+    padding: 0 14px;
+    border-top: 0;
+    border-radius: var(--radius-pill);
+    font-size: 0.9375rem;
+  }
+
+  .adm-bar .adm-tabs__link {
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  .adm-bar .adm-tabs__link.active {
+    background: var(--amber-400);
+    color: var(--night-900);
+  }
+
+  .adm-main {
+    padding: 24px;
+  }
+
+  .adm h1 {
+    font-size: 1.6rem;
+  }
+}

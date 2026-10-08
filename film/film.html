@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Алёша Пельменыч — фильм</title>
+<link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&family=Cormorant+Garamond:ital,wght@1,600&family=Noto+Sans+Armenian:wght@700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; background: #000; height: 100%; overflow: hidden; }
+  #film { display: block; width: 100vw; height: 100vh; }
+  text { font-family: "Comfortaa", "Noto Sans Armenian", "Trebuchet MS", sans-serif; font-weight: 700; }
+  .serif { font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-weight: 600; }
+  .hy { font-family: "Noto Sans Armenian", "Comfortaa", sans-serif; }
+</style>
+</head>
+<body>
+
+<!-- Static paint servers, referenced by id from the frames drawn below. -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="night" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#060a22"/><stop offset=".6" stop-color="#1a2260"/><stop offset="1" stop-color="#3b2f7a"/>
+    </linearGradient>
+    <linearGradient id="mtn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4254a6"/><stop offset="1" stop-color="#1b2356"/>
+    </linearGradient>
+    <linearGradient id="snow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dfe7ff"/><stop offset="1" stop-color="#8c9be0"/>
+    </linearGradient>
+    <radialGradient id="dough" cx="40%" cy="30%" r="80%">
+      <stop offset="0" stop-color="#fff3d6"/><stop offset=".6" stop-color="#f3d6a0"/><stop offset="1" stop-color="#dfb673"/>
+    </radialGradient>
+    <radialGradient id="doughGlow" cx="45%" cy="40%" r="75%">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#fff2a8"/><stop offset="1" stop-color="#ffc24d"/>
+    </radialGradient>
+    <radialGradient id="halo">
+      <stop offset="0" stop-color="#fff4c4" stop-opacity=".95"/><stop offset=".35" stop-color="#ffbe55" stop-opacity=".45"/><stop offset="1" stop-color="#ff9a2e" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="haloPink">
+      <stop offset="0" stop-color="#ffd0f4" stop-opacity=".7"/><stop offset=".5" stop-color="#b65cff" stop-opacity=".3"/><stop offset="1" stop-color="#5a2bd6" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="cosmos" cx="50%" cy="50%" r="75%">
+      <stop offset="0" stop-color="#5a1fa8"/><stop offset=".5" stop-color="#1c0b5c"/><stop offset="1" stop-color="#05021c"/>
+    </radialGradient>
+    <radialGradient id="nebA"><stop offset="0" stop-color="#ff4fc3" stop-opacity=".5"/><stop offset="1" stop-color="#ff4fc3" stop-opacity="0"/></radialGradient>
+    <radialGradient id="nebB"><stop offset="0" stop-color="#34e0ff" stop-opacity=".45"/><stop offset="1" stop-color="#34e0ff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f8e3b4"/><stop offset="1" stop-color="#e6bf7c"/>
+    </linearGradient>
+    <linearGradient id="wood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c98a4c"/><stop offset="1" stop-color="#8f5a2c"/>
+    </linearGradient>
+    <linearGradient id="morning" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8fc9f2"/><stop offset="1" stop-color="#ffd9a8"/>
+    </linearGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b8fff2" stop-opacity=".9"/><stop offset="1" stop-color="#7affdf" stop-opacity=".18"/>
+    </linearGradient>
+    <linearGradient id="dawn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#111a4a"/><stop offset=".6" stop-color="#3a4a96"/><stop offset="1" stop-color="#f0a878"/>
+    </linearGradient>
+    <radialGradient id="vign" cx="50%" cy="50%" r="72%">
+      <stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".6"/>
+    </radialGradient>
+    <pattern id="tiles" width="46" height="46" patternUnits="userSpaceOnUse">
+      <rect width="46" height="46" fill="#eef3f5"/><path d="M0,0H46M0,0V46" stroke="#cfd9de" stroke-width="2.5"/>
+    </pattern>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14"/></filter>
+    <path id="arcTop" d="M 72,200 A 128,128 0 0 1 328,200"/>
+    <path id="arcBottom" d="M 32,200 A 168,168 0 0 0 368,200"/>
+  </defs>
+</svg>
+
+<svg id="film" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid meet"></svg>
+
+<script src="timings.js"></script>
+<script>
+const W = 1280, H = 720, T = window.TIMINGS;
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const ss = (a, b, t) => { const x = clamp((t - a) / (b - a)); return x * x * (3 - 2 * x); };
+const lerp = (a, b, k) => a + (b - a) * k;
+const back = x => { x = clamp(x); const c = 1.9; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+const rng = seed => () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const sin = Math.sin, cos = Math.cos, PI = Math.PI;
+
+const SKIN = '#f2c6a2', SKIN_D = '#d39c78', BEARD = '#2c201b', CAP = '#ecb693', CAP_D = '#d6966f', SWEATER = '#1b1b20';
+
+// ---------- shared props ----------
+const r1 = rng(11);
+const STARS = Array.from({ length: 190 }, () => ({ x: r1() * W, y: r1() * 540, r: 0.5 + r1() * 1.6, ph: r1() * 6.28 }));
+function stars(t, a = 1) {
+  return STARS.map(s => `<circle cx="${s.x}" cy="${s.y}" r="${s.r}" fill="#fff6e0" opacity="${(a * (0.5 + 0.5 * sin(t * 2.4 + s.ph))).toFixed(2)}"/>`).join('');
+}
+
+const PELMEN_BODY = 'M-42,6 C-46,-28 -20,-44 0,-44 C20,-44 46,-28 42,6 C40,26 21,36 9,27 C5,33 -5,33 -9,27 C-21,36 -40,26 -42,6 Z';
+const PELMEN_LINES = 'M0,25 C-2,10 -10,-4 -22,-12 M0,25 C0,8 0,-6 0,-20 M0,25 C2,10 10,-4 22,-12 M-9,26 C-16,18 -24,12 -32,10 M9,26 C16,18 24,12 32,10';
+function pelmen(x, y, s = 1, rot = 0, glow = false, op = 1) {
+  const ink = glow ? '#e89a1c' : '#7a4a1e';
+  return `<g transform="translate(${x},${y}) rotate(${rot}) scale(${s})" opacity="${op}">
+    <path d="${PELMEN_BODY}" fill="url(#${glow ? 'doughGlow' : 'dough'})" stroke="${ink}" stroke-width="3.5" stroke-linejoin="round"/>
+    <path d="${PELMEN_LINES}" fill="none" stroke="${ink}" stroke-width="2.6" stroke-linecap="round"/></g>`;
+}
+const halo = (x, y, r, op = 1, id = 'halo') => `<circle cx="${x}" cy="${y}" r="${r}" fill="url(#${id})" opacity="${op}"/>`;
+
+function saucer(x, y, s, rot, t) {
+  const lights = [-30, -15, 0, 15, 30].map((lx, i) =>
+    `<circle cx="${lx}" cy="${9 - Math.abs(lx) * 0.12}" r="3.4" fill="${(Math.floor(t * 6) + i) % 2 ? '#7affdf' : '#ff6ad5'}"/>`).join('');
+  return `<g transform="translate(${x},${y}) rotate(${rot}) scale(${s})">
+    <path d="M-24,-10 C-24,-44 24,-44 24,-10 Z" fill="#c9f4ff" opacity=".8" stroke="#7fd0e8" stroke-width="2"/>
+    <ellipse cx="0" cy="-17" rx="9" ry="10" fill="#7fe07a"/><circle cx="-3.5" cy="-19" r="2.2" fill="#123"/><circle cx="3.5" cy="-19" r="2.2" fill="#123"/>
+    <g transform="scale(1.3,.6)"><path d="${PELMEN_BODY}" fill="url(#dough)" stroke="#7a4a1e" stroke-width="3.5"/><path d="${PELMEN_LINES}" fill="none" stroke="#7a4a1e" stroke-width="2.6" stroke-linecap="round"/></g>
+    ${lights}</g>`;
+}
+
+const ARARAT = 'M-40,470 C150,450 300,430 420,360 C470,330 500,290 525,286 C550,290 575,320 620,350 C690,395 740,360 800,280 C850,210 885,150 915,140 C945,150 1010,250 1090,330 C1180,410 1260,440 1330,450 L1330,760 L-40,760Z';
+function ararat(dx, dy, fill = 'url(#mtn)', snowOp = 1) {
+  return `<g transform="translate(${dx},${dy})"><path d="${ARARAT}" fill="${fill}"/>
+    <path d="M868,196 C888,165 902,145 915,140 C930,146 950,172 972,200 C955,192 948,214 932,198 C920,220 905,196 890,212 C884,198 876,204 868,196Z" fill="#e6ecff" opacity="${snowOp}"/>
+    <path d="M498,304 C510,292 518,287 525,286 C534,288 544,298 556,310 C544,306 538,316 528,306 C518,318 508,304 498,304Z" fill="#e6ecff" opacity="${snowOp}"/></g>`;
+}
+
+// ---------- Алёша ----------
+let SPIRAL = 'M0,0';
+for (let a = 0.3; a < 4 * PI; a += 0.3) SPIRAL += ` L${(cos(a) * a * 0.95).toFixed(1)},${(sin(a) * a * 0.95).toFixed(1)}`;
+
+function eye(x, type, look, t) {
+  if (type === 'closed') return `<path d="M${x - 11},-113 Q${x},-105 ${x + 11},-113" fill="none" stroke="${BEARD}" stroke-width="4" stroke-linecap="round"/>`;
+  if (type === 'happy') return `<path d="M${x - 11},-108 Q${x},-121 ${x + 11},-108" fill="none" stroke="${BEARD}" stroke-width="4" stroke-linecap="round"/>`;
+  const wide = type !== 'normal', rx = wide ? 13 : 11, ry = wide ? 14 : 9;
+  const white = `<ellipse cx="${x}" cy="-112" rx="${rx}" ry="${ry}" fill="${type === 'glow' ? '#fff3b0' : '#fff'}" stroke="#3a2a22" stroke-width="1.5"/>`;
+  if (type === 'spiral') return white + `<g transform="translate(${x},-112) rotate(${t * 420})"><path d="${SPIRAL}" fill="none" stroke="#7b3fd1" stroke-width="2.4" stroke-linecap="round"/></g>`;
+  if (type === 'glow') return halo(x, -112, 34) + white + `<circle cx="${x}" cy="-112" r="5" fill="#ffab00"/>`;
+  const px = x + look[0] * 5, py = -112 + look[1] * 5;
+  return white + `<circle cx="${px}" cy="${py}" r="5.5" fill="#2a1a12"/><circle cx="${px + 2}" cy="${py - 2}" r="1.7" fill="#fff"/>`;
+}
+
+function arm(side, a1, a2, t, op = 1) {
+  const sx = side * 92;
+  return `<g transform="translate(${sx},32) rotate(${a1})" opacity="${op}">
+    <line x1="0" y1="0" x2="0" y2="78" stroke="${SWEATER}" stroke-width="46" stroke-linecap="round"/>
+    <g transform="translate(0,78) rotate(${a2})">
+      <line x1="0" y1="0" x2="0" y2="66" stroke="${SWEATER}" stroke-width="42" stroke-linecap="round"/>
+      <circle cx="0" cy="86" r="20" fill="${SKIN}"/></g></g>`;
+}
+
+// o: x,y,s,rot | eyes, look, brow, mouth, mouthOpen | armL/armR: [upper, forearm] or null | legs: [l, r] or null | part: 'all' | 'body' | 'arms'
+function alyosha(o) {
+  const t = o.t || 0, look = o.look || [0, 0], brow = o.brow || 0, part = o.part || 'all';
+  const tf = `transform="translate(${o.x},${o.y}) rotate(${o.rot || 0}) scale(${o.s})"`;
+  const arms = (o.armL ? arm(-1, o.armL[0], o.armL[1], t) : '') + (o.armR ? arm(1, o.armR[0], o.armR[1], t) : '');
+  if (part === 'arms') return `<g ${tf}>${arms}</g>`;
+
+  const legs = !o.legs ? '' : [-1, 1].map((sd, i) => `<g transform="translate(${sd * 38},222) rotate(${o.legs[i]})">
+      <line x1="0" y1="0" x2="0" y2="148" stroke="#27304f" stroke-width="42" stroke-linecap="round"/>
+      <ellipse cx="6" cy="160" rx="32" ry="15" fill="#f1f1f1"/></g>`).join('');
+
+  const mo = o.mouthOpen == null ? 1 : o.mouthOpen;
+  const mouth = {
+    neutral: `<path d="M-10,-62 Q0,-58 10,-62" fill="none" stroke="#c98a7a" stroke-width="4" stroke-linecap="round"/>`,
+    smile: `<path d="M-15,-66 Q0,-50 15,-66 Q0,-60 -15,-66Z" fill="#fff" stroke="#c98a7a" stroke-width="3" stroke-linejoin="round"/>`,
+    o: `<ellipse cx="0" cy="-60" rx="${7 + 3 * mo}" ry="${3 + 9 * mo}" fill="#5a1f1f" stroke="#c98a7a" stroke-width="3"/>`,
+    big: `<ellipse cx="0" cy="-58" rx="${10 + 7 * mo}" ry="${3 + 16 * mo}" fill="#5a1f1f" stroke="#c98a7a" stroke-width="3"/>`,
+  }[o.mouth || 'neutral'];
+
+  const body = `
+    <path d="M-70,0 C-110,5 -118,40 -116,90 L-104,240 L104,240 L116,90 C118,40 110,5 70,0 Z" fill="${SWEATER}"/>
+    <path d="M-62,150 l11,-30 l8,28 l10,-36 l9,38 l11,-30 l8,26 l12,-38 l10,40 l11,-30 l9,26 l10,-32 l8,30" fill="none" stroke="#f4f4f4" stroke-width="5.5" stroke-linejoin="round" stroke-linecap="round"/>
+    <rect x="-24" y="-40" width="48" height="50" fill="${SKIN_D}"/>
+    <g fill="none" stroke-width="3" stroke-linecap="round">
+      <path d="M-15,-24 q8,7 -1,15 M-6,-6 q6,-6 10,2" stroke="#2f8f8a"/><path d="M6,-26 q10,6 2,16 M12,-6 l5,6" stroke="#c2473d"/><path d="M-3,-16 l6,5 l-7,5" stroke="#3b3b55"/>
+    </g>
+    <path d="M-36,2 Q0,22 36,2 Q0,-8 -36,2Z" fill="#101014"/>`;
+
+  const head = `<g transform="rotate(${o.headRot || 0},0,-40)">
+    <circle cx="-58" cy="-96" r="12" fill="${SKIN_D}"/><circle cx="58" cy="-96" r="12" fill="${SKIN_D}"/>
+    <ellipse cx="0" cy="-95" rx="58" ry="66" fill="${SKIN}"/>
+    <path d="M-58,-128 C-64,-110 -60,-100 -56,-96 L-50,-126Z M58,-128 C64,-110 60,-100 56,-96 L50,-126Z" fill="${BEARD}"/>
+    <path d="M-58,-104 C-63,-58 -46,-26 0,-22 C46,-26 63,-58 58,-104 C50,-80 40,-70 28,-73 C15,-80 -15,-80 -28,-73 C-40,-70 -50,-80 -58,-104 Z" fill="${BEARD}"/>
+    ${mouth}
+    <path d="M-32,-74 C-18,-90 -6,-88 0,-81 C6,-88 18,-90 32,-74 C18,-80 8,-77 0,-73 C-8,-77 -18,-80 -32,-74Z" fill="#3a2a22"/>
+    <path d="M-3,-108 C-8,-96 -6,-89 5,-91" fill="none" stroke="${SKIN_D}" stroke-width="4" stroke-linecap="round"/>
+    ${eye(-23, o.eyes || 'normal', look, t)}${eye(23, o.eyes || 'normal', look, t)}
+    <path d="M-37,${-131 - brow} L-11,${-134 - brow * 1.2} M11,${-134 - brow * 1.2} L37,${-131 - brow}" stroke="${BEARD}" stroke-width="6.5" stroke-linecap="round"/>
+    <path d="M-62,-124 C-66,-180 -30,-194 0,-194 C30,-194 66,-180 62,-124 Z" fill="${CAP}"/>
+    <path d="M0,-194 C-6,-170 -8,-150 -8,-128 M0,-194 C6,-170 8,-150 8,-128" fill="none" stroke="${CAP_D}" stroke-width="2"/>
+    <path d="M-70,-126 C-40,-146 40,-146 70,-126 C50,-110 -50,-110 -70,-126Z" fill="${CAP_D}"/>
+    <circle cx="0" cy="-194" r="5" fill="${CAP_D}"/></g>`;
+
+  return `<g ${tf}>${legs}${body}${head}${part === 'all' ? arms : ''}</g>`;
+}
+
+function logo(cx, cy, s, rot) {
+  return `<g transform="translate(${cx},${cy}) rotate(${rot}) scale(${s}) translate(-200,-200)">
+    <circle cx="200" cy="204" r="194" fill="#0a0e2a" opacity=".3"/>
+    <circle cx="200" cy="200" r="194" fill="#a9cfe6"/><circle cx="200" cy="200" r="184" fill="none" stroke="#8fb9d4" stroke-width="2"/>
+    <text font-size="27" letter-spacing="1" fill="#6b3f1d"><textPath href="#arcTop" startOffset="50%" text-anchor="middle">АЛЁША ПЕЛЬМЕНЫЧ</textPath></text>
+    ${pelmen(152, 238, 0.86, -14)}${pelmen(248, 238, 0.86, 14)}${pelmen(200, 172, 1.02, 0)}
+    <path fill="#6b3f1d" d="M200,306 c-3,-5 -10,-5 -10,1 c0,5 6,8 10,12 c4,-4 10,-7 10,-12 c0,-6 -7,-6 -10,-1 z"/>
+    <text class="hy" font-size="25" letter-spacing="1.5" fill="#6b3f1d"><textPath href="#arcBottom" startOffset="50%" text-anchor="middle">Ալյոշա Պելմենիչ</textPath></text></g>`;
+}
+
+const flashRect = (color, op) => op <= 0.001 ? '' : `<rect width="${W}" height="${H}" fill="${color}" opacity="${op.toFixed(3)}"/>`;
+const cam = (cx, cy, s, inner, rot = 0) => `<g transform="translate(${cx},${cy}) rotate(${rot}) scale(${s}) translate(${-cx},${-cy})">${inner}</g>`;
+
+// ---------- Scene 1: the find ----------
+const r2 = rng(5);
+const FLAKES = Array.from({ length: 60 }, () => ({ x: r2() * W, y: r2() * H, sp: 20 + r2() * 40, ph: r2() * 6.28, r: 1 + r2() * 2.2 }));
+function scene1(t, D) {
+  const L = [900, 588], LAND = 1.7;
+  const fe = Math.pow(clamp((t - 0.5) / (LAND - 0.5)), 2);
+  const fx = lerp(1260, L[0], fe), fy = lerp(-70, L[1], fe);
+  const stopT = Math.min(D - 2.6, 5.4), wk = clamp((t - 1.5) / (stopT - 1.5));
+  const ax = lerp(-90, 610, wk), stopped = t >= stopT, st = t - stopT;
+  const ph = ax / 24;
+
+  let m = `<rect width="${W}" height="${H}" fill="url(#night)"/>${stars(t)}`;
+  m += halo(1060, 120, 120, 0.5, 'haloPink') + `<circle cx="1060" cy="120" r="40" fill="#f4f1ff"/><circle cx="1046" cy="110" r="8" fill="#d9d5f2"/><circle cx="1072" cy="134" r="5" fill="#d9d5f2"/>`;
+  m += ararat(-30, 20);
+  m += `<path d="M-20,520 C200,470 420,500 640,480 C860,460 1080,500 1300,470 L1300,720 L-20,720Z" fill="#6676c4"/>`;
+  m += `<path d="M-20,605 C250,565 500,595 760,575 C1000,557 1150,585 1300,565 L1300,720 L-20,720Z" fill="url(#snow)"/>`;
+
+  if (t > 0.5 && t < LAND) {                       // falling star
+    for (let i = 14; i >= 1; i--) {
+      const k = Math.max(0, fe - i * 0.022), f = 1 - i / 14;
+      m += `<circle cx="${lerp(1260, L[0], k)}" cy="${lerp(-70, L[1], k)}" r="${14 * f + 2}" fill="#ffd98a" opacity="${0.5 * f}"/>`;
+    }
+    m += halo(fx, fy, 70) + pelmen(fx, fy, 0.5, t * 500, true);
+  }
+  if (t >= LAND) {
+    const pulse = 1 + 0.1 * sin(t * 5);
+    m += `<ellipse cx="${L[0]}" cy="${L[1] + 16}" rx="${230 * pulse}" ry="36" fill="#ffcf7a" opacity=".28"/>`;
+    m += halo(L[0], L[1] - 8, 125 * pulse) + pelmen(L[0], L[1] - 10, 0.55, 12, true);
+    m += `<ellipse cx="${L[0]}" cy="${L[1] + 14}" rx="58" ry="13" fill="#e8eeff"/>`;
+    const pt = t - LAND;
+    if (pt < 0.9) for (let i = 0; i < 11; i++) {
+      const a = PI + (i / 10) * PI, d = pt * (70 + (i % 3) * 40);
+      m += `<circle cx="${L[0] + cos(a) * d}" cy="${L[1] + sin(a) * d * 0.8 + pt * pt * 60}" r="${9 - pt * 6}" fill="#fff" opacity="${1 - pt / 0.9}"/>`;
+    }
+  }
+
+  const reach = stopped ? ss(0.7, 1.5, st) : 0;
+  m += alyosha({
+    x: ax, y: 384 - (stopped ? 0 : Math.abs(sin(ph)) * 7), s: 0.5, t, rot: stopped ? 3 * ss(0, 0.4, st) : 2,
+    eyes: stopped ? 'wide' : 'normal', look: [1, 0.5], brow: stopped ? 8 : 0, mouth: stopped ? 'o' : 'neutral', mouthOpen: ss(0, 0.3, st),
+    armL: stopped ? [6, 0] : [sin(ph) * 28, -10], armR: stopped ? [-6 - 62 * reach, -22 * reach] : [-sin(ph) * 28, 10],
+    legs: stopped ? [4, -4] : [sin(ph) * 26, -sin(ph) * 26],
+  });
+  if (stopped && st < 1.6) m += `<text x="${ax + 8}" y="${268 - 14 * back(st / 0.35)}" font-size="${64 * back(st / 0.35)}" text-anchor="middle" fill="#ffd98a" opacity="${1 - ss(1.2, 1.6, st)}">!</text>`;
+
+  m += FLAKES.map(f => `<circle cx="${f.x + sin(t + f.ph) * 14}" cy="${(f.y + t * f.sp) % H}" r="${f.r}" fill="#fff" opacity=".7"/>`).join('');
+  return cam(L[0] - 120, 520, 1 + 0.14 * ss(0, D, t), m) + flashRect('#000', Math.max(1 - t / 0.5, ss(D - 0.25, D, t)));
+}
+
+// ---------- Scene 2: he eats it ----------
+function scene2(t, D, sc) {
+  // He eats it as the narrator reaches "Алёша его съел"; everything is timed back from that moment (e).
+  const p = t / D, e = clamp((sc.subs[1].from + 0.35) / D, 0.4, 0.66);
+  const eatK = ss(e - 0.1, e, p), eaten = p > e - 0.005;
+  const hx = lerp(915, 592, eatK), hy = lerp(395, 430, eatK) + (1 - eatK) * sin(t * 2.2) * 7 + ss(e + 0.02, e + 0.14, p) * 520;
+  const lookV = [clamp((hx - 560) / 300, -1, 1), clamp((hy - 300) / 200, -1, 1)];
+  const chew = p > e && p < 0.84;
+
+  let m = `<rect width="${W}" height="${H}" fill="#0b1036"/>`;
+  m += `<g filter="url(#blur)" opacity=".5">${ararat(60, 150, '#27337a', 0.5)}</g>`;
+  m += `<g filter="url(#blur)">` + [[160, 150, 70], [330, 420, 50], [1050, 180, 90], [1160, 470, 60], [820, 110, 40], [90, 560, 80]]
+    .map(([x, y, r], i) => `<circle cx="${x + sin(t * 0.6 + i) * 12}" cy="${y}" r="${r}" fill="#8f9cff" opacity=".16"/>`).join('') + `</g>`;
+
+  m += alyosha({
+    x: 560, y: 560, s: 2.3, t, rot: -1.5 + sin(t * 1.3),
+    eyes: p > 0.84 ? 'glow' : chew ? 'happy' : 'wide', look: lookV, brow: chew ? 2 : 9,
+    mouth: p > 0.84 ? 'o' : chew ? 'big' : p > e - 0.16 ? 'big' : 'o',
+    mouthOpen: p > 0.84 ? ss(0.84, 0.9, p) : chew ? 0.15 + 0.3 * Math.abs(sin(t * 15)) : p > e - 0.16 ? ss(e - 0.16, e - 0.06, p) : 0.5,
+    armL: [8, 0], armR: null,
+  });
+  if (chew) m += halo(560, 560 + lerp(-130, 220, ss(e + 0.03, 0.84, p)), 150, 0.75);          // the glow travels down inside him
+
+  // his hand with the pelmen
+  m += `<line x1="${hx + 250}" y1="${hy + 420}" x2="${hx + 34}" y2="${hy + 92}" stroke="${SWEATER}" stroke-width="104" stroke-linecap="round"/>`;
+  if (!eaten) m += halo(hx, hy - 20, 190 * (1 - 0.5 * eatK)) + pelmen(hx, hy - 22, 1.45 * (1 - ss(e - 0.035, e - 0.005, p)), -8 + sin(t * 2) * 4, true);
+  m += `<circle cx="${hx}" cy="${hy + 52}" r="48" fill="${SKIN}"/>` + [-33, -11, 11, 33].map(dx => `<circle cx="${hx + dx}" cy="${hy + 22 + Math.abs(dx) * 0.2}" r="14" fill="${SKIN}" stroke="${SKIN_D}" stroke-width="2"/>`).join('');
+  if (!eaten) m += `<rect width="${W}" height="${H}" fill="url(#halo)" opacity="${0.22 * (1 - eatK)}" transform="translate(${hx - 640},${hy - 380})"/>`;
+
+  const zoom = 1 + 0.07 * ss(0, 0.6, p) + 2.6 * Math.pow(ss(0.86, 1, p), 2);
+  return cam(560, 302, zoom, m) + flashRect('#ffd76a', ss(0.9, 1, p)) + flashRect('#000', 1 - t / 0.3);
+}
+
+// ---------- Scene 3: the vision ----------
+const r3 = rng(23);
+const STREAKS = Array.from({ length: 80 }, () => ({ a: r3() * 6.28, ph: r3(), sp: 0.25 + r3() * 0.5 }));
+const CONST_PTS = [[-42, 6], [-38, -22], [-20, -40], [0, -44], [20, -40], [38, -22], [42, 6], [30, 26], [9, 27], [0, 31], [-9, 27], [-30, 26]];
+const CONST_LINES = [...CONST_PTS.map((_, i) => [i, (i + 1) % CONST_PTS.length]), [9, 2], [9, 3], [9, 4]];
+const GLYPHS = Array.from({ length: 21 }, () => { let d = `M${(r3() * 16).toFixed(0)},${(r3() * 20).toFixed(0)}`; for (let i = 0; i < 3; i++) d += ` L${(r3() * 16).toFixed(0)},${(r3() * 20).toFixed(0)}`; return d + (r3() > 0.5 ? ` M8,10 m-3,0 a3,3 0 1 0 6,0 a3,3 0 1 0 -6,0` : ''); });
+function scene3(t, D) {
+  const p = t / D, C = [640, 360], P = [870, 320];
+  let m = `<rect x="-200" y="-200" width="${W + 400}" height="${H + 400}" fill="url(#cosmos)"/>`;
+  m += `<circle cx="${330 + sin(t * 0.4) * 40}" cy="260" r="420" fill="url(#nebA)"/><circle cx="${980 - sin(t * 0.5) * 40}" cy="470" r="460" fill="url(#nebB)"/>`;
+  m += `<g transform="rotate(${t * 22},${C[0]},${C[1]})">` + Array.from({ length: 16 }, (_, i) => {
+    const a = i * PI / 8, b = a + PI / 22;
+    return `<path d="M${C[0]},${C[1]} L${C[0] + cos(a) * 1200},${C[1] + sin(a) * 1200} L${C[0] + cos(b) * 1200},${C[1] + sin(b) * 1200}Z" fill="${i % 2 ? '#ff6ad5' : '#5fe6ff'}" opacity=".07"/>`;
+  }).join('') + `</g>`;
+  m += STREAKS.map(s => {
+    const r = (s.ph + t * s.sp) % 1, d = r * r * 860 + 30, e = d + r * 46;
+    return `<line x1="${C[0] + cos(s.a) * d}" y1="${C[1] + sin(s.a) * d}" x2="${C[0] + cos(s.a) * e}" y2="${C[1] + sin(s.a) * e}" stroke="#fff" stroke-width="${1 + r * 2}" stroke-linecap="round" opacity="${r}"/>`;
+  }).join('');
+
+  // planet Пельмения
+  const pk = ss(0.05, 0.4, p), ps = 4.2 * lerp(0.2, 1, back(pk)), ring = (d, w, o) => `<path d="${d}" fill="none" stroke="#ffe9b8" stroke-width="${w}" opacity="${o}"/>`;
+  const moons = [0, 1, 2].map(i => { const a = t * 1.1 + i * 2.1; return { z: sin(a), g: pelmen(cos(a) * 400, sin(a) * 95, 0.42, a * 40) }; });
+  m += `<g opacity="${pk}">${halo(P[0], P[1], 420 * pk, 1, 'haloPink')}<g transform="translate(${P[0]},${P[1]}) rotate(-16) scale(${ps / 4.2})">
+    ${ring('M-300,0 A300,62 0 0 1 300,0', 12, 0.8)}${ring('M-345,0 A345,74 0 0 1 345,0', 4, 0.5)}
+    ${moons.filter(o => o.z < 0).map(o => o.g).join('')}
+    ${pelmen(0, 0, 4.2, 16 + sin(t * 0.8) * 4)}
+    ${ring('M-300,0 A300,62 0 0 0 300,0', 12, 0.8)}${ring('M-345,0 A345,74 0 0 0 345,0', 4, 0.5)}
+    ${moons.filter(o => o.z >= 0).map(o => o.g).join('')}</g></g>`;
+  m += saucer(lerp(-120, 1420, clamp((t - 1.2) / 1.6)), 150 + sin(t * 6) * 14, 1.1, 8, t);
+  m += saucer(lerp(1420, -120, clamp((t - D * 0.55) / 1.8)), 610 + sin(t * 5) * 12, 0.8, -8, t);
+
+  // the recipe, written in stars
+  const q = ss(0.38, 0.78, p), K = 2.9, O = [270, 220], pt = i => [O[0] + CONST_PTS[i][0] * K, O[1] + CONST_PTS[i][1] * K];
+  m += CONST_LINES.map(([a, b], i) => {
+    const k = clamp(q * CONST_LINES.length - i); if (k <= 0) return '';
+    const A = pt(a), B = pt(b);
+    return `<line x1="${A[0]}" y1="${A[1]}" x2="${lerp(A[0], B[0], k)}" y2="${lerp(A[1], B[1], k)}" stroke="#aef6ff" stroke-width="2.4" opacity=".85"/>`;
+  }).join('');
+  m += CONST_PTS.map((_, i) => {
+    const [x, y] = pt(i), o = ss(0.3, 0.42, p - i * 0.01), r = 7 + 3 * sin(t * 5 + i);
+    return `<path d="M${x},${y - r} Q${x},${y} ${x + r},${y} Q${x},${y} ${x},${y + r} Q${x},${y} ${x - r},${y} Q${x},${y} ${x},${y - r}Z" fill="#fff" opacity="${o}"/>`;
+  }).join('');
+  const q2 = ss(0.55, 0.95, p);
+  m += GLYPHS.map((d, i) => q2 * GLYPHS.length < i ? '' :
+    `<path transform="translate(${150 + (i % 7) * 34},${350 + Math.floor(i / 7) * 34})" d="${d}" fill="none" stroke="#aef6ff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/>`).join('');
+
+  m += alyosha({
+    x: lerp(380, 520, p), y: lerp(500, 400, p) + sin(t * 1.4) * 12, s: 0.5, t, rot: -24 + 40 * p + sin(t * 1.1) * 6,
+    eyes: 'spiral', brow: 10, mouth: 'o', mouthOpen: 0.7 + 0.3 * sin(t * 3),
+    armL: [70 + sin(t * 2) * 14, 20], armR: [-70 - sin(t * 2.3) * 14, -20], legs: [14 + sin(t * 1.7) * 10, -14 + sin(t * 1.9) * 10],
+  });
+  return cam(C[0], C[1], 1.06 + 0.05 * p, m, sin(t * 0.6) * 2.5) + flashRect('#ffd76a', 1 - ss(0, 0.14, p)) + flashRect('#fff', ss(0.94, 1, p));
+}
+
+// ---------- Scene 4: hands work by themselves ----------
+const r4 = rng(77);
+const SLOTS = [];
+for (let row = 0; row < 3; row++) for (let c = 0; c < 12; c++) SLOTS.push({ x: 70 + c * 104 + (row % 2) * 40 + r4() * 14, y: 578 + row * 50, s: 0.46 + row * 0.11, rot: -14 + r4() * 28, k: r4() });
+SLOTS.sort((a, b) => a.k - b.k);
+function scene4(t, D) {
+  const AX = 470, AY = 404, S = 1.3, awake = t > 0.55;
+  let m = `<rect width="${W}" height="${H}" fill="url(#wall)"/><rect y="372" width="${W}" height="150" fill="url(#tiles)"/>`;
+  // window with the morning mountain
+  m += `<rect x="852" y="72" width="336" height="278" rx="10" fill="#8a5a34"/><rect x="866" y="86" width="308" height="250" fill="url(#morning)"/>
+    <circle cx="1100" cy="160" r="34" fill="#fff6c8"/>${halo(1100, 160, 90, 0.8)}
+    <path d="M866,336 L866,290 C920,280 950,240 975,236 C1000,240 1010,262 1040,270 C1075,240 1095,200 1112,196 C1135,206 1150,260 1174,280 L1174,336Z" fill="#6f83c9"/>
+    <path d="M1096,214 L1112,196 L1128,216 L1118,212 L1110,220 L1104,212Z" fill="#fff"/>
+    <path d="M1020,86V336M866,206H1174" stroke="#8a5a34" stroke-width="10"/>`;
+  // shelf and utensils
+  m += `<rect x="90" y="196" width="330" height="14" rx="4" fill="#8a5a34"/>` +
+    [[110, '#d9534f'], [176, '#5aa9a3'], [242, '#e0a93b'], [308, '#7a6fd1']].map(([x, c], i) => `<rect x="${x}" y="${128 + (i % 2) * 14}" width="48" height="${68 - (i % 2) * 14}" rx="8" fill="#fff8e6" stroke="#c9a56b" stroke-width="3"/><rect x="${x - 3}" y="${118 + (i % 2) * 14}" width="54" height="14" rx="5" fill="${c}"/>`).join('') +
+    `<path d="M360,196 C350,160 366,140 384,150 C400,130 414,160 400,196Z" fill="#5c9c58"/>`;
+  m += `<rect x="560" y="96" width="230" height="8" rx="4" fill="#7b7b86"/><path d="M610,104V190" stroke="#7b7b86" stroke-width="6"/><ellipse cx="610" cy="206" rx="22" ry="18" fill="#9a9aa6"/><path d="M700,104V170" stroke="#7b7b86" stroke-width="6"/><ellipse cx="700" cy="200" rx="14" ry="32" fill="none" stroke="#9a9aa6" stroke-width="5"/>`;
+  m += `<path d="M866,350 L1174,350 L1060,720 L420,720Z" fill="#fff" opacity=".12"/>`;
+
+  m += alyosha({ x: AX, y: AY, s: S, t, part: 'body', eyes: awake ? 'glow' : 'closed', brow: awake ? 4 : 0, mouth: awake ? 'smile' : 'neutral', headRot: sin(t * 2) * 2.5 });
+
+  m += `<rect y="520" width="${W}" height="200" fill="url(#wood)"/><rect y="520" width="${W}" height="10" fill="#e0a565"/>`;
+  m += [[300, 600, 190, 26], [640, 660, 240, 30], [980, 610, 170, 22]].map(([x, y, a, b]) => `<ellipse cx="${x}" cy="${y}" rx="${a}" ry="${b}" fill="#fff" opacity=".35"/>`).join('');
+
+  // pelmeni fly out of his hands onto the table
+  const N = SLOTS.length, span = D - 2.1;
+  SLOTS.forEach((sl, i) => {
+    const born = 0.9 + span * Math.pow(i / N, 0.75), k = clamp((t - born) / 0.3);
+    if (t < born) return;
+    m += pelmen(lerp(AX, sl.x, k), lerp(556, sl.y, k) - sin(k * PI) * 90, sl.s * (0.4 + 0.6 * back(k)), sl.rot + (1 - k) * 300);
+  });
+
+  if (awake) {
+    const w = 36, pose = tt => ({ armL: [-4 + 10 * sin(tt * w), -30 + 20 * sin(tt * w + 1)], armR: [4 - 10 * sin(tt * w + 2), 30 - 20 * sin(tt * w + 3)] });
+    [[0.05, 0.18], [0.025, 0.38], [0, 1]].forEach(([lag, op]) => m += `<g opacity="${op}">${alyosha({ x: AX, y: AY, s: S, t, part: 'arms', ...pose(t - lag) })}</g>`);
+    m += [0, 1, 2, 3, 4].map(i => { const a = (t * 2.2 + i * 0.2) % 1; return `<circle cx="${AX + (i - 2) * 30}" cy="${560 - a * 70}" r="${10 + a * 22}" fill="#fff" opacity="${0.5 * (1 - a)}"/>`; }).join('');
+  } else {
+    m += alyosha({ x: AX, y: AY, s: S, t, part: 'arms', armL: [-4, -28], armR: [4, 28] });
+  }
+  return cam(520, 430, 1.12 - 0.12 * ss(0, D, t), m) + flashRect('#fff', 1 - ss(0, 0.5, t)) + flashRect('#000', ss(D - 0.3, D, t));
+}
+
+// ---------- Scene 5: the plate on the roof ----------
+const r5 = rng(41);
+const CITY = Array.from({ length: 70 }, () => ({ x: r5() * W, y: 500 + r5() * 44, c: r5() > 0.3 ? '#ffd27a' : '#9fd8ff' }));
+function scene5(t, D) {
+  const tz = D - 1.5, arrive = clamp((t - 0.5) / 1.0), ae = 1 - Math.pow(1 - arrive, 3);
+  const leave = Math.pow(clamp((t - tz) / 0.4), 2);
+  const sx = lerp(lerp(1500, 760, ae), -260, leave), sy = lerp(lerp(-90, 168, ae), -160, leave) + sin(t * 3) * 6 * (1 - leave);
+  const beamOn = ss(1.7, 2.1, t) * (1 - ss(tz - 0.45, tz - 0.2, t));
+  const rise = ss(2.3, tz - 0.45, t);
+  const py = lerp(546, 215, rise), ps = lerp(1, 0.28, rise);
+
+  let m = `<rect width="${W}" height="${H}" fill="url(#night)"/>${stars(t)}`;
+  m += `<circle cx="200" cy="120" r="34" fill="#f4f1ff"/>` + halo(200, 120, 100, 0.45, 'haloPink');
+  m += ararat(0, 70, '#1c2560', 0.8);
+  m += [[40, 470, 120, 90], [200, 490, 90, 70], [430, 478, 150, 82], [900, 486, 110, 74], [1120, 468, 140, 92]].map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#141a44"/>`).join('');
+  m += CITY.map((c, i) => `<rect x="${c.x}" y="${c.y}" width="5" height="5" fill="${c.c}" opacity="${0.5 + 0.4 * sin(t * 1.5 + i)}"/>`).join('');
+
+  if (beamOn > 0) m += `<path d="M${sx - 22},${sy + 14} L${sx + 22},${sy + 14} L860,566 L660,566Z" fill="url(#beam)" opacity="${0.85 * beamOn}"/><ellipse cx="760" cy="566" rx="110" ry="16" fill="#b8fff2" opacity="${0.6 * beamOn}"/>`;
+  if (leave > 0 && leave < 1) m += `<line x1="${sx}" y1="${sy}" x2="${lerp(sx, 760, 0.5)}" y2="${lerp(sy, 168, 0.5)}" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".7"/>`;
+  m += saucer(sx, sy, 1.7, sin(t * 2.4) * 5 - leave * 30, t);
+
+  // rooftop
+  m += `<rect y="560" width="${W}" height="160" fill="#2a2646"/><rect y="552" width="${W}" height="14" fill="#423c6b"/>`;
+  m += `<path d="M150,560V400M118,430H182M128,452H172" stroke="#423c6b" stroke-width="6" stroke-linecap="round"/>`;
+  m += `<rect x="1040" y="440" width="120" height="84" rx="16" fill="#3a3560"/><path d="M1056,524V560M1144,524V560" stroke="#3a3560" stroke-width="10"/>`;
+
+  // plate
+  if (rise < 0.999) {
+    const steam = [-18, 0, 18].map((dx, i) => { const a = (t * 0.6 + i * 0.33) % 1; return `<path d="M${dx},${-30 - a * 40} q8,-10 0,-20 q-8,-10 0,-20" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity="${0.5 * (1 - a) * (1 - rise)}"/>`; }).join('');
+    m += `<g transform="translate(760,${py}) rotate(${sin(t * 5) * 6 * rise}) scale(${ps})">${steam}
+      <ellipse cx="0" cy="6" rx="64" ry="15" fill="#fff"/><ellipse cx="0" cy="4" rx="46" ry="9" fill="#dfe6f5"/>
+      ${pelmen(-24, -6, 0.34, -10)}${pelmen(24, -6, 0.34, 12)}${pelmen(0, -4, 0.36, 0)}${pelmen(-10, -22, 0.34, 8)}${pelmen(14, -22, 0.34, -6)}</g>`;
+  }
+
+  const wave = t > 1.3 && t < tz + 1.2;
+  m += alyosha({
+    x: 360, y: 366, s: 0.5, t, eyes: t > tz ? 'happy' : 'normal', look: [0.8, -1], brow: 5, mouth: 'smile', headRot: -8,
+    armL: [6, 0], armR: wave ? [-150 + sin(t * 8) * 16, -18] : [-6, 0], legs: [4, -4],
+  });
+  if (leave >= 1) { const tw = t - tz - 0.4, r = 26 * sin(clamp(tw / 0.6) * PI); m += `<path d="M110,${60 - r} Q110,60 ${110 + r},60 Q110,60 110,${60 + r} Q110,60 ${110 - r},60 Q110,60 110,${60 - r}Z" fill="#fff"/>`; }
+  return cam(700, 380, 1 + 0.08 * ss(0, D, t), m) + flashRect('#000', 1 - t / 0.35) + flashRect('#fff', ss(D - 0.3, D, t));
+}
+
+// ---------- Scene 6: logo ----------
+const r6 = rng(3);
+const SPARKS = Array.from({ length: 44 }, () => ({ a: r6() * 6.28, v: 0.3 + r6() * 0.7, r: 1.5 + r6() * 3, d: r6() * 0.4 }));
+function scene6(t, D) {
+  const C = [640, 296], k = clamp((t - 0.15) / 0.9);
+  let m = `<rect width="${W}" height="${H}" fill="url(#dawn)"/>${stars(t, 0.5)}`;
+  m += halo(C[0], C[1], 520, 0.9);
+  m += `<g transform="rotate(${t * 7},${C[0]},${C[1]})" opacity="${0.5 * ss(0.2, 1.2, t)}">` + Array.from({ length: 18 }, (_, i) => {
+    const a = i * PI / 9, b = a + PI / 30;
+    return `<path d="M${C[0]},${C[1]} L${C[0] + cos(a) * 1000},${C[1] + sin(a) * 1000} L${C[0] + cos(b) * 1000},${C[1] + sin(b) * 1000}Z" fill="#ffe9b8" opacity=".3"/>`;
+  }).join('') + `</g>`;
+  m += ararat(0, 300, '#0d1236', 0.35);
+  m += SPARKS.map(s => { const a = t - 0.15 - s.d; if (a < 0 || a > 2) return ''; const d = (1 - Math.pow(1 - a / 2, 3)) * 520 * s.v; return `<circle cx="${C[0] + cos(s.a) * d}" cy="${C[1] + sin(s.a) * d + a * a * 16}" r="${s.r}" fill="#ffe2a0" opacity="${1 - a / 2}"/>`; }).join('');
+  m += `<g opacity="${ss(0.15, 0.45, t)}">${logo(C[0], C[1], (0.2 + 0.78 * back(k)) * (1 + 0.025 * ss(1, D, t)), (1 - k) * -20)}</g>`;
+  const tk = ss(1.5, 2.2, t);
+  m += `<text class="serif" x="640" y="${592 + (1 - tk) * 16}" font-size="50" text-anchor="middle" fill="#fff3d6" opacity="${tk}" stroke="#0d1236" stroke-width="6" stroke-opacity=".5" paint-order="stroke">Рецепт не с этой планеты.</text>`;
+  return m + flashRect('#fff', 1 - ss(0, 0.5, t));
+}
+
+// ---------- master ----------
+const SCENES = [scene1, scene2, scene3, scene4, scene5, scene6];
+const film = document.getElementById('film');
+function renderAt(t) {
+  t = clamp(t, 0, T.total - 0.001);
+  let i = T.scenes.findIndex(s => t < s.start + s.dur); if (i < 0) i = SCENES.length - 1;
+  const sc = T.scenes[i], lt = t - sc.start;
+  let m = SCENES[i](lt, sc.dur, sc);
+  m += `<rect width="${W}" height="${H}" fill="url(#vign)"/><rect width="${W}" height="44" fill="#000"/><rect y="${H - 44}" width="${W}" height="44" fill="#000"/>`;
+  const sub = i < 5 && sc.subs.find(s => lt >= s.from - 0.05 && lt <= s.to + 0.1);
+  if (sub) m += `<text x="640" y="652" font-size="27" text-anchor="middle" fill="#fff" stroke="#000" stroke-width="6" stroke-opacity=".7" paint-order="stroke" stroke-linejoin="round">${sub.text}</text>`;
+  film.innerHTML = m;
+}
+window.renderAt = renderAt;
+
+const q = new URLSearchParams(location.search);
+if (q.has('t')) renderAt(parseFloat(q.get('t')));
+else if (!q.has('capture')) {
+  const t0 = performance.now();
+  (function loop(now) { renderAt(((now - t0) / 1000) % T.total); requestAnimationFrame(loop); })(t0);
+}
+</script>
+</body>
+</html>

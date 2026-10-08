@@ -1,0 +1,40 @@
+# Caddy gets and renews the HTTPS certificate for this domain by itself (Let's Encrypt).
+# The domain's DNS A record must already point at this server, and ports 80 and 443 must be open.
+{$DOMAIN} {
+	encode zstd gzip
+
+	@backend path /api/* /uploads/*
+	@static not path /api/* /uploads/*
+	@hashed path /assets/*
+	@media path /media/*
+	@page not path /api/* /uploads/* /assets/* /media/*
+
+	# The API sets its own security headers; these are for the storefront files.
+	header @static {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; style-src 'self'; font-src 'self'; media-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		-Server
+	}
+
+	# Vite puts a content hash into every file name under /assets, so those never change.
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+	header @media Cache-Control "public, max-age=604800"
+	# Pages are re-checked on every visit, so a new deploy shows up at once.
+	header @page Cache-Control "no-cache"
+
+	# API and uploaded product photos.
+	handle @backend {
+		reverse_proxy api:3000
+	}
+
+	# Everything else is the storefront; unknown paths get index.html (client-side routes).
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

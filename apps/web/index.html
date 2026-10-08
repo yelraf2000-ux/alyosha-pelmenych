@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0d1236" />
+    <!-- TODO_CLIENT: описание сайта для поисковиков и превью в мессенджерах -->
+    <meta name="description" content="Алёша Пельменыч — пельмени, вареники и манты ручной лепки в Ереване." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!--
+      Started while the script is still downloading, so the first screen does not wait for them:
+      the hero picture, and the two API answers every storefront page begins with.
+      (The demo build has no API; vite.config.ts removes the data-api-preload lines from it.)
+    -->
+    <link rel="preload" as="image" href="/media/hero-poster.webp" fetchpriority="high" />
+    <link rel="preload" as="fetch" href="/api/products" crossorigin data-api-preload />
+    <link rel="preload" as="fetch" href="/api/settings" crossorigin data-api-preload />
+    <title>Алёша Пельменыч</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

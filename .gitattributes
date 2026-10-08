@@ -1,0 +1,4 @@
+# Shell scripts and the Caddyfile run inside Linux containers: keep Unix line endings on every machine.
+*.sh text eol=lf
+deploy/Caddyfile text eol=lf
+Dockerfile text eol=lf

@@ -1,0 +1,18 @@
+# Keep the build context small and keep secrets and local data out of the images.
+**/node_modules
+**/dist
+**/dist-demo
+**/.env
+.env.*
+.git
+.claude
+.devdb
+backups
+apps/api/uploads
+
+# Not part of the shop: the brand film sources. The web-sized copies the site uses
+# are in apps/web/public/media and are included.
+film
+intro.html
+alyosha-pelmenych.mp4
+alyosha-pelmenych-veo.mp4

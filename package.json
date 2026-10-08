@@ -1,0 +1,28 @@
+{
+  "name": "alyosha-pelmenych",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm run dev -w @alyosha/api\" \"npm run dev -w @alyosha/web\"",
+    "dev:web": "npm run dev -w @alyosha/web",
+    "dev:api": "npm run dev -w @alyosha/api",
+    "db:start": "node scripts/dev-db.mjs start",
+    "db:stop": "node scripts/dev-db.mjs stop",
+    "db:migrate": "npm run db:migrate -w @alyosha/api",
+    "db:seed": "npm run db:seed -w @alyosha/api",
+    "db:generate": "npm run db:generate -w @alyosha/api",
+    "test": "npm test -w @alyosha/api",
+    "build": "npm run build -w @alyosha/web",
+    "build:demo": "npm run build:demo -w @alyosha/web",
+    "preview": "npm run preview -w @alyosha/web",
+    "typecheck": "npm run typecheck -w @alyosha/api && npm run typecheck -w @alyosha/web",
+    "admin:password": "npm run admin:password -w @alyosha/api"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5",
+    "drizzle-orm": "^0.45.3"
+  }
+}

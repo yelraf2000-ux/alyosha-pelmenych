@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.devdb/
+dist-demo/
+!.env.demo
+apps/api/uploads/
+!.env.production.example
+backups/

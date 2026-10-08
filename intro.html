@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Алёша Пельменыч — легенда</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&family=Cormorant+Garamond:ital,wght@1,500;1,600&family=Noto+Sans+Armenian:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --night-1: #070b1f;
+    --night-2: #141a45;
+    --night-3: #2a1f55;
+    --cream: #fbe9c4;
+    --dough: #f3d6a0;
+    --brown: #6b3f1d;
+    --logo-blue: #a9cfe6;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: var(--night-1); }
+
+  #intro {
+    position: fixed; inset: 0; overflow: hidden;
+    background: linear-gradient(180deg, var(--night-1) 0%, var(--night-2) 55%, var(--night-3) 100%);
+    font-family: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+    color: var(--cream);
+    user-select: none;
+  }
+  #intro > * { position: absolute; }
+
+  #dawn {
+    inset: 0; opacity: 0;
+    background:
+      radial-gradient(circle at 50% 44%, #ffe9b8 0%, rgba(246, 178, 104, .55) 22%, rgba(246, 178, 104, 0) 58%),
+      linear-gradient(180deg, #131c47 0%, #2c3f80 60%, #5b5a94 100%);
+  }
+  #rays {
+    left: 50%; top: 44%; width: 170vmax; height: 170vmax; opacity: 0;
+    margin: -85vmax 0 0 -85vmax;
+    background: repeating-conic-gradient(rgba(255, 236, 190, .5) 0deg 6deg, rgba(255, 236, 190, 0) 6deg 18deg);
+    -webkit-mask-image: radial-gradient(circle, #000 0%, transparent 55%);
+            mask-image: radial-gradient(circle, #000 0%, transparent 55%);
+  }
+  #sky { inset: 0; width: 100%; height: 100%; }
+
+  #comet {
+    left: 0; top: 0; width: 120px; height: 120px; margin: -60px 0 0 -60px;
+    opacity: 0; will-change: transform;
+    filter: drop-shadow(0 0 14px #ffd98a) drop-shadow(0 0 40px #ff9a3c);
+  }
+
+  #ararat { left: 0; right: 0; bottom: -1px; width: 100%; height: 28vh; transform: translateY(100%); }
+
+  #flash { inset: 0; background: #fff8e6; opacity: 0; pointer-events: none; }
+
+  #logo {
+    left: 50%; top: 44%;
+    width: min(54vmin, 440px); height: min(54vmin, 440px);
+    opacity: 0; will-change: transform;
+    filter: drop-shadow(0 10px 30px rgba(10, 14, 50, .45));
+  }
+  #logo text { font-family: "Comfortaa", "Noto Sans Armenian", "Trebuchet MS", sans-serif; font-weight: 700; fill: var(--brown); }
+  #logo .hy { font-family: "Noto Sans Armenian", "Comfortaa", sans-serif; }
+
+  .caption {
+    left: 50%; width: min(90vw, 900px); text-align: center; opacity: 0;
+    font-style: italic; font-weight: 500;
+    font-size: clamp(22px, 4.6vmin, 46px); line-height: 1.25; letter-spacing: .02em;
+    text-shadow: 0 2px 18px rgba(0, 0, 0, .7);
+  }
+  #tagline {
+    left: 50%; top: calc(44% + min(27vmin, 220px) + 3.5vmin);
+    width: min(90vw, 900px); text-align: center; opacity: 0;
+    font-style: italic; font-weight: 600;
+    font-size: clamp(18px, 3.6vmin, 34px); letter-spacing: .03em;
+    text-shadow: 0 2px 14px rgba(8, 12, 40, .85);
+  }
+
+  #controls { right: 14px; bottom: 14px; display: flex; gap: 8px; z-index: 5; }
+  #controls button {
+    font: 600 13px/1 system-ui, sans-serif; color: var(--cream);
+    background: rgba(10, 14, 40, .55); border: 1px solid rgba(251, 233, 196, .35);
+    padding: 9px 12px; border-radius: 999px; cursor: pointer; backdrop-filter: blur(6px);
+  }
+  #controls button:hover { background: rgba(10, 14, 40, .8); }
+</style>
+</head>
+<body>
+
+<div id="intro">
+  <div id="dawn"></div>
+  <div id="rays"></div>
+  <canvas id="sky"></canvas>
+
+  <svg id="comet" viewBox="-60 -60 120 120" aria-hidden="true"><use href="#pelmen"/></svg>
+
+  <svg id="ararat" viewBox="0 0 1000 300" preserveAspectRatio="none" aria-hidden="true">
+    <path fill="#0a0e2a" d="M0,300 L0,240 C120,230 200,215 260,170 C290,150 310,120 330,118 C350,120 370,150 410,175 C470,205 520,190 580,130 C620,90 650,40 680,30 C710,40 760,110 830,170 C900,220 960,235 1000,240 L1000,300 Z"/>
+    <path fill="#cfd8f2" opacity=".55" d="M648,62 C660,44 670,33 680,30 C692,34 704,48 716,64 C704,58 698,70 688,60 C680,72 668,56 648,62 Z"/>
+    <path fill="#cfd8f2" opacity=".4" d="M312,134 C320,124 326,119 330,118 C336,119 342,126 350,135 C342,132 336,138 330,131 C324,138 318,131 312,134 Z"/>
+  </svg>
+
+  <div class="caption" id="caption"></div>
+
+  <!-- Logo. Swap this <svg> for <img src="logo.png"> if you have the original file. -->
+  <svg id="logo" viewBox="0 0 400 400" role="img" aria-label="Алёша Пельменыч">
+    <defs>
+      <symbol id="pelmen" viewBox="-60 -60 120 120" overflow="visible">
+        <path d="M-42,6 C-46,-28 -20,-44 0,-44 C20,-44 46,-28 42,6 C40,26 21,36 9,27 C5,33 -5,33 -9,27 C-21,36 -40,26 -42,6 Z"
+              fill="url(#dough)" stroke="#7a4a1e" stroke-width="3.5" stroke-linejoin="round"/>
+        <g fill="none" stroke="#7a4a1e" stroke-width="2.6" stroke-linecap="round">
+          <path d="M0,25 C-2,10 -10,-4 -22,-12"/>
+          <path d="M0,25 C0,8 0,-6 0,-20"/>
+          <path d="M0,25 C2,10 10,-4 22,-12"/>
+          <path d="M-9,26 C-16,18 -24,12 -32,10"/>
+          <path d="M9,26 C16,18 24,12 32,10"/>
+        </g>
+      </symbol>
+      <radialGradient id="dough" cx="40%" cy="30%" r="80%">
+        <stop offset="0" stop-color="#fff3d6"/>
+        <stop offset=".6" stop-color="#f3d6a0"/>
+        <stop offset="1" stop-color="#dfb673"/>
+      </radialGradient>
+      <path id="arcTop" d="M 72,200 A 128,128 0 0 1 328,200"/>
+      <path id="arcBottom" d="M 32,200 A 168,168 0 0 0 368,200"/>
+    </defs>
+
+    <circle cx="200" cy="200" r="194" fill="#a9cfe6"/>
+    <circle cx="200" cy="200" r="184" fill="none" stroke="#8fb9d4" stroke-width="2"/>
+
+    <text font-size="27" letter-spacing="1"><textPath href="#arcTop" startOffset="50%" text-anchor="middle">АЛЁША ПЕЛЬМЕНЫЧ</textPath></text>
+
+    <use href="#pelmen" x="-60" y="-60" width="120" height="120" transform="translate(152,238) rotate(-14) scale(.86)"/>
+    <use href="#pelmen" x="-60" y="-60" width="120" height="120" transform="translate(248,238) rotate(14) scale(.86)"/>
+    <use href="#pelmen" x="-60" y="-60" width="120" height="120" transform="translate(200,172) scale(1.02)"/>
+
+    <path fill="#6b3f1d" d="M200,312 c-3,-5 -10,-5 -10,1 c0,5 6,8 10,12 c4,-4 10,-7 10,-12 c0,-6 -7,-6 -10,-1 z" transform="translate(0,-6) scale(1) "/>
+
+    <text class="hy" font-size="25" letter-spacing="1.5"><textPath href="#arcBottom" startOffset="50%" text-anchor="middle">Ալյոշա Պելմենիչ</textPath></text>
+  </svg>
+
+  <div id="tagline"></div>
+  <div id="flash"></div>
+
+  <div id="controls">
+    <button id="btnSound" type="button">🔊 Со звуком</button>
+    <button id="btnReplay" type="button" aria-label="Replay">↻</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ---- Texts: edit freely. `from`/`to` are seconds, `y` is vertical position in %. ----
+  const TEXTS = {
+    ru: {
+      captions: [
+        { from: 0.3, to: 2.7, y: 44, text: 'Много-много лет назад…' },
+        { from: 2.9, to: 5.2, y: 16, text: '…с далёкой звезды на Землю упал пельмень.' },
+        { from: 5.4, to: 7.3, y: 16, text: 'Он приземлился у подножия Арарата.' },
+      ],
+      tagline: 'С тех пор легенду лепят здесь.',
+      sound: '🔊 Со звуком',
+    },
+    en: {
+      captions: [
+        { from: 0.3, to: 2.7, y: 44, text: 'Many, many years ago…' },
+        { from: 2.9, to: 5.2, y: 16, text: '…a single pelmen fell to Earth from a distant star.' },
+        { from: 5.4, to: 7.3, y: 16, text: 'It landed at the foot of Mount Ararat.' },
+      ],
+      tagline: 'The legend has been made here ever since.',
+      sound: '🔊 Sound on',
+    },
+  };
+
+  const DURATION = 10;
+  const T_COMET = 2.6, T_IMPACT = 7.4;
+
+  const params = new URLSearchParams(location.search);
+  const L = TEXTS[params.get('lang')] || TEXTS.ru;
+  const freezeAt = params.has('t') ? parseFloat(params.get('t')) : null;
+
+  const $ = id => document.getElementById(id);
+  const stage = $('intro'), canvas = $('sky'), ctx = canvas.getContext('2d');
+  const comet = $('comet'), ararat = $('ararat'), flash = $('flash'), dawn = $('dawn'), rays = $('rays');
+  const logo = $('logo'), caption = $('caption'), tagline = $('tagline');
+  tagline.textContent = L.tagline;
+  $('btnSound').textContent = L.sound;
+
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const smooth = (a, b, t) => { const x = clamp((t - a) / (b - a)); return x * x * (3 - 2 * x); };
+  const easeOutBack = x => { const c = 1.9; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+
+  // Deterministic pseudo-random so every frame is a pure function of time.
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const stars = Array.from({ length: 230 }, () => ({ x: rnd(), y: rnd(), r: 0.4 + rnd() * 1.5, ph: rnd() * 6.28, z: 0.3 + rnd() }));
+  const sparks = Array.from({ length: 46 }, () => ({ a: rnd() * 6.28, v: 0.25 + rnd() * 0.75, r: 1 + rnd() * 2.6, d: rnd() * 0.5 }));
+
+  let W = 0, H = 0, dpr = 1;
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = stage.clientWidth; H = stage.clientHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // Comet flies along a quadratic bezier: in from top-right, swoops close, drops behind the mountains.
+  function cometPos(u) {
+    const p0 = [1.1 * W, -0.12 * H], p1 = [0.16 * W, 0.12 * H], p2 = [0.5 * W, 0.94 * H];
+    const k = 1 - u;
+    return [k * k * p0[0] + 2 * k * u * p1[0] + u * u * p2[0], k * k * p0[1] + 2 * k * u * p1[1] + u * u * p2[1]];
+  }
+  const cometScale = u => (0.45 + 1.0 * Math.sin(Math.PI * clamp(u / 0.75)) * (1 - smooth(0.7, 1, u)) + 0.05) * Math.min(1, Math.min(W, H) / 620 + 0.35);
+
+  function render(t) {
+    const dawnK = smooth(T_IMPACT, T_IMPACT + 1.0, t);
+
+    // --- stars ---
+    ctx.clearRect(0, 0, W, H);
+    const drift = t * 0.006 + smooth(T_COMET, T_IMPACT, t) * 0.05;   // sky slides up as we "fall"
+    for (const s of stars) {
+      const y = (((s.y - drift * s.z) % 1) + 1) % 1;
+      const tw = 0.55 + 0.45 * Math.sin(t * 2.2 * s.z + s.ph);
+      ctx.globalAlpha = tw * smooth(0, 1.2, t) * (1 - 0.65 * dawnK);
+      ctx.fillStyle = '#fff6e0';
+      ctx.beginPath(); ctx.arc(s.x * W, y * H, s.r, 0, 6.283); ctx.fill();
+    }
+
+    // --- comet + trail ---
+    const u = clamp((t - T_COMET) / (T_IMPACT - T_COMET));
+    const flying = t > T_COMET && t < T_IMPACT;
+    if (flying) {
+      const ue = u * u * 0.35 + u * 0.65;               // slight acceleration
+      const [x, y] = cometPos(ue), sc = cometScale(ue);
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 1; i < 46; i++) {
+        const ub = ue - i * 0.0075; if (ub < 0) break;
+        const [tx, ty] = cometPos(ub), f = 1 - i / 46;
+        const wob = Math.sin(i * 1.7 + t * 9) * 5 * (1 - f) * sc;
+        ctx.globalAlpha = 0.34 * f * f;
+        ctx.fillStyle = i < 10 ? '#fff1c4' : i < 24 ? '#ffb85a' : '#ff7a3a';
+        ctx.beginPath(); ctx.arc(tx + wob, ty + wob, (30 * f + 4) * sc, 0, 6.283); ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+      comet.style.opacity = smooth(T_COMET, T_COMET + 0.3, t);
+      comet.style.transform = `translate(${x}px,${y}px) rotate(${t * 150}deg) scale(${sc})`;
+    } else {
+      comet.style.opacity = 0;
+    }
+
+    // --- impact shockwave + sparks ---
+    const ti = t - T_IMPACT;
+    if (ti > 0) {
+      const cx = W / 2, cy = H * 0.44, m = Math.max(W, H);
+      if (ti < 1.6) {
+        ctx.globalAlpha = 0.55 * (1 - ti / 1.6);
+        ctx.strokeStyle = '#fff1c4'; ctx.lineWidth = 6 * (1 - ti / 1.6) + 1;
+        ctx.beginPath(); ctx.arc(cx, cy, ti * m * 0.6, 0, 6.283); ctx.stroke();
+      }
+      ctx.globalCompositeOperation = 'lighter';
+      for (const s of sparks) {
+        const a = ti - s.d; if (a < 0 || a > 2.2) continue;
+        const dist = (1 - Math.pow(1 - a / 2.2, 3)) * m * 0.42 * s.v;
+        ctx.globalAlpha = 0.9 * (1 - a / 2.2);
+        ctx.fillStyle = '#ffe2a0';
+        ctx.beginPath(); ctx.arc(cx + Math.cos(s.a) * dist, cy + Math.sin(s.a) * dist + a * a * 14, s.r, 0, 6.283); ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    ctx.globalAlpha = 1;
+
+    // --- scenery ---
+    ararat.style.transform = `translateY(${(1 - smooth(4.9, 6.3, t)) * 100}%)`;
+    flash.style.opacity = t < T_IMPACT ? smooth(T_IMPACT - 0.12, T_IMPACT, t) : 1 - smooth(T_IMPACT, T_IMPACT + 0.9, t);
+    dawn.style.opacity = dawnK;
+    rays.style.opacity = 0.3 * smooth(T_IMPACT + 0.2, T_IMPACT + 1.4, t);
+    rays.style.transform = `rotate(${t * 7}deg)`;
+
+    // --- logo ---
+    const lk = clamp((t - (T_IMPACT + 0.05)) / 1.1);
+    const ls = 0.2 + 0.8 * easeOutBack(lk) + 0.03 * smooth(8.6, 12, t);
+    logo.style.opacity = smooth(T_IMPACT + 0.05, T_IMPACT + 0.4, t);
+    logo.style.transform = `translate(-50%,-50%) rotate(${(1 - lk) * -18}deg) scale(${ls})`;
+    tagline.style.opacity = smooth(8.5, 9.2, t);
+    tagline.style.transform = `translate(-50%, ${(1 - smooth(8.5, 9.2, t)) * 14}px)`;
+
+    // --- captions ---
+    const c = L.captions.find(c => t >= c.from && t <= c.to);
+    if (c) {
+      if (caption.textContent !== c.text) caption.textContent = c.text;
+      const o = Math.min(smooth(c.from, c.from + 0.45, t), 1 - smooth(c.to - 0.45, c.to, t));
+      caption.style.top = c.y + '%';
+      caption.style.opacity = o;
+      caption.style.transform = `translate(-50%, ${(1 - o) * 10}px)`;
+    } else {
+      caption.style.opacity = 0;
+    }
+  }
+
+  // ---- Sound: synthesized with Web Audio, no files needed. ----
+  let ac = null, master = null;
+  function playSound() {
+    if (master) { master.disconnect(); }
+    const t0 = ac.currentTime + 0.05;
+    master = ac.createGain(); master.gain.value = 0.7; master.connect(ac.destination);
+
+    const noiseBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const env = (g, pts) => { g.gain.setValueAtTime(0.0001, t0); pts.forEach(([t, v]) => g.gain.linearRampToValueAtTime(v, t0 + t)); };
+
+    // deep space drone
+    [55, 55.6, 82.4].forEach(f => {
+      const o = ac.createOscillator(), lp = ac.createBiquadFilter(), g = ac.createGain();
+      o.type = 'sawtooth'; o.frequency.value = f; lp.type = 'lowpass'; lp.frequency.value = 260;
+      env(g, [[1.8, 0.09], [T_IMPACT - 0.2, 0.11], [T_IMPACT + 0.3, 0.0001]]);
+      o.connect(lp).connect(g).connect(master); o.start(t0); o.stop(t0 + T_IMPACT + 0.5);
+    });
+
+    // bell: used for star twinkles and the final chord
+    const bell = (at, f, vol, dur) => {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t0 + at);
+      g.gain.linearRampToValueAtTime(vol, t0 + at + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + at + dur);
+      o.connect(g).connect(master); o.start(t0 + at); o.stop(t0 + at + dur + 0.05);
+    };
+    bell(0.4, 1760, 0.05, 1.2); bell(1.1, 2349, 0.04, 1.2); bell(1.9, 1976, 0.04, 1.2);
+
+    // comet whoosh
+    {
+      const n = ac.createBufferSource(), bp = ac.createBiquadFilter(), g = ac.createGain();
+      n.buffer = noiseBuf; n.loop = true; bp.type = 'bandpass'; bp.Q.value = 1.4;
+      bp.frequency.setValueAtTime(250, t0 + T_COMET);
+      bp.frequency.exponentialRampToValueAtTime(900, t0 + 5);
+      bp.frequency.exponentialRampToValueAtTime(3200, t0 + T_IMPACT);
+      env(g, [[T_COMET, 0.0001], [4.6, 0.16], [T_IMPACT - 0.05, 0.45], [T_IMPACT + 0.08, 0.0001]]);
+      n.connect(bp).connect(g).connect(master); n.start(t0 + T_COMET); n.stop(t0 + T_IMPACT + 0.2);
+    }
+
+    // impact: sub drop + noise burst
+    {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.frequency.setValueAtTime(140, t0 + T_IMPACT);
+      o.frequency.exponentialRampToValueAtTime(32, t0 + T_IMPACT + 0.9);
+      g.gain.setValueAtTime(0.0001, t0 + T_IMPACT);
+      g.gain.linearRampToValueAtTime(0.9, t0 + T_IMPACT + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + T_IMPACT + 1.3);
+      o.connect(g).connect(master); o.start(t0 + T_IMPACT); o.stop(t0 + T_IMPACT + 1.4);
+
+      const n = ac.createBufferSource(), lp = ac.createBiquadFilter(), ng = ac.createGain();
+      n.buffer = noiseBuf; lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(5000, t0 + T_IMPACT);
+      lp.frequency.exponentialRampToValueAtTime(200, t0 + T_IMPACT + 1.1);
+      ng.gain.setValueAtTime(0.5, t0 + T_IMPACT);
+      ng.gain.exponentialRampToValueAtTime(0.0001, t0 + T_IMPACT + 1.2);
+      n.connect(lp).connect(ng).connect(master); n.start(t0 + T_IMPACT); n.stop(t0 + T_IMPACT + 1.3);
+    }
+
+    // warm chord under the logo
+    [261.6, 392, 523.3, 659.3, 784, 1174.7].forEach((f, i) => bell(T_IMPACT + 0.25 + i * 0.07, f, 0.11 - i * 0.008, 2.6));
+  }
+
+  // ---- Timeline ----
+  let start = performance.now(), done = false;
+  function restart(withSound) {
+    start = performance.now(); done = false;
+    if (withSound && ac) playSound();
+  }
+  function frame(now) {
+    const t = (now - start) / 1000;
+    render(t);
+    if (!done && t >= DURATION) {
+      done = true;
+      window.dispatchEvent(new CustomEvent('intro:done'));   // hook for the site: hide intro, show page
+    }
+    requestAnimationFrame(frame);
+  }
+
+  $('btnSound').addEventListener('click', async () => {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    await ac.resume();
+    restart(true);
+  });
+  $('btnReplay').addEventListener('click', () => restart(true));
+
+  if (freezeAt !== null) {
+    render(freezeAt);
+  } else if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    render(DURATION + 2);
+  } else {
+    requestAnimationFrame(frame);
+  }
+})();
+</script>
+</body>
+</html>
