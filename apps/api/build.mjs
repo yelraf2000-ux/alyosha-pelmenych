@@ -13,6 +13,7 @@ await build({
     migrate: 'src/db/migrate.ts',
     seed: 'src/db/seed.ts',
     'set-admin-password': 'src/cli/set-admin-password.ts',
+    'clear-orders': 'src/cli/clear-orders.ts',
   },
   outdir: 'dist',
   bundle: true,

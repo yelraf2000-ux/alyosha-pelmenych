@@ -2,7 +2,8 @@ import bcrypt from 'bcryptjs';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 // Single admin (SPEC §7): a bcrypt hash of the password in ADMIN_PASSWORD_HASH and a stateless,
-// signed session cookie. There is no user table and no sign-up.
+// signed session cookie. There is no user table and no sign-up. The owner can replace a forgotten
+// password through the Telegram bot (services/admin-password.ts).
 
 export const SESSION_COOKIE = 'ap_admin';
 /** The owner works from his phone; a month between logins is comfortable. */
@@ -15,7 +16,13 @@ export const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
 export const DEV_ADMIN_PASSWORD = 'pelmeni-dev';
 
 export interface AdminAuth {
+  /**
+   * The hash sign-ins are checked against. It starts as `configuredHash` and is replaced, while
+   * the server runs, when the owner sets a new password through the bot.
+   */
   passwordHash: string;
+  /** The hash from ADMIN_PASSWORD_HASH. */
+  configuredHash: string;
   sessionSecret: string;
   /** Send the cookie over HTTPS only. On in production. */
   secureCookie: boolean;

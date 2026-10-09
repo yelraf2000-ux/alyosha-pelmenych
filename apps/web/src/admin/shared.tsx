@@ -15,6 +15,7 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
 
 const ERROR_TEXTS: Record<string, string> = {
   wrong_password: 'Неверный пароль.',
+  bad_link: 'Ссылка устарела или уже использована. Отправьте боту /password ещё раз: он пришлёт новую.',
   rate_limited: 'Слишком много попыток. Подождите 15 минут и попробуйте снова.',
   invalid: 'Проверьте заполненные поля.',
   not_found: 'Не найдено. Возможно, это уже удалили.',

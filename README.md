@@ -294,7 +294,8 @@ One bot does two jobs:
   and every «Сообщить о поступлении» request. Orders and requests come with buttons under them —
   «Подтвердить», «Выполнен», «Отменить», «Вернуть в новые» — which do exactly what the same
   buttons in the admin panel do (stock included) and rewrite the message to show the new status.
-  `/orders` lists everything still open.
+  `/orders` lists everything still open, and `/password` sends a link for setting a new admin
+  password (see "Admin password").
 - **For buyers:** after ordering, the thank-you page offers «Получать уведомления в Telegram».
   The buyer who follows it and presses **Start** gets the order back as a message, then a message
   at every change of its status, each with a «Написать Алёше» button that opens a chat with the
@@ -331,25 +332,67 @@ What buyers are told is in `apps/api/src/services/buyer-bot.ts`; the admin side 
 
 ## Admin password
 
-The password is never stored, only its hash. Changing it signs out every device.
+The password is never stored, only its hash, so a forgotten one cannot be looked up: a new one
+replaces it. Changing it, either way below, signs out every device.
 
-On the server:
+### By the owner, through the bot
+
+For this the Telegram bot must be connected (above).
+
+1. In an admin chat he sends the bot `/password`.
+2. The bot answers with a «Задать новый пароль» button. The link behind it works for 15 minutes
+   and once; asking again cancels the previous link.
+3. The page asks for the new password twice (at least 10 characters) and saves it.
+4. Every admin chat is told «Пароль от админки изменён».
+
+Being in an admin chat is the whole proof of identity here, the same one that already confirms
+and cancels orders, so an admin chat should hold only people who may run the shop. In a group,
+everybody in it sees the link.
+
+The password set this way is kept in the database (table `admin_password`, as a hash) and is used
+instead of `ADMIN_PASSWORD_HASH` for as long as that variable keeps its value.
+
+### On the server
+
+This always works, also without Telegram, and it overrides a password set through the bot:
+a new value in `ADMIN_PASSWORD_HASH` is the password from the next start on.
+
+On your own machine, in the project folder:
 
 ```bash
-docker compose run --rm --no-deps api node apps/api/dist/set-admin-password.js --print
+npm run admin:password -w @alyosha/api -- --print
 ```
 
-Replace the `ADMIN_PASSWORD_HASH` line in `.env` with the printed one, then:
+Type the new password; copy what is printed after `ADMIN_PASSWORD_HASH=`.
+
+- **Render:** the service's **Environment** page → `ADMIN_PASSWORD_HASH` → paste → save. Render
+  restarts the service.
+- **Docker Compose:** replace the `ADMIN_PASSWORD_HASH` line in `.env`, then `docker compose up -d`.
+  (On the server itself the same line comes from
+  `docker compose run --rm --no-deps api node apps/api/dist/set-admin-password.js --print`.)
+
+Locally, `npm run admin:password` writes the new hash straight into `apps/api/.env`.
+
+To sign everyone out without changing the password, put a new `SESSION_SECRET` into the settings.
+
+## Clearing the orders before opening
+
+While the shop is being tried out it fills with test orders. One command removes everything
+buyers have sent: orders, «Свой рецепт» requests and «Сообщить о поступлении» requests, with the
+names, phones and addresses in them. The next order is `A-0001` again. Products, photos, texts,
+settings and the admin password stay; stock is not put back, so check it under «Товары» afterwards.
+
+On Render, in the service's **Shell** tab:
 
 ```bash
-docker compose up -d
+node apps/api/dist/clear-orders.js
 ```
 
-Locally, this writes the new hash straight into `apps/api/.env`:
+That only counts what is there. The same command with `--yes` deletes it, and that cannot be undone:
 
 ```bash
-npm run admin:password
+node apps/api/dist/clear-orders.js --yes
 ```
 
-If the password is forgotten, do the same: there is nothing to recover, a new one simply replaces it.
-To sign everyone out without changing the password, put a new `SESSION_SECRET` into `.env`.
+With Docker Compose the same two commands go after `docker compose exec api`; in development it is
+`npm run orders:clear -w @alyosha/api` (add `-- --yes` to delete).

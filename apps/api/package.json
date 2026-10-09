@@ -12,6 +12,7 @@
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
     "admin:password": "tsx src/cli/set-admin-password.ts",
+    "orders:clear": "tsx src/cli/clear-orders.ts",
     "build": "node build.mjs"
   },
   "dependencies": {

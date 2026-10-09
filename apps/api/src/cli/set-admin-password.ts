@@ -9,9 +9,9 @@ import { randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { stdin, stdout } from 'node:process';
+import { ADMIN_PASSWORD_MIN_LENGTH as MIN_LENGTH } from '@alyosha/shared';
 import { hashPassword } from '../auth';
 
-const MIN_LENGTH = 10;
 const envPath = resolve('.env');
 const printOnly = process.argv.includes('--print');
 

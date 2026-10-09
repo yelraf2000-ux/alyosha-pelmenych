@@ -4,7 +4,8 @@ import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { SESSION_TTL_SECONDS } from '../src/auth';
+import { SESSION_TTL_SECONDS, type AdminAuth } from '../src/auth';
+import { applyStoredPassword, startPasswordReset } from '../src/services/admin-password';
 import type { Keyboard } from '../src/services/buyer-bot';
 import {
   addProduct,
@@ -1101,5 +1102,136 @@ describe('stock requests and settings', () => {
     expect(response.statusCode).toBe(400);
     expect(response.json().fields).toEqual([field]);
     expect((await ctx.app.inject({ url: '/api/settings' })).json().courierFeeAmd).toBe(700);
+  });
+});
+
+describe('a forgotten admin password', () => {
+  const NEW_PASSWORD = 'a-brand-new-password';
+  // The shop of these tests gets a login of its own: a new password must not leak into the other tests.
+  let auth: AdminAuth;
+  let app: FastifyInstance;
+
+  beforeEach(async () => {
+    auth = { ...TEST_ADMIN };
+    app = await ctx.buildApp({ admin: auth });
+  });
+
+  const say = (text: string, chatId = TEST_ADMIN_CHAT) =>
+    app.inject({
+      method: 'POST',
+      url: '/api/telegram/webhook',
+      headers: { 'x-telegram-bot-api-secret-token': TEST_WEBHOOK_SECRET },
+      payload: { update_id: 1, message: { message_id: 1, text, chat: { id: chatId, type: 'private' } } },
+    });
+  const login = (password: string) => app.inject({ method: 'POST', url: '/api/admin/login', payload: { password } });
+  const reset = (token: string, password: string, headers: Record<string, string> = {}) =>
+    app.inject({ method: 'POST', url: '/api/admin/password-reset', payload: { token, password }, headers });
+  /** Asks the bot for a link, as the owner would, and returns the secret in it. */
+  async function askForLink(): Promise<string> {
+    ctx.sent.buyer.length = 0;
+    expect((await say('/password')).statusCode).toBe(200);
+    const url = ctx.sent.buyer[0]!.button!.url;
+    expect(url.startsWith('https://shop.test/admin/reset#')).toBe(true);
+    return url.split('#')[1]!;
+  }
+
+  it('sends the link to an admin chat only', async () => {
+    const token = await askForLink();
+    expect(token.length).toBeGreaterThanOrEqual(40);
+    expect(ctx.sent.buyer[0]).toMatchObject({ chatId: TEST_ADMIN_CHAT, button: { text: 'Задать новый пароль' } });
+    expect(ctx.sent.buyer[0]!.text).toContain('15 минут');
+
+    // Anybody else is a buyer to the bot: they get its greeting and no way to the password.
+    ctx.sent.buyer.length = 0;
+    await say('/password', 555);
+    expect(ctx.sent.buyer).toHaveLength(1);
+    expect(ctx.sent.buyer[0]!.chatId).toBe(555);
+    expect(JSON.stringify(ctx.sent.buyer[0])).not.toContain('/admin/reset');
+    // And the link the owner holds still works.
+    expect((await reset(token, NEW_PASSWORD)).statusCode).toBe(200);
+  });
+
+  it('sets the new password once, signs everyone out and tells the admin chats', async () => {
+    const before = adminCookie(auth);
+    const token = await askForLink();
+    ctx.sent.buyer.length = 0;
+
+    const saved = await reset(token, NEW_PASSWORD);
+    expect(saved.statusCode).toBe(200);
+    expect(saved.json()).toEqual({ ok: true });
+
+    expect((await login(TEST_ADMIN_PASSWORD)).statusCode).toBe(401);
+    expect((await login(NEW_PASSWORD)).statusCode).toBe(200);
+    // A device that was signed in with the old password is not any more.
+    expect((await app.inject({ url: '/api/admin/me', headers: { cookie: before } })).statusCode).toBe(401);
+    expect(ctx.sent.buyer).toHaveLength(1);
+    expect(ctx.sent.buyer[0]).toMatchObject({ chatId: TEST_ADMIN_CHAT });
+    expect(ctx.sent.buyer[0]!.text).toContain('Пароль от админки изменён');
+
+    // The same link again does nothing.
+    const again = await reset(token, 'another-new-password');
+    expect(again.statusCode).toBe(400);
+    expect(again.json()).toEqual({ ok: false, error: 'bad_link' });
+    expect((await login(NEW_PASSWORD)).statusCode).toBe(200);
+  });
+
+  it('refuses a made-up, replaced or expired link and a short password', async () => {
+    expect((await reset('x'.repeat(43), NEW_PASSWORD)).json()).toEqual({ ok: false, error: 'bad_link' });
+
+    // Asking again makes the first link useless.
+    const first = await askForLink();
+    const second = await askForLink();
+    expect((await reset(first, NEW_PASSWORD)).statusCode).toBe(400);
+
+    // Too short: refused, and the link is not spent on it.
+    expect((await reset(second, 'short')).json()).toEqual({ ok: false, error: 'invalid' });
+    expect((await login(TEST_ADMIN_PASSWORD)).statusCode).toBe(200);
+
+    // Not from the shop's own pages.
+    expect((await reset(second, NEW_PASSWORD, { origin: 'https://evil.example' })).statusCode).toBe(403);
+
+    // Sixteen minutes later.
+    await ctx.db.execute(sql`UPDATE admin_password SET reset_expires_at = now() - interval '1 minute'`);
+    expect((await reset(second, NEW_PASSWORD)).json()).toEqual({ ok: false, error: 'bad_link' });
+    expect((await login(TEST_ADMIN_PASSWORD)).statusCode).toBe(200);
+
+    // What is stored opens nothing: neither the secret nor a password.
+    const stored = await ctx.db.execute<{ reset_token_hash: string; password_hash: string | null }>(
+      sql`SELECT reset_token_hash, password_hash FROM admin_password`,
+    );
+    expect(stored.rows).toHaveLength(1);
+    expect(stored.rows[0]!.reset_token_hash).not.toBe(second);
+    expect(stored.rows[0]!.password_hash).toBeNull();
+  });
+
+  it('keeps the new password across a restart, until ADMIN_PASSWORD_HASH itself is changed', async () => {
+    expect((await reset(await startPasswordReset(ctx.db), NEW_PASSWORD)).statusCode).toBe(200);
+
+    // The server starts again with the same ADMIN_PASSWORD_HASH: the password from the bot stands.
+    const restarted: AdminAuth = { ...TEST_ADMIN };
+    await applyStoredPassword(ctx.db, restarted);
+    expect(restarted.passwordHash).toBe(auth.passwordHash);
+    expect(restarted.passwordHash).not.toBe(TEST_ADMIN.passwordHash);
+
+    // Somebody puts a new hash into the variable: that is the password now, and the stored one is dropped.
+    const replaced: AdminAuth = { ...TEST_ADMIN, passwordHash: 'hash-from-the-server', configuredHash: 'hash-from-the-server' };
+    await applyStoredPassword(ctx.db, replaced);
+    expect(replaced.passwordHash).toBe('hash-from-the-server');
+    const stored = await ctx.db.execute<{ password_hash: string | null }>(sql`SELECT password_hash FROM admin_password`);
+    expect(stored.rows[0]!.password_hash).toBeNull();
+  });
+
+  it('needs the admin to be switched on', async () => {
+    const off = await ctx.buildApp({ admin: null });
+    ctx.sent.buyer.length = 0;
+    await off.inject({
+      method: 'POST',
+      url: '/api/telegram/webhook',
+      headers: { 'x-telegram-bot-api-secret-token': TEST_WEBHOOK_SECRET },
+      payload: { update_id: 1, message: { message_id: 1, text: '/password', chat: { id: TEST_ADMIN_CHAT, type: 'private' } } },
+    });
+    expect(ctx.sent.buyer[0]!.text).toContain('выключена');
+    expect(ctx.sent.buyer[0]!.button).toBeUndefined();
+    expect((await off.inject({ method: 'POST', url: '/api/admin/password-reset', payload: {} })).statusCode).toBe(503);
   });
 });

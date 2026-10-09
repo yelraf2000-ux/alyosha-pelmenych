@@ -5,6 +5,7 @@ import {
   loginSchema,
   ORDER_STATUSES,
   orderStatusSchema,
+  passwordResetSchema,
   productCreateSchema,
   productPatchSchema,
   reorderSchema,
@@ -30,7 +31,9 @@ import {
   type AdminAuth,
 } from './auth';
 import type { Db } from './db/client';
+import { PASSWORD_CHANGED_TEXT } from './services/admin-bot';
 import { getOrder, getOrderStats, getToday, listOrders } from './services/admin-orders';
+import { finishPasswordReset } from './services/admin-password';
 import { categoryExists, createCategory, deleteCategory, listAdminCategories, renameCategory } from './services/categories';
 import type { BuyerBot } from './services/buyer-bot';
 import { countNewCustomOrders, listCustomOrders } from './services/custom-orders';
@@ -54,7 +57,7 @@ import { deleteProductVideo, InvalidVideoError, MAX_VIDEO_BYTES, saveProductVide
 
 declare module 'fastify' {
   interface FastifyContextConfig {
-    /** Admin route that does not need a session (only the login itself). */
+    /** Admin route that does not need a session: the login itself and setting a new password. */
     public?: boolean;
   }
 }
@@ -125,6 +128,19 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
           return fail(reply, 401, 'wrong_password');
         }
         reply.setCookie(SESSION_COOKIE, createSessionToken(auth!), { ...cookieOptions, maxAge: SESSION_TTL_SECONDS });
+        return { ok: true };
+      });
+
+      // The page behind the link the bot sends for /password. The secret from that link is the
+      // only way in, so the route has the login's own limit on attempts.
+      admin.post('/password-reset', { config: { public: true, ...options.loginLimit } }, async (request, reply) => {
+        const parsed = passwordResetSchema.safeParse(request.body);
+        if (!parsed.success) return fail(reply, 400, 'invalid');
+        if (!(await finishPasswordReset(db, auth!, parsed.data.token, parsed.data.password))) {
+          return fail(reply, 400, 'bad_link');
+        }
+        // Every admin chat hears about it: a change the owner did not make must not pass quietly.
+        for (const chatId of buyerBot?.adminChatIds ?? []) void buyerBot?.send(chatId, PASSWORD_CHANGED_TEXT);
         return { ok: true };
       });
 

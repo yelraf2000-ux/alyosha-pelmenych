@@ -70,6 +70,8 @@ export const adminApi = {
   me: () => request<{ ok: true }>('GET', '/me'),
   login: (password: string) => request<{ ok: true }>('POST', '/login', { password }),
   logout: () => request<{ ok: true }>('POST', '/logout'),
+  /** `token`: the secret from the link the bot sent for /password. */
+  resetPassword: (token: string, password: string) => request<{ ok: true }>('POST', '/password-reset', { token, password }),
 
   today: () => request<TodayView>('GET', '/today'),
 

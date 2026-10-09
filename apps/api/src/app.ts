@@ -20,7 +20,7 @@ import type { AdminAuth } from './auth';
 import type { Db } from './db/client';
 import { products, stockRequests } from './db/schema';
 import type { Notifier } from './notify';
-import { ADMIN_HELP_TEXT, handleAdminCallback, isAdminChat, sendOpenOrders } from './services/admin-bot';
+import { ADMIN_HELP_TEXT, handleAdminCallback, isAdminChat, sendOpenOrders, sendPasswordReset } from './services/admin-bot';
 import { getOrder } from './services/admin-orders';
 import { placeOrder } from './services/orders';
 import { toProduct } from './services/products';
@@ -229,6 +229,10 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     if (isAdminChat(buyerBot, chatId)) {
       if (command('orders')) {
         await sendOpenOrders(db, buyerBot, chatId);
+        return { ok: true };
+      }
+      if (command('password')) {
+        await sendPasswordReset(db, buyerBot, options.admin ?? null, chatId);
         return { ok: true };
       }
       if (command('start') || command('help')) {

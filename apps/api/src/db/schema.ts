@@ -170,3 +170,22 @@ export const customOrders = pgTable(
   },
   (t) => [index('custom_orders_status_created_idx').on(t.status, t.createdAt)],
 );
+
+/**
+ * The admin password when the owner has set it through the bot, and the link that lets him
+ * (services/admin-password.ts). One row at most. Nothing here can be turned back into a password
+ * or into a working link: both are stored as hashes.
+ */
+export const adminPassword = pgTable(
+  'admin_password',
+  {
+    id: integer('id').primaryKey().default(1),
+    passwordHash: text('password_hash'),
+    /** Which ADMIN_PASSWORD_HASH this password was set under; it is void under any other. */
+    configuredFingerprint: text('configured_fingerprint'),
+    resetTokenHash: text('reset_token_hash'),
+    resetExpiresAt: timestamp('reset_expires_at', { withTimezone: true }),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [check('admin_password_single_row', sql`${t.id} = 1`)],
+);

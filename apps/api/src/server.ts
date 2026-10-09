@@ -5,6 +5,7 @@ import { DEV_ADMIN_PASSWORD, type AdminAuth } from './auth';
 import { createDb } from './db/client';
 import { loadEnv } from './env';
 import { consoleNotifier, telegramNotifier } from './notify';
+import { applyStoredPassword } from './services/admin-password';
 import { adminChatIdsFromEnv, connectBot, telegramApi } from './telegram';
 
 const env = loadEnv();
@@ -14,6 +15,7 @@ const admin: AdminAuth | null =
   env.ADMIN_PASSWORD_HASH && env.SESSION_SECRET
     ? {
         passwordHash: env.ADMIN_PASSWORD_HASH,
+        configuredHash: env.ADMIN_PASSWORD_HASH,
         sessionSecret: env.SESSION_SECRET,
         secureCookie: env.PUBLIC_BASE_URL.startsWith('https://'),
       }
@@ -25,12 +27,15 @@ if (production) {
   if (admin.sessionSecret.startsWith('dev-only')) {
     throw new Error('SESSION_SECRET is still the development value. Generate a new one.');
   }
-  if (await bcrypt.compare(DEV_ADMIN_PASSWORD, admin.passwordHash)) {
+  if (await bcrypt.compare(DEV_ADMIN_PASSWORD, admin.configuredHash)) {
     throw new Error('The admin password is still the development one. Run `npm run admin:password`.');
   }
 }
 
 const { db, pool } = createDb(env.DATABASE_URL);
+
+// A password the owner set through the bot outlives restarts: it is kept in the database.
+if (admin) await applyStoredPassword(db, admin);
 
 // The notifier needs the app's logger, and the app needs the notifier: hand the app a thin proxy.
 let notifier: ReturnType<typeof consoleNotifier>;

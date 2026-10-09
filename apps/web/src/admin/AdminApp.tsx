@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link, NavLink, Route, Routes } from 'react-router-dom';
+import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { IS_DEMO } from '../api';
 import { Field } from '../components/Field';
 import { Logo } from '../components/Logo';
@@ -12,6 +12,7 @@ import { OrderStatsPage } from './OrderStats';
 import { ProductFormPage } from './ProductForm';
 import { ProductsPage } from './Products';
 import { RequestsPage } from './Requests';
+import { ResetPassword } from './ResetPassword';
 import { SettingsPage } from './SettingsPage';
 import { errorText } from './shared';
 import { TodayPage } from './Today';
@@ -70,6 +71,10 @@ function Login({ onSignedIn }: { onSignedIn: () => void }) {
       <button type="submit" className="btn btn--primary btn--block btn--lg" disabled={busy}>
         {busy ? 'Проверяем…' : 'Войти'}
       </button>
+      <p className="adm-login__note">
+        Забыли пароль? Отправьте <b>/password</b> боту магазина в Telegram: он пришлёт ссылку, по которой можно
+        задать новый.
+      </p>
     </form>
   );
 }
@@ -88,6 +93,8 @@ function Notice({ title, children }: { title: string; children: React.ReactNode 
 
 export default function AdminApp() {
   const [auth, setAuth] = useState<AuthState>('checking');
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     document.title = 'Админ — Алёша Пельменыч';
@@ -119,6 +126,21 @@ export default function AdminApp() {
         <Notice title="Админ-панель">
           <p>В демо-версии сайта админ-панели нет: она работает только вместе с сервером.</p>
         </Notice>
+      </div>
+    );
+  }
+
+  // The link from the bot for a forgotten password: it must open whether or not anyone is signed in.
+  if (pathname === '/admin/reset') {
+    return (
+      <div className="adm adm--center">
+        <ResetPassword
+          onDone={() => {
+            // Whoever was signed in here no longer is: the old password's sessions are void.
+            setAuth((state) => (state === 'in' ? 'out' : state));
+            navigate('/admin', { replace: true });
+          }}
+        />
       </div>
     );
   }

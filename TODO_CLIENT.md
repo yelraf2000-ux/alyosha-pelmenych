@@ -106,8 +106,9 @@ What is still a guess is marked `TODO_CLIENT` or `PLACEHOLDER` in the code and l
 
 ### Admin password
 
-- [ ] Алексей chooses the admin password; it is set during deployment (README, "Admin password").
-      The development login is refused in production.
+- [ ] Алексей chooses his own admin password. He can do it himself: he sends `/password` to the
+      bot from his admin chat and follows the link it answers with (README, "Admin password").
+      The same way gets him back in if he forgets it.
 
 ### Hosting
 
@@ -129,6 +130,8 @@ Render account.
 - A TikTok link next to Instagram.
 - The shop can be run from Telegram: in the admin chat every order comes with buttons to confirm,
   complete or cancel it, and `/orders` lists the open ones.
+- A forgotten admin password is replaced by the owner himself: `/password` in his admin chat, a
+  one-time link, a new password. The spec had one password set on the server and no way to recover it.
 - The Telegram bot also talks to buyers: a button on the thank-you page connects their chat to the
   order, and the bot then reports every change of status, with a button to write to the owner.
 - «Свой рецепт»: a page where the buyer puts together пельмени of their own (base, additions,

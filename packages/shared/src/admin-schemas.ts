@@ -47,6 +47,17 @@ export const orderStatusSchema = z.object({ status: z.enum(ORDER_STATUSES) });
 export const stockRequestStatusSchema = z.object({ status: z.enum(STOCK_REQUEST_STATUSES) });
 export const loginSchema = z.object({ password: z.string().min(1).max(200) });
 
+/** The shortest admin password the shop accepts. */
+export const ADMIN_PASSWORD_MIN_LENGTH = 10;
+/** How long a link for setting a new admin password works. */
+export const ADMIN_PASSWORD_RESET_MINUTES = 15;
+
+/** The new password, with the secret from the link the bot sent. */
+export const passwordResetSchema = z.object({
+  token: z.string().min(20).max(100),
+  password: z.string().min(ADMIN_PASSWORD_MIN_LENGTH).max(200),
+});
+
 const longText = z.string().trim().max(5000);
 const shortText = z.string().trim().max(200);
 const amd = z.number().int().min(0).max(10_000_000);

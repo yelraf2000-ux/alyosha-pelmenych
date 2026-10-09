@@ -1,7 +1,9 @@
-import type { OrderStatus } from '@alyosha/shared';
+import { ADMIN_PASSWORD_RESET_MINUTES, type OrderStatus } from '@alyosha/shared';
+import type { AdminAuth } from '../auth';
 import type { Db } from '../db/client';
 import { customKeyboard, formatCustomOrderMessage, formatOrderMessage, orderKeyboard, parseAction } from '../notify';
 import { getOrder, listOrders } from './admin-orders';
+import { startPasswordReset } from './admin-password';
 import type { BuyerBot } from './buyer-bot';
 import { listCustomOrders } from './custom-orders';
 import { changeCustomStatusAndTell, changeOrderStatusAndTell } from './order-status';
@@ -24,7 +26,11 @@ export const ADMIN_HELP_TEXT = [
   'Сюда приходят новые заказы, заявки «Свой рецепт» и «Сообщить о поступлении». Под заказом есть кнопки: подтвердить, выполнить, отменить.',
   '',
   '/orders — открытые заказы',
+  '/password — задать новый пароль от админки, если старый забыт',
 ].join('\n');
+
+export const PASSWORD_CHANGED_TEXT =
+  '🔑 Пароль от админки изменён. Если это сделали не вы, отправьте /password и задайте новый.';
 
 export function isAdminChat(bot: BuyerBot, chatId: unknown): chatId is number {
   return typeof chatId === 'number' && bot.adminChatIds.includes(chatId);
@@ -88,4 +94,23 @@ export async function sendOpenOrders(db: Db, bot: BuyerBot, chatId: number): Pro
   for (const order of recipes.reverse()) {
     await bot.send(chatId, formatCustomOrderMessage(order), customKeyboard(order, bot.adminUrl));
   }
+}
+
+/**
+ * /password: a link for setting a new admin password, good for a few minutes and for one use.
+ * The secret rides in the part of the address after «#», which browsers keep to themselves:
+ * it reaches neither the server's log nor any other site.
+ */
+export async function sendPasswordReset(db: Db, bot: BuyerBot, auth: AdminAuth | null, chatId: number): Promise<void> {
+  if (!auth || !bot.adminUrl) return bot.send(chatId, 'Админка на сервере выключена, задать пароль отсюда нельзя.');
+  const token = await startPasswordReset(db);
+  return bot.send(
+    chatId,
+    [
+      '<b>Новый пароль от админки</b>',
+      `Откройте ссылку ниже и придумайте пароль. Она работает ${ADMIN_PASSWORD_RESET_MINUTES} минут и только один раз.`,
+      'Пока новый пароль не задан, действует прежний.',
+    ].join('\n'),
+    [[{ text: 'Задать новый пароль', url: `${bot.adminUrl}/reset#${token}` }]],
+  );
 }

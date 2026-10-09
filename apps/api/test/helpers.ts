@@ -24,9 +24,12 @@ export const TEST_ADMIN_CHAT = 9000;
 
 export const TEST_ADMIN_PASSWORD = 'test-admin-password';
 
+// Cost 4 keeps the tests fast; production hashes use 12.
+const TEST_ADMIN_HASH = bcrypt.hashSync(TEST_ADMIN_PASSWORD, 4);
+
 export const TEST_ADMIN: AdminAuth = {
-  // Cost 4 keeps the tests fast; production hashes use 12.
-  passwordHash: bcrypt.hashSync(TEST_ADMIN_PASSWORD, 4),
+  passwordHash: TEST_ADMIN_HASH,
+  configuredHash: TEST_ADMIN_HASH,
   sessionSecret: 'test-session-secret-0123456789abcdef',
   secureCookie: false,
 };
@@ -103,7 +106,7 @@ export async function createTestContext(): Promise<TestContext> {
 
   async function reset() {
     await db.execute(
-      sql`TRUNCATE order_items, orders, custom_orders, stock_requests, products, settings RESTART IDENTITY CASCADE`,
+      sql`TRUNCATE order_items, orders, custom_orders, stock_requests, products, settings, admin_password RESTART IDENTITY CASCADE`,
     );
     await db.execute(sql`ALTER SEQUENCE order_number_seq RESTART WITH 1`);
     await db.execute(sql`ALTER SEQUENCE custom_order_number_seq RESTART WITH 1`);
