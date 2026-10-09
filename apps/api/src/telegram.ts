@@ -84,8 +84,20 @@ export function parseChatIds(value: string | undefined): number[] {
   return (value ?? '')
     .split(',')
     .map((part) => part.trim())
-    .filter((part) => /^-?\d+$/.test(part))
+    .filter((part) => /^-?[0-9]+$/.test(part))
     .map(Number);
+}
+
+/**
+ * The admin chats named in the environment. An admin can be added in either of two ways: another
+ * number in TELEGRAM_CHAT_ID after a comma, or a variable of its own whose name starts the same
+ * (TELEGRAM_CHAT_ID2, TELEGRAM_CHAT_ID_ALEKSEY, …). Repeats count once.
+ */
+export function adminChatIdsFromEnv(env: Record<string, string | undefined> = process.env): number[] {
+  const names = Object.keys(env)
+    .filter((name) => name.startsWith('TELEGRAM_CHAT_ID'))
+    .sort();
+  return [...new Set(names.flatMap((name) => parseChatIds(env[name])))];
 }
 
 /**

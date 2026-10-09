@@ -100,8 +100,8 @@ What is still a guess is marked `TODO_CLIENT` or `PLACEHOLDER` in the code and l
       server's settings (`TELEGRAM_BOT_TOKEN`). The token is a secret: not into chats or screenshots.
 - [ ] He opens the bot, presses Start and sends `/chatid`; the number goes into `TELEGRAM_CHAT_ID`.
       Until then orders are only written to the server log.
-- [ ] His personal Telegram username, for «Настройки → Ваш личный Telegram»: the bot's
-      «Написать Алёше» button opens a chat with it. Empty, the button leads to the channel.
+- [x] The bot's «Написать Алёше» button opens a chat with `@whosit` (changed in «Настройки → Ваш
+      личный Telegram»).
 - [ ] Read what the bot tells buyers (received / confirmed / done / cancelled) and say if any of it
       should be worded differently. Steps are in README, "Telegram bot".
 

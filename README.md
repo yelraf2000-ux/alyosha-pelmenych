@@ -292,7 +292,8 @@ Setting it up:
 3. The owner opens the bot, presses **Start** and sends `/chatid`. The bot answers with a number.
 4. Put that number into `TELEGRAM_CHAT_ID` and restart. From now on new orders arrive in his chat,
    and that chat is an **admin chat**: the buttons under the orders work there and nowhere else.
-   Several admins: several numbers separated by commas (`111, 222`), or one group (below).
+   Several admins: several numbers separated by commas (`111, 222`), a variable of its own per
+   admin (`TELEGRAM_CHAT_ID2`, … — any name that starts with `TELEGRAM_CHAT_ID`), or one group (below).
 5. In the admin, «Настройки → Ваш личный Telegram»: the owner's own username. That is where the
    «Написать Алёше» button leads.
 

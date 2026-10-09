@@ -64,6 +64,13 @@
       "when": 1791544998412,
       "tag": "0008_buyer_chat",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791549682470,
+      "tag": "0009_telegram_contact",
+      "breakpoints": true
     }
   ]
 }

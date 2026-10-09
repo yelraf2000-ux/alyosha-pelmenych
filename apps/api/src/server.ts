@@ -5,7 +5,7 @@ import { DEV_ADMIN_PASSWORD, type AdminAuth } from './auth';
 import { createDb } from './db/client';
 import { loadEnv } from './env';
 import { consoleNotifier, telegramNotifier } from './notify';
-import { connectBot, parseChatIds, telegramApi } from './telegram';
+import { adminChatIdsFromEnv, connectBot, telegramApi } from './telegram';
 
 const env = loadEnv();
 const production = env.NODE_ENV === 'production';
@@ -43,8 +43,8 @@ let botLog: BotLog = {
   warn: (msg) => console.warn(msg),
   error: (obj, msg) => console.error(msg, obj),
 };
-// TELEGRAM_CHAT_ID may name several chats, separated by commas: each of them is an admin chat.
-const adminChatIds = parseChatIds(env.TELEGRAM_CHAT_ID);
+// Every chat named in TELEGRAM_CHAT_ID (and in TELEGRAM_CHAT_ID2 and the like) is an admin chat.
+const adminChatIds = adminChatIdsFromEnv();
 const telegram = env.TELEGRAM_BOT_TOKEN ? telegramApi(env.TELEGRAM_BOT_TOKEN, () => botLog) : null;
 const buyerBot =
   telegram && env.TELEGRAM_BOT_TOKEN
@@ -78,6 +78,9 @@ if (telegram && adminChatIds.length > 0) {
 } else {
   notifier = consoleNotifier(app.log);
   app.log.warn('TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID are not set: notifications are only printed here.');
+}
+if (telegram && adminChatIds.length > 0) {
+  app.log.info(`Telegram admin chats: ${adminChatIds.length}.`);
 }
 if (!admin) {
   app.log.warn('ADMIN_PASSWORD_HASH / SESSION_SECRET are not set: the admin panel is switched off.');

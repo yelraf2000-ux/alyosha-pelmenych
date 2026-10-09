@@ -58,7 +58,7 @@ const SEED_SETTINGS: Settings = {
   telegramPublic: 'apelmenych', // his Telegram channel
   instagramUrl: 'https://www.instagram.com/bbllbbd',
   tiktokUrl: 'https://www.tiktok.com/@bbllbbd',
-  telegramContact: '', // TODO_CLIENT: his personal Telegram, for the bot's «Написать Алёше» button
+  telegramContact: 'whosit', // where the bot's «Написать Алёше» button leads
   // «Свой рецепт»: the options Алексей listed. He edits them in «Настройки», one per line.
   customBases: DEFAULT_CUSTOM_BASES,
   customModifiers: DEFAULT_CUSTOM_MODIFIERS,
