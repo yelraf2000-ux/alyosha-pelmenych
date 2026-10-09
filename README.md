@@ -199,6 +199,11 @@ Sizes can be raised later but not lowered.
 - The paid database keeps Render's own backups (point-in-time recovery for the last 3 days). The
   disk with photos is not copied anywhere else by this project.
 - The account includes 5 GB of traffic a month; more is billed per GB.
+- The shop's address is https://pelmeni.am. The domain is registered at name.am, where two DNS
+  records point it at Render (`A` for `pelmeni.am` → `216.24.57.1`, `CNAME` for `www` →
+  `alyosha-pelmenych.onrender.com`); Render issues and renews the certificate. `PUBLIC_BASE_URL`
+  in `render.yaml` names that address: the admin accepts logins only from it, so the admin is at
+  https://pelmeni.am/admin and not at the `onrender.com` address, which still shows the shop.
 
 ### Starting from nothing
 

@@ -117,9 +117,9 @@ Render account.
 
 - [ ] Whose card pays for it in the long run. The card is the one on the account's Billing page
       and can be replaced there at any time.
-- [ ] A domain registered in Алексей's name (`pelmeni.am` or another `.am`, about 9 000 ֏ a year).
-      Not required: the shop works at `alyosha-pelmenych.onrender.com`. Render connects a domain
-      for free and issues its certificate.
+- [x] Domain: `pelmeni.am`, bought on 9 Oct 2026 at name.am and connected to the shop. It is in
+      Rafayel's name.am account, not Алексей's, and has to be renewed there every year.
+- [ ] Whether the domain should be moved into Алексей's own name.am account.
 - [ ] Copies of the product photos somewhere besides Render's disk. The database has Render's own
       backups; the photos do not, so he should keep the originals on his phone or computer.
 

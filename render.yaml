@@ -44,6 +44,11 @@ services:
         sync: false
       - key: TELEGRAM_CHAT_ID
         sync: false
+      # The shop's own domain (Settings → Custom Domains on Render; DNS at name.am). The admin
+      # only accepts logins from this address, and Telegram calls the bot at it. Without this
+      # line the service falls back to its onrender.com address.
+      - key: PUBLIC_BASE_URL
+        value: https://pelmeni.am
       # Render's proxy is the only thing in front of the service, and it sets X-Forwarded-For.
       - key: TRUST_PROXY
         value: "1"
