@@ -136,63 +136,69 @@
   visibility: hidden;
 }
 
+/* The logo: Алексей's picture, rounded into a disc (components/Logo.tsx). */
+.logo {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+}
+
+.logo__disc,
+.logo__bare {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.logo__disc {
+  border-radius: 50%;
+}
+
+/* The same picture without its blue background, laid exactly over the disc. Invisible unless a
+   place asks for it: the top of the home page and the entry animation do. */
+.logo__bare {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
 .logo__mark {
   width: 54px;
   height: 54px;
-  border-radius: 50%;
-  box-shadow: 0 3px 10px rgba(43, 37, 32, 0.16);
   transition: transform 0.6s var(--ease-spring);
+}
+
+.logo__mark .logo__disc {
+  box-shadow: 0 3px 10px rgba(43, 37, 32, 0.16);
 }
 
 .header__logo:hover .logo__mark {
   transform: rotate(-12deg) scale(1.06);
 }
 
-.logo__arc {
-  font-family: var(--font-logo);
-  font-weight: 700;
-  fill: #6b3f1d;
+/* The header's logo is alive: it rests, then hops up, dips and settles. */
+.header__logo .logo__disc,
+.header__logo .logo__bare {
+  animation: logo-hop 6.7s ease-in-out infinite;
 }
 
-/* The large lettering of the header's logo (see LogoBadge): only the home page's top shows it. */
-.logo__open {
-  display: none;
-}
-
-/* The dumplings in the header's logo are alive: each one rests, then hops up, dips and settles.
-   The three run on rhythms of different lengths, so together they never fall into step and the
-   hops look random. */
-.header__logo .logo__pelmen {
-  animation: pelmen-hop 5.3s ease-in-out infinite;
-}
-
-.header__logo .logo__pelmen--right {
-  animation-duration: 6.7s;
-  animation-delay: -2.1s;
-}
-
-.header__logo .logo__pelmen--top {
-  animation-duration: 7.9s;
-  animation-delay: -4.4s;
-}
-
-@keyframes pelmen-hop {
+@keyframes logo-hop {
   0%,
-  58%,
+  62%,
   100% {
     transform: none;
   }
 
-  70% {
-    transform: translateY(-16px);
+  72% {
+    transform: translateY(-7%);
   }
 
-  82% {
-    transform: translateY(7px);
+  83% {
+    transform: translateY(3%);
   }
 
   92% {
-    transform: translateY(-3px);
+    transform: translateY(-1.5%);
   }
 }
 
@@ -538,7 +544,7 @@
 
 /* ---------- Entry animation (components/Intro.tsx) ---------- */
 
-/* A curtain in the page's colours with the logo in the middle. When the logo is ready, the curtain
+/* A curtain in the page's colours with the logo big in the middle. After a moment the curtain
    fades and the logo shrinks and flies to its place in the header: Intro.tsx measures where that
    is and passes it in --intro-x, --intro-y and --intro-scale. */
 .intro {
@@ -561,12 +567,26 @@
 
 .intro__logo {
   position: relative;
-  width: min(62vw, 300px);
-  aspect-ratio: 1;
+  width: min(72vw, 340px);
   filter: drop-shadow(0 18px 28px rgba(43, 37, 32, 0.18));
   transition:
     transform 0.85s cubic-bezier(0.65, 0, 0.35, 1),
     filter 0.85s ease;
+}
+
+/* Nothing to see until the picture has loaded; then it grows into place. */
+.intro__logo .logo {
+  opacity: 0;
+}
+
+.intro--shown .intro__logo .logo {
+  opacity: 1;
+  animation: intro-pop 0.7s var(--ease-spring) backwards;
+}
+
+.intro__logo .logo__disc,
+.intro__logo .logo__bare {
+  transition: opacity 0.7s ease;
 }
 
 .intro--flying {
@@ -581,121 +601,24 @@
   transform: translate(var(--intro-x), var(--intro-y)) scale(var(--intro-scale));
 }
 
-/* Flying to a header logo that stands without its blue disc (and with other lettering): the disc,
-   its ring, the arched lettering and the shadow fade out on the way, so only the dumplings land. */
+/* Flying to a header logo that stands without its blue background: the blue and the shadow fade
+   out on the way, so what lands is what waits there. */
 .intro--bare .intro__logo {
   filter: drop-shadow(0 0 0 rgba(43, 37, 32, 0));
 }
 
-.intro--bare .assembly__disc,
-.intro--bare .assembly__ring,
-.intro--bare .assembly__text,
-.intro--bare .assembly__heart {
-  animation: intro-fade 0.7s ease forwards;
+.intro--bare .logo__disc {
+  opacity: 0;
 }
 
-@keyframes intro-fade {
-  to {
-    opacity: 0;
-  }
+.intro--bare .logo__bare {
+  opacity: 1;
 }
 
-@keyframes logo-open-in {
+@keyframes intro-pop {
   from {
     opacity: 0;
-  }
-}
-
-/* The logo assembling itself (components/LogoAssembly.tsx). Every part rests in its final place;
-   the animations only describe where it comes from. */
-
-.assembly {
-  display: block;
-  width: 100%;
-  height: 100%;
-  /* The dumplings start outside the disc. */
-  overflow: visible;
-}
-
-.assembly__disc,
-.assembly__pelmen,
-.assembly__heart {
-  transform-box: fill-box;
-  transform-origin: center;
-}
-
-.assembly__disc {
-  animation: assembly-pop 0.6s var(--ease-spring) both;
-}
-
-.assembly__ring {
-  stroke-dasharray: 1;
-  animation: assembly-draw 0.8s var(--ease-out) 0.3s both;
-}
-
-.assembly__pelmen {
-  animation: assembly-fly 0.8s var(--ease-spring) both;
-}
-
-.assembly__pelmen--left {
-  --from: translate(-300px, -60px) rotate(-240deg) scale(0.3);
-  animation-delay: 0.35s;
-}
-
-.assembly__pelmen--right {
-  --from: translate(300px, -60px) rotate(240deg) scale(0.3);
-  animation-delay: 0.5s;
-}
-
-.assembly__pelmen--top {
-  --from: translate(0, -320px) rotate(180deg) scale(0.3);
-  animation-delay: 0.65s;
-}
-
-.assembly__text {
-  transform-box: view-box;
-  transform-origin: 50% 50%;
-  animation: assembly-swing 0.75s var(--ease-out) both;
-}
-
-.assembly__text--top {
-  --from: rotate(-70deg);
-  animation-delay: 0.95s;
-}
-
-.assembly__text--bottom {
-  --from: rotate(70deg);
-  animation-delay: 1.05s;
-}
-
-.assembly__heart {
-  animation: assembly-pop 0.45s var(--ease-spring) 1.4s both;
-}
-
-@keyframes assembly-pop {
-  from {
-    opacity: 0;
-    transform: scale(0);
-  }
-}
-
-@keyframes assembly-draw {
-  from {
-    stroke-dashoffset: 1;
-  }
-}
-
-@keyframes assembly-fly {
-  from {
-    opacity: 0;
-    transform: var(--from);
-  }
-}
-
-@keyframes assembly-swing {
-  from {
-    opacity: 0;
-    transform: var(--from);
+    transform: scale(0.6);
   }
 }
 
@@ -1980,56 +1903,23 @@ textarea.field__input {
 
   .header--home:not(.header--scrolled) .header__logo {
     left: 50%;
-    transform: translateX(-50%) scale(2.6);
+    transform: translateX(-50%) scale(3.2);
   }
 
-  /* In the middle it is the three dumplings with the name large on a gentle curve above them and
-     the Armenian line below. On the way to the corner that lettering fades out while the blue
-     disc, its ring, the arched lettering and the shadow fade in, until it is the whole logo. */
-  .header__logo .logo__mark {
-    /* The large lettering reaches far outside the badge. */
-    overflow: visible;
-  }
-
+  /* In the middle it stands without its blue background: the three dumplings and the two lines
+     of lettering, straight on the page. On the way to the corner the blue disc and its shadow
+     fade in under them, until it is the whole logo. */
   .header__logo .logo__disc,
-  .header__logo .logo__ring,
-  .header__logo .logo__closed,
-  .header__logo .logo__open {
+  .header__logo .logo__bare {
     transition: opacity 1.3s cubic-bezier(0.65, 0, 0.35, 1);
   }
 
-  .header__logo .logo__open {
-    display: block;
+  .header--home:not(.header--scrolled) .header__logo .logo__disc {
     opacity: 0;
-    /* Only on arrival (when the entry animation hands the logo over): the lettering fades in. */
-    animation: logo-open-in 0.7s ease backwards;
   }
 
-  .header__logo--waiting .logo__open {
-    animation: none;
-  }
-
-  .header--home:not(.header--scrolled) .header__logo .logo__open {
+  .header--home:not(.header--scrolled) .header__logo .logo__bare {
     opacity: 1;
-  }
-
-  .header--home:not(.header--scrolled) .header__logo .logo__closed {
-    opacity: 0;
-  }
-
-  .header__logo .logo__mark {
-    transition:
-      transform 0.6s var(--ease-spring),
-      box-shadow 1.3s ease;
-  }
-
-  .header--home:not(.header--scrolled) .header__logo .logo__disc,
-  .header--home:not(.header--scrolled) .header__logo .logo__ring {
-    opacity: 0;
-  }
-
-  .header--home:not(.header--scrolled) .header__logo .logo__mark {
-    box-shadow: none;
   }
 
   /* The middle of the bar belongs to the big logo until it has left. */
@@ -2044,9 +1934,9 @@ textarea.field__input {
     transition: opacity 0.25s ease;
   }
 
-  /* Room above the title for the big logo, which hangs some 70px below the header's bar. */
+  /* Room above the title for the big logo, which hangs some 120px below the header's bar. */
   .hero__inner {
-    padding-block: 78px 24px;
+    padding-block: 128px 24px;
   }
 
 
@@ -2055,7 +1945,7 @@ textarea.field__input {
   }
 
   .intro__logo {
-    width: min(40vh, 360px);
+    width: min(48vh, 420px);
   }
 
   .product {
@@ -2091,21 +1981,12 @@ textarea.field__input {
     transition: none;
   }
 
-  /* The logo changes places without the journey, and its dumplings sit still. */
+  /* The logo changes places without the journey, and sits still. */
   .header__logo,
+  .header__logo .logo__mark,
   .header__logo .logo__disc,
-  .header__logo .logo__ring,
-  .header__logo .logo__closed,
-  .header__logo .logo__open,
-  .header__logo .logo__mark {
+  .header__logo .logo__bare {
     transition: none;
-  }
-
-  .header__logo .logo__open {
-    animation: none;
-  }
-
-  .header__logo .logo__pelmen {
     animation: none;
   }
 
@@ -2117,7 +1998,6 @@ textarea.field__input {
 
   .route,
   .hero__inner > *,
-  .assembly *,
   .product__media .photo__plate,
   .success__mark,
   .sticky-cart,

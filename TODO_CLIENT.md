@@ -18,7 +18,7 @@ What is still a guess is marked `TODO_CLIENT` or `PLACEHOLDER` in the code and l
 | Telegram | channel `@apelmenych` |
 | Instagram, TikTok | `bbllbbd` on both |
 | Working hours | every day, 11:00–22:00 |
-| Look of the home page | no space theme; "just have the logo assemble itself" (his feedback on the first live version). It now assembles once when the site opens, then shrinks into the top left corner. |
+| Look of the home page | no space theme; "just have the logo assemble itself" (his feedback on the first live version). His logo now appears big in the middle when the site opens, then shrinks into its place at the top. |
 
 ## Still needed
 
@@ -89,8 +89,7 @@ What is still a guess is marked `TODO_CLIENT` or `PLACEHOLDER` in the code and l
 
 | What | Now | Where |
 | --- | --- | --- |
-| Original logo file (SVG, or PNG with a transparent background) | Round badge redrawn from the logo in the brand film | `apps/web/src/components/Logo.tsx` |
-| Armenian line on the logo — confirm the spelling | «Ալյոշա Պելմենիչ», copied from `intro.html` | `apps/web/src/components/Logo.tsx` |
+| Logo | His own picture, sent on 9 Oct 2026 (a 1125×2000 JPG on light blue). The site shows it as it is: round with the blue, and at the top of the home page without the blue. A larger or vector original would be sharper on big screens; it replaces `scripts/logo/source.jpg`. | `apps/web/src/components/Logo.tsx`, `scripts/logo/build.mjs` |
 | Palette — approve the direction | Warm dough and cream with an amber button colour; the top and bottom of each page fade from dough into a little of the logo's light blue. The logo itself keeps its blue disc. | `apps/web/src/styles/tokens.css` |
 | Favicon | Drawn dumpling | `apps/web/public/favicon.svg` |
 

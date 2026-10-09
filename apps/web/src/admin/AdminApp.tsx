@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, NavLink, Route, Routes } from 'react-router-dom';
 import { IS_DEMO } from '../api';
 import { Field } from '../components/Field';
-import { LogoBadge } from '../components/Logo';
+import { Logo } from '../components/Logo';
 import '../styles/admin.css';
 import { adminApi, ApiError, setUnauthorizedHandler } from './api';
 import { CategoriesPage } from './Categories';
@@ -51,7 +51,7 @@ function Login({ onSignedIn }: { onSignedIn: () => void }) {
 
   return (
     <form className="adm-login panel" onSubmit={submit}>
-      <LogoBadge className="adm-login__logo" />
+      <Logo className="adm-login__logo" />
       <h1>Вход для владельца</h1>
       <Field
         label="Пароль"
@@ -154,7 +154,7 @@ export default function AdminApp() {
     <div className="adm">
       <header className="adm-bar">
         <Link to="/admin" className="adm-bar__brand">
-          <LogoBadge className="adm-bar__logo" />
+          <Logo className="adm-bar__logo" />
           <span>Админ</span>
         </Link>
         <nav className="adm-tabs" aria-label="Разделы">

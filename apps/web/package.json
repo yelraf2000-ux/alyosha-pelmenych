@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@alyosha/shared": "^0.0.0",
-    "@fontsource-variable/comfortaa": "^5.1.0",
     "@fontsource-variable/noto-sans-armenian": "^5.1.0",
     "@fontsource-variable/onest": "^5.3.1",
     "@fontsource-variable/unbounded": "^5.3.0",

@@ -2,7 +2,6 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@fontsource-variable/unbounded/index.css';
 import '@fontsource-variable/onest/index.css';
-import '@fontsource-variable/comfortaa/index.css';
 import '@fontsource-variable/noto-sans-armenian/index.css';
 import './styles/tokens.css';
 import './styles/base.css';

@@ -8,7 +8,7 @@ import { useShop } from '../state/ShopContext';
 import { ContactMenu } from './ContactMenu';
 import { SocialLinks } from './InfoBlocks';
 import { Intro, shouldPlayIntro } from './Intro';
-import { LogoBadge } from './Logo';
+import { Logo } from './Logo';
 
 function DemoBanner() {
   const { refresh } = useShop();
@@ -65,7 +65,7 @@ function Header({ logoRef, logoWaiting }: { logoRef: RefObject<HTMLAnchorElement
           className={logoWaiting ? 'header__logo header__logo--waiting' : 'header__logo'}
           aria-label={`${t.brand} — ${t.nav.home}`}
         >
-          <LogoBadge className="logo__mark" openName />
+          <Logo className="logo__mark" bare />
         </Link>
         {/* The working hours (the first paragraph of the «Контакты» text in the settings). */}
         {hours && <p className="header__hours">{hours}</p>}
