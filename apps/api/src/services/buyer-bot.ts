@@ -26,13 +26,24 @@ export interface BuyerBot {
   username: string;
   /** What Telegram must send in X-Telegram-Bot-Api-Secret-Token with every update. */
   webhookSecret: string;
-  send: (chatId: number, text: string, button?: BotButton) => Promise<void>;
+  /**
+   * The chats the shop is run from (TELEGRAM_CHAT_ID: the owner's own chat, or a group of his).
+   * New orders go there with action buttons, and only there do those buttons work.
+   */
+  adminChatIds: number[];
+  /** The address of the admin panel, for the «Открыть в админке» button; null if there is none. */
+  adminUrl: string | null;
+  send: (chatId: number, text: string, keyboard?: Keyboard) => Promise<void>;
+  /** Rewrites a message the bot sent earlier. */
+  edit: (chatId: number, messageId: number, text: string, keyboard?: Keyboard) => Promise<void>;
+  /** Answers a pressed button with a short notice (`alert`: as a pop-up). */
+  answer: (callbackId: string, text: string, alert?: boolean) => Promise<void>;
 }
 
-export interface BotButton {
-  text: string;
-  url: string;
-}
+/** A button under a message: a link, or an action that comes back to the shop as `data`. */
+export type KeyboardButton = { text: string; url: string } | { text: string; data: string };
+/** Rows of buttons. */
+export type Keyboard = KeyboardButton[][];
 
 /** Prefixes of the start parameter: which table the token belongs to. */
 const ORDER = 'o';
@@ -93,9 +104,9 @@ function escapeHtml(text: string): string {
 }
 
 /** The button under every message: a chat with the owner himself. */
-export function contactButton(settings: Pick<Settings, 'telegramContact' | 'telegramPublic'>): BotButton | undefined {
+export function contactButton(settings: Pick<Settings, 'telegramContact' | 'telegramPublic'>): Keyboard | undefined {
   const username = settings.telegramContact || settings.telegramPublic;
-  return username ? { text: 'Написать Алёше', url: `https://t.me/${username}` } : undefined;
+  return username ? [[{ text: 'Написать Алёше', url: `https://t.me/${username}` }]] : undefined;
 }
 
 function orderLines(order: AdminOrder): string[] {

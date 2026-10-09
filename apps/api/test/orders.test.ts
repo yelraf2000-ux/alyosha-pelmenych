@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { formatOrderMessage } from '../src/notify';
+import { getOrder } from '../src/services/admin-orders';
 import { addProduct, countRows, createTestContext, orderBody, postOrder, stockOf, type TestContext } from './helpers';
 
 let ctx: TestContext;
@@ -176,9 +177,10 @@ describe('order contents', () => {
     const small = await postOrder(ctx.app, orderBody([{ productId: id, qty: 4 }], courier));
     expect(small.json().order).toMatchObject({ deliveryFeeAmd: 0, deliveryExtra: true, totalAmd: 8000 });
     // The owner's message says so too, so he does not read the total as the whole sum.
-    const message = formatOrderMessage(small.json().order, { name: 'Тест', phone: '+37491000000', telegram: null, comment: null });
+    const newest = await ctx.db.execute<{ id: number }>(sql`SELECT max(id)::int AS id FROM orders`);
+    const message = formatOrderMessage((await getOrder(ctx.db, newest.rows[0]!.id))!);
     expect(message).toContain('Курьер: доставка оплачивается отдельно');
-    expect(message).toMatch(/Итого: 8\s000\s֏ \+ доставка/);
+    expect(message).toMatch(/Итого: 8.000.֏ [+] доставка/);
 
     // Above the threshold delivery is simply free, and so is pickup at any sum.
     const large = await postOrder(ctx.app, orderBody([{ productId: id, qty: 5 }], courier));

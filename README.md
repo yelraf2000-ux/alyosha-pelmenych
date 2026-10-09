@@ -269,8 +269,11 @@ docker compose run --rm --no-deps --user root -v "$PWD/backups:/backups:ro" api 
 
 One bot does two jobs:
 
-- **For the owner:** a message for every new order, every «Свой рецепт» request and every
-  «Сообщить о поступлении» request.
+- **For the owner (the admin chats):** a message for every new order, every «Свой рецепт» request
+  and every «Сообщить о поступлении» request. Orders and requests come with buttons under them —
+  «Подтвердить», «Выполнен», «Отменить», «Вернуть в новые» — which do exactly what the same
+  buttons in the admin panel do (stock included) and rewrite the message to show the new status.
+  `/orders` lists everything still open.
 - **For buyers:** after ordering, the thank-you page offers «Получать уведомления в Telegram».
   The buyer who follows it and presses **Start** gets the order back as a message, then a message
   at every change of its status, each with a «Написать Алёше» button that opens a chat with the
@@ -287,7 +290,9 @@ Setting it up:
    `Telegram bot @… is connected`. This needs a public **https** address, so it does not work on
    `localhost`.
 3. The owner opens the bot, presses **Start** and sends `/chatid`. The bot answers with a number.
-4. Put that number into `TELEGRAM_CHAT_ID` and restart. From now on new orders arrive in his chat.
+4. Put that number into `TELEGRAM_CHAT_ID` and restart. From now on new orders arrive in his chat,
+   and that chat is an **admin chat**: the buttons under the orders work there and nowhere else.
+   Several admins: several numbers separated by commas (`111, 222`), or one group (below).
 5. In the admin, «Настройки → Ваш личный Telegram»: the owner's own username. That is where the
    «Написать Алёше» button leads.
 
@@ -299,7 +304,8 @@ The bot can be created under the developer's Telegram account and handed over la
 @BotFather, `/mybots` → the bot → «Transfer Ownership». The token stays the same, so nothing on
 the server changes.
 
-What buyers are told is in `apps/api/src/services/buyer-bot.ts`.
+What buyers are told is in `apps/api/src/services/buyer-bot.ts`; the admin side is in
+`apps/api/src/services/admin-bot.ts` and `apps/api/src/notify.ts`.
 
 ## Admin password
 

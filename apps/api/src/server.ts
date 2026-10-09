@@ -5,7 +5,7 @@ import { DEV_ADMIN_PASSWORD, type AdminAuth } from './auth';
 import { createDb } from './db/client';
 import { loadEnv } from './env';
 import { consoleNotifier, telegramNotifier } from './notify';
-import { connectBuyerBot } from './telegram';
+import { connectBot, parseChatIds, telegramApi } from './telegram';
 
 const env = loadEnv();
 const production = env.NODE_ENV === 'production';
@@ -37,13 +37,19 @@ let notifier: ReturnType<typeof consoleNotifier>;
 
 // The same goes for the bot that talks to buyers: it is connected before the app exists (the app
 // needs the bot's username), so until then its few lines go to the console.
-type BotLog = Parameters<typeof connectBuyerBot>[2] extends () => infer L ? L : never;
+type BotLog = Parameters<typeof telegramApi>[1] extends () => infer L ? L : never;
 let botLog: BotLog = {
   info: (msg) => console.log(msg),
   warn: (msg) => console.warn(msg),
   error: (obj, msg) => console.error(msg, obj),
 };
-const buyerBot = env.TELEGRAM_BOT_TOKEN ? await connectBuyerBot(env.TELEGRAM_BOT_TOKEN, env.PUBLIC_BASE_URL, () => botLog) : null;
+// TELEGRAM_CHAT_ID may name several chats, separated by commas: each of them is an admin chat.
+const adminChatIds = parseChatIds(env.TELEGRAM_CHAT_ID);
+const telegram = env.TELEGRAM_BOT_TOKEN ? telegramApi(env.TELEGRAM_BOT_TOKEN, () => botLog) : null;
+const buyerBot =
+  telegram && env.TELEGRAM_BOT_TOKEN
+    ? await connectBot(telegram, env.TELEGRAM_BOT_TOKEN, env.PUBLIC_BASE_URL, adminChatIds, () => botLog)
+    : null;
 
 const app = await buildApp({
   db,
@@ -54,7 +60,7 @@ const app = await buildApp({
   webDir: env.WEB_DIST_DIR ? resolve(env.WEB_DIST_DIR) : undefined,
   trustProxy: env.TRUST_PROXY,
   notifier: {
-    orderPlaced: (order, customer) => notifier.orderPlaced(order, customer),
+    orderPlaced: (order) => notifier.orderPlaced(order),
     stockRequested: (request) => notifier.stockRequested(request),
     customOrderPlaced: (order) => notifier.customOrderPlaced(order),
   },
@@ -66,8 +72,9 @@ botLog = {
   error: (obj, msg) => app.log.error(obj, msg),
 };
 
-if (env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID) {
-  notifier = telegramNotifier(env.TELEGRAM_BOT_TOKEN, env.TELEGRAM_CHAT_ID, app.log);
+if (telegram && adminChatIds.length > 0) {
+  // Buttons under the orders need the bot's webhook; without it the same messages come plain.
+  notifier = telegramNotifier(telegram.send, adminChatIds, { buttons: buyerBot !== null, adminUrl: buyerBot?.adminUrl ?? null });
 } else {
   notifier = consoleNotifier(app.log);
   app.log.warn('TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID are not set: notifications are only printed here.');

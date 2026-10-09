@@ -12,12 +12,15 @@ import { createDb, type Db } from '../src/db/client';
 import { runMigrations } from '../src/db/migrate';
 import { products, settings } from '../src/db/schema';
 import type { Notifier } from '../src/notify';
+import type { Keyboard } from '../src/services/buyer-bot';
 import { SETTING_KEYS } from '../src/services/settings';
 
 const NL = String.fromCharCode(10);
 
 /** What Telegram would send with every update for the tests' bot. */
 export const TEST_WEBHOOK_SECRET = 'test-webhook-secret';
+/** The chat the tests' shop is run from. */
+export const TEST_ADMIN_CHAT = 9000;
 
 export const TEST_ADMIN_PASSWORD = 'test-admin-password';
 
@@ -44,8 +47,11 @@ export interface TestContext {
     orders: string[];
     stockRequests: string[];
     customOrders: string[];
-    /** What the Telegram bot wrote to buyers. */
-    buyer: { chatId: number; text: string; button?: { text: string; url: string } }[];
+    /** What the Telegram bot wrote, to buyers and to the admin chat. `button` is the first link button, if any. */
+    buyer: { chatId: number; text: string; button?: { text: string; url: string }; keyboard?: Keyboard }[];
+    /** Messages the bot rewrote and buttons it answered. */
+    edits: { chatId: number; messageId: number; text: string; keyboard?: Keyboard }[];
+    answers: { text: string; alert: boolean }[];
   };
   reset: () => Promise<void>;
   close: () => Promise<void>;
@@ -63,7 +69,7 @@ export async function createTestContext(): Promise<TestContext> {
   await runMigrations(url);
   const { db, pool } = createDb(url);
 
-  const sent: TestContext['sent'] = { orders: [], stockRequests: [], customOrders: [], buyer: [] };
+  const sent: TestContext['sent'] = { orders: [], stockRequests: [], customOrders: [], buyer: [], edits: [], answers: [] };
   const notifier: Notifier = {
     orderPlaced: async (order) => void sent.orders.push(order.publicNumber),
     stockRequested: async (request) => void sent.stockRequests.push(request.productName),
@@ -79,7 +85,14 @@ export async function createTestContext(): Promise<TestContext> {
     buyerBot: {
       username: 'test_shop_bot',
       webhookSecret: TEST_WEBHOOK_SECRET,
-      send: async (chatId, text, button) => void sent.buyer.push({ chatId, text, button }),
+      adminChatIds: [TEST_ADMIN_CHAT],
+      adminUrl: 'https://shop.test/admin',
+      send: async (chatId, text, keyboard) => {
+        const first = keyboard?.[0]?.[0];
+        sent.buyer.push({ chatId, text, button: first && 'url' in first ? first : undefined, keyboard });
+      },
+      edit: async (chatId, messageId, text, keyboard) => void sent.edits.push({ chatId, messageId, text, keyboard }),
+      answer: async (_id, text, alert = false) => void sent.answers.push({ text, alert }),
     },
     uploadsDir,
     rateLimit: false,
@@ -108,6 +121,8 @@ export async function createTestContext(): Promise<TestContext> {
     sent.stockRequests.length = 0;
     sent.customOrders.length = 0;
     sent.buyer.length = 0;
+    sent.edits.length = 0;
+    sent.answers.length = 0;
   }
 
   return {

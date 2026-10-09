@@ -30,17 +30,10 @@ import {
   type AdminAuth,
 } from './auth';
 import type { Db } from './db/client';
-import { changeOrderStatus, getOrder, getOrderStats, getToday, listOrders } from './services/admin-orders';
+import { getOrder, getOrderStats, getToday, listOrders } from './services/admin-orders';
 import { categoryExists, createCategory, deleteCategory, listAdminCategories, renameCategory } from './services/categories';
-import {
-  contactButton,
-  customOrderChatId,
-  customStatusText,
-  orderChatId,
-  orderStatusText,
-  type BuyerBot,
-} from './services/buyer-bot';
-import { countNewCustomOrders, getCustomOrder, listCustomOrders, setCustomOrderStatus } from './services/custom-orders';
+import type { BuyerBot } from './services/buyer-bot';
+import { countNewCustomOrders, listCustomOrders } from './services/custom-orders';
 import { deleteProductImage, InvalidImageError, MAX_UPLOAD_BYTES, saveProductImage } from './services/images';
 import {
   createProduct,
@@ -55,6 +48,7 @@ import {
   setStockRequestStatus,
   updateProduct,
 } from './services/products';
+import { changeCustomStatusAndTell, changeOrderStatusAndTell } from './services/order-status';
 import { getSettings, saveSettings } from './services/settings';
 import { deleteProductVideo, InvalidVideoError, MAX_VIDEO_BYTES, saveProductVideo, VideoBusyError } from './services/videos';
 
@@ -346,15 +340,9 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
         if (!id) return fail(reply, 404, 'not_found');
         if (!parsed.success) return fail(reply, 400, 'invalid');
 
-        const before = buyerBot ? await getOrder(db, id) : null;
-        const result = await changeOrderStatus(db, id, parsed.data.status);
-        if (!result.ok) reply.code(result.error === 'not_found' ? 404 : 409);
-
         // The buyer who connected the bot hears about every real change of status.
-        if (buyerBot && result.ok && before && before.status !== result.order.status) {
-          const chatId = await orderChatId(db, id);
-          if (chatId !== null) void buyerBot.send(chatId, orderStatusText(result.order), contactButton(await getSettings(db)));
-        }
+        const result = await changeOrderStatusAndTell(db, buyerBot, id, parsed.data.status);
+        if (!result.ok) reply.code(result.error === 'not_found' ? 404 : 409);
         return result;
       });
 
@@ -370,14 +358,7 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
         if (!id) return fail(reply, 404, 'not_found');
         if (!parsed.success) return fail(reply, 400, 'invalid');
 
-        const before = buyerBot ? await getCustomOrder(db, id) : null;
-        const order = await setCustomOrderStatus(db, id, parsed.data.status);
-        if (!order) return fail(reply, 404, 'not_found');
-        if (buyerBot && before && before.status !== order.status) {
-          const chatId = await customOrderChatId(db, id);
-          if (chatId !== null) void buyerBot.send(chatId, customStatusText(order), contactButton(await getSettings(db)));
-        }
-        return order;
+        return (await changeCustomStatusAndTell(db, buyerBot, id, parsed.data.status)) ?? fail(reply, 404, 'not_found');
       });
 
       admin.get('/settings', async () => getSettings(db));

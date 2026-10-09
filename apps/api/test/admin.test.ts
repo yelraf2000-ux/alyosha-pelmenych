@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import sharp from 'sharp';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { SESSION_TTL_SECONDS } from '../src/auth';
+import type { Keyboard } from '../src/services/buyer-bot';
 import {
   addProduct,
   adminCookie,
@@ -14,6 +15,7 @@ import {
   postOrder,
   stockOf,
   TEST_ADMIN,
+  TEST_ADMIN_CHAT,
   TEST_ADMIN_PASSWORD,
   TEST_WEBHOOK_SECRET,
   type TestContext,
@@ -784,6 +786,150 @@ describe('the Telegram bot for buyers', () => {
       payload: {},
     });
     expect(webhook.statusCode).toBe(404);
+  });
+});
+
+describe('the admin side of the Telegram bot', () => {
+  const webhook = (payload: Record<string, unknown>) =>
+    ctx.app.inject({
+      method: 'POST',
+      url: '/api/telegram/webhook',
+      headers: { 'x-telegram-bot-api-secret-token': TEST_WEBHOOK_SECRET },
+      payload: { update_id: 1, ...payload },
+    });
+  /** Someone presses the button carrying `data` under message 50 in chat `chatId`. */
+  const press = (data: string, chatId = TEST_ADMIN_CHAT) =>
+    webhook({ callback_query: { id: 'cb-1', data, message: { message_id: 50, chat: { id: chatId } } } });
+  const say = (text: string, chatId = TEST_ADMIN_CHAT, type = 'private') =>
+    webhook({ message: { message_id: 1, text, chat: { id: chatId, type } } });
+  const actions = (keyboard: Keyboard | undefined) =>
+    (keyboard ?? []).flat().map((button) => ('data' in button ? `${button.text} → ${button.data}` : `${button.text} → ${button.url}`));
+
+  it('runs an order from the buttons under it: confirm, complete, cancel, bring back', async () => {
+    const id = await addProduct(ctx.db, { name: 'Пельмени', priceAmd: 2400, stockQty: 10 });
+    const order = await placeOrderFor(id, 3);
+    expect(await stockOf(ctx.db, id)).toBe(7);
+
+    expect((await press(`o:${order}:c`)).statusCode).toBe(200);
+    expect((await asAdmin({ url: `/api/admin/orders/${order}` })).json().status).toBe('confirmed');
+    expect(ctx.sent.answers).toEqual([{ text: 'Заказ A-0001 подтверждён.', alert: false }]);
+    // The message under which the button was pressed is rewritten: new status, new buttons.
+    expect(ctx.sent.edits).toHaveLength(1);
+    expect(ctx.sent.edits[0]).toMatchObject({ chatId: TEST_ADMIN_CHAT, messageId: 50 });
+    expect(ctx.sent.edits[0]!.text).toContain('Заказ A-0001');
+    expect(ctx.sent.edits[0]!.text).toContain('Подтверждён');
+    expect(actions(ctx.sent.edits[0]!.keyboard)).toEqual([
+      `🎉 Выполнен → o:${order}:d`,
+      `❌ Отменить → o:${order}:x`,
+      `Открыть в админке → https://shop.test/admin/orders/${order}`,
+    ]);
+
+    // Cancelling from Telegram returns the stock, exactly like the admin panel.
+    await press(`o:${order}:x`);
+    expect(await stockOf(ctx.db, id)).toBe(10);
+    expect(actions(ctx.sent.edits[1]!.keyboard)[0]).toBe(`↩️ Вернуть в новые → o:${order}:n`);
+
+    await press(`o:${order}:n`);
+    expect(await stockOf(ctx.db, id)).toBe(7);
+    await press(`o:${order}:d`);
+    expect((await asAdmin({ url: `/api/admin/orders/${order}` })).json().status).toBe('done');
+    // A finished order has nothing left to press but the link to the admin panel.
+    expect(actions(ctx.sent.edits.at(-1)!.keyboard)).toEqual([`Открыть в админке → https://shop.test/admin/orders/${order}`]);
+  });
+
+  it('tells the buyer who connected the bot when the owner presses a button', async () => {
+    const id = await addProduct(ctx.db, { stockQty: 10 });
+    const placed = await postOrder(ctx.app, orderBody([{ productId: id, qty: 1 }]));
+    const start = new URL(placed.json().order.telegramLink).searchParams.get('start')!;
+    await say(`/start ${start}`, 777);
+    ctx.sent.buyer.length = 0;
+
+    await press('o:1:c');
+    expect(ctx.sent.buyer).toHaveLength(1);
+    expect(ctx.sent.buyer[0]).toMatchObject({ chatId: 777 });
+    expect(ctx.sent.buyer[0]!.text).toContain('Заказ подтверждён');
+    expect(ctx.sent.edits[0]!.text).toContain('Покупатель подключил бота');
+  });
+
+  it('refuses to bring back a cancelled order whose items have been sold since, and says why', async () => {
+    const id = await addProduct(ctx.db, { name: 'Манты', stockQty: 2 });
+    const order = await placeOrderFor(id, 2);
+    await press(`o:${order}:x`);
+    await placeOrderFor(id, 2);
+    ctx.sent.answers.length = 0;
+
+    await press(`o:${order}:n`);
+    expect(ctx.sent.answers).toEqual([{ text: 'Не хватает товара на складе: Манты (есть 0).', alert: true }]);
+    expect((await asAdmin({ url: `/api/admin/orders/${order}` })).json().status).toBe('cancelled');
+  });
+
+  it('lets nobody but an admin chat press the buttons', async () => {
+    const id = await addProduct(ctx.db, { stockQty: 5 });
+    const order = await placeOrderFor(id, 1);
+
+    await press(`o:${order}:x`, 777);
+    expect(ctx.sent.answers).toEqual([{ text: 'Эти кнопки только для администратора магазина.', alert: true }]);
+    expect((await asAdmin({ url: `/api/admin/orders/${order}` })).json().status).toBe('new');
+    expect(await stockOf(ctx.db, id)).toBe(4);
+    expect(ctx.sent.edits).toEqual([]);
+
+    // Nor does a button that is not one of ours do anything, even from the admin chat.
+    await press('o:1:hack');
+    await press('o:999:c');
+    expect(ctx.sent.answers.slice(1)).toEqual([
+      { text: 'Эта кнопка устарела.', alert: true },
+      { text: 'Такого заказа больше нет.', alert: true },
+    ]);
+    expect((await asAdmin({ url: `/api/admin/orders/${order}` })).json().status).toBe('new');
+  });
+
+  it('runs a «Свой рецепт» request the same way', async () => {
+    const response = await ctx.app.inject({
+      method: 'POST',
+      url: '/api/custom-orders',
+      payload: {
+        recipeName: 'Острые', base: 'Говядина', modifiers: [], spices: [], weightGrams: 2000,
+        customerName: 'Тест', customerPhone: '+374 91 123456', customerTelegram: null, comment: null, website: '',
+      },
+    });
+    expect(response.statusCode).toBe(201);
+
+    await press('r:1:c');
+    expect((await asAdmin({ url: '/api/admin/custom-orders' })).json()[0].status).toBe('confirmed');
+    expect(ctx.sent.answers).toEqual([{ text: 'Рецепт R-0001 подтверждён.', alert: false }]);
+    expect(actions(ctx.sent.edits[0]!.keyboard)).toEqual([
+      '🎉 Выполнен → r:1:d',
+      '❌ Отменить → r:1:x',
+      'Открыть в админке → https://shop.test/admin/recipes',
+    ]);
+  });
+
+  it('lists the open orders on /orders, each with its buttons, and greets an admin as an admin', async () => {
+    await say('/orders');
+    expect(ctx.sent.buyer.map((message) => message.text)).toEqual(['Открытых заказов нет.']);
+
+    const id = await addProduct(ctx.db, { stockQty: 20 });
+    const first = await placeOrderFor(id, 1);
+    const second = await placeOrderFor(id, 1);
+    const third = await placeOrderFor(id, 1);
+    await setStatus(first, 'confirmed');
+    await setStatus(third, 'done');
+    ctx.sent.buyer.length = 0;
+
+    // In a group Telegram writes the command with the bot's name.
+    await say('/orders@test_shop_bot');
+    expect(ctx.sent.buyer.map((message) => message.chatId)).toEqual([TEST_ADMIN_CHAT, TEST_ADMIN_CHAT]);
+    expect(ctx.sent.buyer.map((message) => actions(message.keyboard)[0])).toEqual([
+      `🎉 Выполнен → o:${first}:d`,
+      `✅ Подтвердить → o:${second}:c`,
+    ]);
+
+    ctx.sent.buyer.length = 0;
+    await say('/start');
+    expect(ctx.sent.buyer[0]!.text).toContain('чат администратора');
+    // The same command from anyone else is just a stranger opening the bot.
+    await say('/orders', 777);
+    expect(ctx.sent.buyer[1]).toMatchObject({ chatId: 777, text: expect.stringContaining('Это бот') });
   });
 });
 

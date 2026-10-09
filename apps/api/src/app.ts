@@ -20,6 +20,8 @@ import type { AdminAuth } from './auth';
 import type { Db } from './db/client';
 import { products, stockRequests } from './db/schema';
 import type { Notifier } from './notify';
+import { ADMIN_HELP_TEXT, handleAdminCallback, isAdminChat, sendOpenOrders } from './services/admin-bot';
+import { getOrder } from './services/admin-orders';
 import { placeOrder } from './services/orders';
 import { toProduct } from './services/products';
 import { listCategories } from './services/categories';
@@ -160,7 +162,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     }
 
     // After commit, and not awaited: a slow or failing Telegram must not delay or fail the order.
-    void notifier.orderPlaced(result.order, result.customer);
+    void getOrder(db, result.id).then((placed) => placed && notifier.orderPlaced(placed));
 
     reply.code(201);
     return { ok: true, order: { ...result.order, telegramLink: orderBotLink(buyerBot, result.notifyToken, 'order') } };
@@ -183,8 +185,9 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     return { ok: true, telegramLink: orderBotLink(buyerBot, result.notifyToken, 'custom') };
   });
 
-  // Telegram calls this for every message sent to the bot. A buyer who followed the link from the
-  // thank-you page arrives as «/start <token>»: from then on the bot may write to them about that order.
+  // Telegram calls this for every message sent to the bot and every button pressed in it.
+  // A buyer who followed the link from the thank-you page arrives as «/start <token>»: from then on
+  // the bot may write to them about that order. The admin chats run the shop from here.
   app.post('/api/telegram/webhook', { config: limit(600, '1 minute') }, async (request, reply) => {
     if (!buyerBot) {
       reply.code(404);
@@ -197,22 +200,48 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
       return { ok: false, error: 'forbidden' };
     }
 
-    const message = (request.body as { message?: { text?: unknown; chat?: { id?: unknown; type?: unknown } } } | null)?.message;
+    const update = request.body as {
+      message?: { text?: unknown; chat?: { id?: unknown; type?: unknown } };
+      callback_query?: Parameters<typeof handleAdminCallback>[2];
+    } | null;
+
+    // A button under an order in an admin chat.
+    if (update?.callback_query) {
+      await handleAdminCallback(db, buyerBot, update.callback_query);
+      return { ok: true };
+    }
+
+    const message = update?.message;
     const chatId = message?.chat?.id;
     const text = message?.text;
     if (typeof chatId !== 'number' || typeof text !== 'string') return { ok: true };
+    // «/orders», or «/orders@our_bot» as Telegram writes it in a group.
+    const command = (name: string) => new RegExp(`^/${name}(?:@[A-Za-z0-9_]+)?[ ]*$`).test(text);
 
     // The one thing the bot answers anywhere, a group included: the number of the chat. The owner
     // needs it once for TELEGRAM_CHAT_ID, and a group is where two people can both see the orders.
-    if (/^\/chatid(?:@\w+)?\s*$/.test(text)) {
+    if (command('chatid')) {
       void buyerBot.send(chatId, chatIdText(chatId));
       return { ok: true };
     }
+
+    // The admin chats (a group too) run the shop from here.
+    if (isAdminChat(buyerBot, chatId)) {
+      if (command('orders')) {
+        await sendOpenOrders(db, buyerBot, chatId);
+        return { ok: true };
+      }
+      if (command('start') || command('help')) {
+        void buyerBot.send(chatId, ADMIN_HELP_TEXT);
+        return { ok: true };
+      }
+    }
+
     // Everything else is for buyers, and only in a private chat.
     if (message?.chat?.type !== 'private') return { ok: true };
 
     const button = contactButton(await getSettings(db));
-    const start = /^\/start(?:@\w+)?(?:\s+(\S+))?\s*$/.exec(text);
+    const start = /^[/]start(?:@[A-Za-z0-9_]+)?(?:[ ]+([^ ]+))?[ ]*$/.exec(text);
     if (start?.[1]) {
       const linked = await linkChat(db, start[1], chatId);
       if (!linked) void buyerBot.send(chatId, UNKNOWN_ORDER_TEXT, button);

@@ -7,7 +7,7 @@ import { getSettings } from './settings';
 
 export type PlaceOrderResult =
   /** `notifyToken`: the secret for the order's link to the Telegram bot (the route builds the link). */
-  | { ok: true; order: OrderView; customer: OrderCustomer; notifyToken: string }
+  | { ok: true; id: number; order: OrderView; customer: OrderCustomer; notifyToken: string }
   | { ok: false; error: 'insufficient_stock'; shortages: StockShortage[] };
 
 export interface OrderCustomer {
@@ -98,6 +98,7 @@ export async function placeOrder(db: Db, order: ValidOrder): Promise<PlaceOrderR
 
     return {
       ok: true,
+      id: created!.id,
       order: {
         publicNumber: created!.publicNumber,
         items,

@@ -122,6 +122,8 @@ What is still a guess is marked `TODO_CLIENT` or `PLACEHOLDER` in the code and l
 - A «Хинкали» category (the spec listed пельмени, вареники, манты, other). «Вареники» and «Другое»
   exist but have no products, so buyers do not see them; he can delete them if he never needs them.
 - A TikTok link next to Instagram.
+- The shop can be run from Telegram: in the admin chat every order comes with buttons to confirm,
+  complete or cancel it, and `/orders` lists the open ones.
 - The Telegram bot also talks to buyers: a button on the thank-you page connects their chat to the
   order, and the bot then reports every change of status, with a button to write to the owner.
 - «Свой рецепт»: a page where the buyer puts together пельмени of their own (base, additions,
