@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  bigint,
   boolean,
   check,
   index,
@@ -20,11 +21,23 @@ export const stockRequestStatus = pgEnum('stock_request_status', ['open', 'notif
 
 /** Feeds the human-friendly order number: A-0001, A-0002, … */
 export const orderNumberSeq = pgSequence('order_number_seq', { startWith: 1, increment: 1 });
+export const customOrderNumberSeq = pgSequence('custom_order_number_seq', { startWith: 1, increment: 1 });
 
 const timestamps = {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 };
+
+/**
+ * How the shop's Telegram bot reaches the buyer of an order (services/buyer-bot.ts).
+ * `notifyToken` is the secret in the link on the thank-you page; `telegramChatId` is filled in
+ * when the buyer follows it and presses Start. Orders placed before the bot existed have neither.
+ */
+const buyerChat = (table: string) => ({
+  // Named after its table: the two unique constraints must not share a name.
+  notifyToken: text('notify_token').unique(`${table}_notify_token_unique`),
+  telegramChatId: bigint('telegram_chat_id', { mode: 'number' }),
+});
 
 /** The groups of the catalog. The owner adds them in the admin; products refer to `slug`. */
 export const categories = pgTable('categories', {
@@ -80,6 +93,7 @@ export const orders = pgTable(
     deliveryExtra: boolean('delivery_extra').notNull().default(false),
     totalAmd: integer('total_amd').notNull(),
     status: orderStatus('status').notNull().default('new'),
+    ...buyerChat('orders'),
     ...timestamps,
   },
   (t) => [
@@ -127,3 +141,32 @@ export const settings = pgTable('settings', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),
 });
+
+/**
+ * «Свой рецепт»: пельмени made to a buyer's own recipe. A request rather than an order: there is
+ * no price and no stock behind it, the owner calls back to agree both. The chosen options are
+ * stored as the buyer read them, so later edits of the lists in the settings do not rewrite them.
+ */
+export const customOrders = pgTable(
+  'custom_orders',
+  {
+    id: serial('id').primaryKey(),
+    publicNumber: text('public_number')
+      .notNull()
+      .unique()
+      .default(sql`'R-' || lpad(nextval('custom_order_number_seq')::text, 4, '0')`),
+    recipeName: text('recipe_name').notNull(),
+    base: text('base').notNull(),
+    modifiers: text('modifiers').array().notNull(),
+    spices: text('spices').array().notNull(),
+    weightGrams: integer('weight_grams').notNull(),
+    customerName: text('customer_name').notNull(),
+    customerPhone: text('customer_phone').notNull(),
+    customerTelegram: text('customer_telegram'),
+    comment: text('comment'),
+    status: orderStatus('status').notNull().default('new'),
+    ...buyerChat('custom_orders'),
+    ...timestamps,
+  },
+  (t) => [index('custom_orders_status_created_idx').on(t.status, t.createdAt)],
+);

@@ -11,12 +11,14 @@ import { MOCK_CATEGORIES, MOCK_PRODUCTS } from '../mock/products';
 import { MOCK_SETTINGS } from '../mock/settings';
 import type {
   Category,
+  CustomOrderInput,
   OrderInput,
   OrderItemView,
   Product,
   Settings,
   StockRequestInput,
   StockShortage,
+  SubmitCustomOrderResult,
   SubmitOrderResult,
 } from '../types';
 
@@ -144,8 +146,16 @@ export async function submitOrder(input: OrderInput): Promise<SubmitOrderResult>
       totalAmd: itemsTotalAmd + deliveryFeeAmd,
       deliveryMethod: input.deliveryMethod,
       deliveryAddress: input.deliveryMethod === 'courier' ? (input.deliveryAddress?.trim() ?? null) : null,
+      telegramLink: null, // the demo has no bot
     },
   };
+}
+
+/** The demo has nobody to send a recipe to: it only checks the form the way the server would. */
+export async function submitCustomOrder(input: CustomOrderInput): Promise<SubmitCustomOrderResult> {
+  await delay(500);
+  const valid = !input.website && input.recipeName.trim() && input.base && normalizePhone(input.customerPhone);
+  return valid ? { ok: true, telegramLink: null } : { ok: false, error: 'invalid' };
 }
 
 export async function createStockRequest(input: StockRequestInput): Promise<void> {

@@ -5,6 +5,7 @@ import { DEV_ADMIN_PASSWORD, type AdminAuth } from './auth';
 import { createDb } from './db/client';
 import { loadEnv } from './env';
 import { consoleNotifier, telegramNotifier } from './notify';
+import { connectBuyerBot } from './telegram';
 
 const env = loadEnv();
 const production = env.NODE_ENV === 'production';
@@ -34,9 +35,20 @@ const { db, pool } = createDb(env.DATABASE_URL);
 // The notifier needs the app's logger, and the app needs the notifier: hand the app a thin proxy.
 let notifier: ReturnType<typeof consoleNotifier>;
 
+// The same goes for the bot that talks to buyers: it is connected before the app exists (the app
+// needs the bot's username), so until then its few lines go to the console.
+type BotLog = Parameters<typeof connectBuyerBot>[2] extends () => infer L ? L : never;
+let botLog: BotLog = {
+  info: (msg) => console.log(msg),
+  warn: (msg) => console.warn(msg),
+  error: (obj, msg) => console.error(msg, obj),
+};
+const buyerBot = env.TELEGRAM_BOT_TOKEN ? await connectBuyerBot(env.TELEGRAM_BOT_TOKEN, env.PUBLIC_BASE_URL, () => botLog) : null;
+
 const app = await buildApp({
   db,
   admin,
+  buyerBot,
   corsOrigin: env.PUBLIC_BASE_URL,
   uploadsDir: resolve(env.UPLOADS_DIR),
   webDir: env.WEB_DIST_DIR ? resolve(env.WEB_DIST_DIR) : undefined,
@@ -44,8 +56,15 @@ const app = await buildApp({
   notifier: {
     orderPlaced: (order, customer) => notifier.orderPlaced(order, customer),
     stockRequested: (request) => notifier.stockRequested(request),
+    customOrderPlaced: (order) => notifier.customOrderPlaced(order),
   },
 });
+
+botLog = {
+  info: (msg) => app.log.info(msg),
+  warn: (msg) => app.log.warn(msg),
+  error: (obj, msg) => app.log.error(obj, msg),
+};
 
 if (env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID) {
   notifier = telegramNotifier(env.TELEGRAM_BOT_TOKEN, env.TELEGRAM_CHAT_ID, app.log);

@@ -1065,6 +1065,118 @@
   transform: translateY(-3px);
 }
 
+/* ---------- «Свой рецепт» ---------- */
+
+/* The invitation on the home page. */
+.custom-banner {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  border-radius: var(--radius-l);
+  background: var(--glow);
+  box-shadow: var(--shadow-s);
+}
+
+.custom-banner h2 {
+  margin-bottom: 8px;
+}
+
+.custom-banner p {
+  max-width: 44em;
+  margin: 0;
+}
+
+.custom-banner .btn {
+  justify-self: start;
+}
+
+/* The page itself (pages/CustomPage.tsx). Its title, the line under it and the three facts stand
+   in the middle of the page. */
+.custom__head {
+  text-align: center;
+}
+
+.custom__lead {
+  margin-bottom: 12px;
+}
+
+.custom__facts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.custom__facts li {
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--dough-100);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.custom__step .chips {
+  margin: 0;
+}
+
+/* The step's number in a round badge before its title. */
+.custom__num {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 10px;
+  border-radius: 50%;
+  background: var(--amber-400);
+  font-size: 0.9375rem;
+}
+
+.custom__step--error {
+  outline: 2px solid var(--terracotta);
+  outline-offset: -2px;
+}
+
+.custom__step .field__error {
+  margin: 10px 0 0;
+}
+
+.custom__weight {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.custom__weight p {
+  margin: 0;
+}
+
+.custom__kg {
+  min-width: 84px;
+}
+
+/* The recipe as chosen so far, beside the form. */
+.custom__recipe {
+  display: grid;
+  gap: 8px;
+}
+
+.custom__recipe div {
+  display: grid;
+  gap: 2px;
+}
+
+.custom__recipe dt {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.custom__recipe dd {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
 /* ---------- «О нас»: the portrait beside the story ---------- */
 
 .about {
@@ -1584,6 +1696,32 @@ textarea.field__input {
   text-align: left;
 }
 
+/* The button that opens the shop's Telegram bot for this order (components/TelegramFollow.tsx). */
+.tg-follow {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  max-width: 440px;
+  margin: 0 auto 24px;
+}
+
+.tg-follow p {
+  margin: 0;
+}
+
+.tg-follow__btn {
+  gap: 10px;
+  border-color: var(--contact-telegram);
+  background: var(--contact-telegram);
+  color: #fff;
+}
+
+.tg-follow__btn:hover {
+  border-color: #1d8fc9;
+  background: #1d8fc9;
+  color: #fff;
+}
+
 .success__links {
   display: flex;
   flex-wrap: wrap;
@@ -1748,6 +1886,17 @@ textarea.field__input {
     padding-left: 28px;
     border-top: 0;
     border-left: 1px solid var(--border);
+  }
+
+  .custom-banner {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 24px;
+    padding: 28px 32px;
+  }
+
+  .custom-banner .btn {
+    justify-self: end;
   }
 
   .about {

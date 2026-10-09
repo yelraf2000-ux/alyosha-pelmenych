@@ -1,10 +1,11 @@
-import { formatAmd, type OrderView } from '@alyosha/shared';
+import { formatAmd, formatKg, type AdminCustomOrder, type OrderView } from '@alyosha/shared';
 import type { OrderCustomer } from './services/orders';
 
 /** Messages to the shop owner (SPEC §6: every new order and every "notify me" request). */
 export interface Notifier {
   orderPlaced(order: OrderView, customer: OrderCustomer): Promise<void>;
   stockRequested(request: { productName: string; name: string; phone: string; telegram: string | null }): Promise<void>;
+  customOrderPlaced(order: AdminCustomOrder): Promise<void>;
 }
 
 function escapeHtml(text: string): string {
@@ -52,6 +53,23 @@ export function formatStockRequestMessage(request: Parameters<Notifier['stockReq
   ].join('\n');
 }
 
+export function formatCustomOrderMessage(order: AdminCustomOrder): string {
+  const list = (options: string[]) => (options.length > 0 ? options.map(escapeHtml).join(', ') : '—');
+  const lines = [
+    `👩‍🍳 <b>Свой рецепт ${escapeHtml(order.publicNumber)}</b>`,
+    `«${escapeHtml(order.recipeName)}» — ${formatKg(order.weightGrams)}`,
+    '',
+    `Основа: ${escapeHtml(order.base)}`,
+    `Добавки: ${list(order.modifiers)}`,
+    `Специи: ${list(order.spices)}`,
+    '',
+    ...contactLines({ name: order.customerName, phone: order.customerPhone, telegram: order.customerTelegram }),
+  ];
+  if (order.comment) lines.push(`💬 ${escapeHtml(order.comment)}`);
+  lines.push('', 'Цены нет: назовите её покупателю при подтверждении.');
+  return lines.join('\n');
+}
+
 type Log = { info: (msg: string) => void; error: (obj: unknown, msg: string) => void };
 
 /** Sends through the Telegram Bot API. A failed send is logged and never fails the order. */
@@ -74,6 +92,7 @@ export function telegramNotifier(token: string, chatId: string, log: Log): Notif
   return {
     orderPlaced: (order, customer) => send(formatOrderMessage(order, customer)),
     stockRequested: (request) => send(formatStockRequestMessage(request)),
+    customOrderPlaced: (order) => send(formatCustomOrderMessage(order)),
   };
 }
 
@@ -83,5 +102,6 @@ export function consoleNotifier(log: Log): Notifier {
   return {
     orderPlaced: (order, customer) => print(formatOrderMessage(order, customer)),
     stockRequested: (request) => print(formatStockRequestMessage(request)),
+    customOrderPlaced: (order) => print(formatCustomOrderMessage(order)),
   };
 }

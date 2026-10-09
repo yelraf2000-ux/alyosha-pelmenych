@@ -1,3 +1,4 @@
+import { DEFAULT_CUSTOM_BASES, DEFAULT_CUSTOM_MODIFIERS, DEFAULT_CUSTOM_SPICES } from '@alyosha/shared';
 import type { Settings } from '../types';
 
 // Settings for the static demo build. They mirror the real seed (apps/api/src/db/seed.ts).
@@ -20,4 +21,8 @@ export const MOCK_SETTINGS: Settings = {
   telegramPublic: 'apelmenych',
   instagramUrl: 'https://www.instagram.com/bbllbbd',
   tiktokUrl: 'https://www.tiktok.com/@bbllbbd',
+  telegramContact: '',
+  customBases: DEFAULT_CUSTOM_BASES,
+  customModifiers: DEFAULT_CUSTOM_MODIFIERS,
+  customSpices: DEFAULT_CUSTOM_SPICES,
 };

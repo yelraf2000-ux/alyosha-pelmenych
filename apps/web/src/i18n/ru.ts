@@ -135,6 +135,50 @@ export const ru = {
     hp: 'Не заполняйте это поле',
   },
 
+  // The shop's Telegram bot (components/TelegramFollow.tsx).
+  telegram: {
+    follow: 'Получать уведомления в Telegram',
+    followHint: 'Откроется наш бот: нажмите в нём «Запустить» (Start), и он будет сообщать, как продвигается заказ.',
+  },
+
+  // «Свой рецепт»: пельмени made to the buyer's own recipe (pages/CustomPage.tsx).
+  custom: {
+    title: 'Свой рецепт',
+    lead: 'Соберите пельмени по своему вкусу — слепим их специально для вас.',
+    bannerText: (min: string) =>
+      `Выберите основу, добавки и специи, придумайте название — слепим пельмени только для вас. Заказ от ${min}, готовность 2–4 дня.`,
+    bannerCta: 'Собрать рецепт',
+    factMin: (min: string) => `Заказ — не меньше ${min}`,
+    factReady: 'Будет готово через 2–4 дня',
+    // TODO_CLIENT: there is no price list for custom пельмени yet; the owner names the price himself.
+    factPrice: 'Цену назовём при подтверждении',
+    stepBase: 'Выберите основу',
+    stepModifiers: 'Добавьте начинку',
+    stepSpices: 'Выберите специи',
+    stepName: 'Назовите свой рецепт',
+    nameLabel: 'Название',
+    nameHint: 'Придумайте название своим пельменям — оно будет указано на упаковке.',
+    weightTitle: 'Сколько слепить',
+    weightHint: (min: string) => `Минимальный заказ — ${min}.`,
+    summaryTitle: 'Ваш рецепт',
+    summaryName: 'Название',
+    summaryBase: 'Основа',
+    summaryModifiers: 'Начинка',
+    summarySpices: 'Специи',
+    summaryWeight: 'Вес',
+    none: '—',
+    submit: 'Отправить рецепт',
+    afterSubmit: 'Оплата на сайте не нужна. Мы свяжемся с вами, подтвердим заказ и назовём цену; готовность — 2–4 дня.',
+    sentTitle: 'Рецепт принят!',
+    sentText: 'Мы свяжемся с вами, чтобы подтвердить заказ и назвать цену. Пельмени будут готовы через 2–4 дня после подтверждения.',
+    unavailable: 'Сейчас мы не принимаем заказы по своему рецепту. Загляните позже.',
+    failed: 'Не получилось отправить рецепт. Попробуйте ещё раз.',
+    errors: {
+      base: 'Выберите основу',
+      recipeName: 'Придумайте название',
+    },
+  },
+
   success: {
     title: 'Заказ принят!',
     text: 'Мы свяжемся с вами в ближайшее время.',

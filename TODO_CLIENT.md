@@ -42,6 +42,14 @@ What is still a guess is marked `TODO_CLIENT` or `PLACEHOLDER` in the code and l
 - [ ] Videos, if he wants them: one short clip per product (up to a minute, straight from the
       phone), added on the product's page in the admin. The site shows it without sound.
 
+### «Свой рецепт»
+
+- [ ] **Price.** The site shows none and says «Цену назовём при подтверждении». If he has a price
+      per kilogram (or per base, or extra for креветка and the like), say so and the site can show it.
+- [ ] Confirm the rules as written on the page: not less than 2 kg (in steps of 0,5 kg, up to
+      30 kg) and ready in 2–4 days.
+- [ ] Does a custom order need a deposit before he starts? The page does not mention one.
+
 ### Delivery and payment
 
 - [ ] **Courier fee for orders under 20 000 ֏.** He has no fixed price, so the site no longer
@@ -86,12 +94,16 @@ What is still a guess is marked `TODO_CLIENT` or `PLACEHOLDER` in the code and l
 | Palette — approve the direction | Warm dough and cream with an amber button colour; the top and bottom of each page fade from dough into a little of the logo's light blue. The logo itself keeps its blue disc. | `apps/web/src/styles/tokens.css` |
 | Favicon | Drawn dumpling | `apps/web/public/favicon.svg` |
 
-### Telegram notifications
+### Telegram bot
 
-- [ ] Алексей creates a bot with @BotFather and sends the bot token
-- [ ] He presses Start in that bot, so it is allowed to write to him; we then read his chat id
-- Both go into the server's settings (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`); steps are in
-  README, "Telegram bot". Until then order messages are only written to the server log.
+- [ ] Алексей creates a bot with @BotFather and gives the token to Rafayel, who puts it into the
+      server's settings (`TELEGRAM_BOT_TOKEN`). The token is a secret: not into chats or screenshots.
+- [ ] He opens the bot, presses Start and sends `/chatid`; the number goes into `TELEGRAM_CHAT_ID`.
+      Until then orders are only written to the server log.
+- [ ] His personal Telegram username, for «Настройки → Ваш личный Telegram»: the bot's
+      «Написать Алёше» button opens a chat with it. Empty, the button leads to the channel.
+- [ ] Read what the bot tells buyers (received / confirmed / done / cancelled) and say if any of it
+      should be worded differently. Steps are in README, "Telegram bot".
 
 ### Admin password
 
@@ -110,6 +122,13 @@ What is still a guess is marked `TODO_CLIENT` or `PLACEHOLDER` in the code and l
 - A «Хинкали» category (the spec listed пельмени, вареники, манты, other). «Вареники» and «Другое»
   exist but have no products, so buyers do not see them; he can delete them if he never needs them.
 - A TikTok link next to Instagram.
+- The Telegram bot also talks to buyers: a button on the thank-you page connects their chat to the
+  order, and the bot then reports every change of status, with a button to write to the owner.
+- «Свой рецепт»: a page where the buyer puts together пельмени of their own (base, additions,
+  spices, a name for the package), says how much (from 2 kg) and leaves contacts. It is a request,
+  not a cart order: Алексей gets it in Telegram and under «Рецепты» in the admin, and confirms it
+  himself. He edits the three lists in «Настройки → Свой рецепт»; an empty list of bases switches
+  the page off.
 - Categories are the owner's own: he adds, renames and deletes them in the admin («Товары →
   Категории», or «+ Новая категория…» right in a product's form). The spec had a fixed list.
 - Order statistics in the admin («Заказы → Статистика»): for one day or a run of days, how many

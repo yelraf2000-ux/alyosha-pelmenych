@@ -144,6 +144,7 @@ describe('order contents', () => {
       totalAmd: 7200,
       deliveryMethod: 'pickup',
       deliveryAddress: null,
+      telegramLink: expect.stringMatching(/^https:\/\/t\.me\/test_shop_bot\?start=o[\w-]{22}$/),
     });
     expect(await stockOf(ctx.db, id)).toBe(7);
 

@@ -57,6 +57,21 @@ const httpsLinkOrEmpty = z
   .max(200)
   .refine((value) => value === '' || /^https:\/\/[^\s]+$/.test(value), 'must be an https link or empty');
 
+/** A Telegram username, stored without @; empty is allowed. */
+const telegramUsernameOrEmpty = z
+  .string()
+  .trim()
+  .max(40)
+  .transform((value, ctx) => {
+    if (!value) return '';
+    const username = normalizeTelegram(value);
+    if (!username) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'invalid telegram username' });
+      return z.NEVER;
+    }
+    return username;
+  });
+
 export const settingsSchema = z.object({
   aboutText: longText,
   deliveryText: longText,
@@ -69,19 +84,11 @@ export const settingsSchema = z.object({
   heroSubtitle: shortText,
   phonePublic: z.string().trim().max(40),
   /** Username without @; empty hides the link. */
-  telegramPublic: z
-    .string()
-    .trim()
-    .max(40)
-    .transform((value, ctx) => {
-      if (!value) return '';
-      const username = normalizeTelegram(value);
-      if (!username) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'invalid telegram username' });
-        return z.NEVER;
-      }
-      return username;
-    }),
+  telegramPublic: telegramUsernameOrEmpty,
   instagramUrl: httpsLinkOrEmpty,
   tiktokUrl: httpsLinkOrEmpty,
+  telegramContact: telegramUsernameOrEmpty,
+  customBases: longText,
+  customModifiers: longText,
+  customSpices: longText,
 });

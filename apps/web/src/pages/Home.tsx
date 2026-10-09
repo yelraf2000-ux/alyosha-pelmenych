@@ -1,3 +1,4 @@
+import { CUSTOM_MIN_GRAMS, formatKg, optionLines } from '@alyosha/shared';
 import { Link } from 'react-router-dom';
 import { Catalog } from '../components/Catalog';
 import { Hero } from '../components/Hero';
@@ -46,6 +47,23 @@ export default function Home() {
         </Reveal>
         <Catalog />
       </section>
+
+      {/* «Свой рецепт»: shown while the shop offers at least one base (the settings switch it off). */}
+      {optionLines(settings.customBases).length > 0 && (
+        <section className="section container" aria-labelledby="custom-title">
+          <Reveal>
+            <div className="custom-banner">
+              <div>
+                <h2 id="custom-title">{t.custom.title}</h2>
+                <p>{t.custom.bannerText(formatKg(CUSTOM_MIN_GRAMS))}</p>
+              </div>
+              <Link to="/custom" className="btn btn--primary btn--lg">
+                {t.custom.bannerCta}
+              </Link>
+            </div>
+          </Reveal>
+        </section>
+      )}
 
       <section className="section section--tinted" aria-labelledby="about-title">
         <div className="container narrow">

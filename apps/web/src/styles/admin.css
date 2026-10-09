@@ -94,7 +94,7 @@
   inset: auto 0 0 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   padding-bottom: env(safe-area-inset-bottom);
   border-top: 1px solid var(--border);
   background: #fff;
@@ -107,7 +107,8 @@
   padding: 0 2px;
   border-top: 3px solid transparent;
   color: var(--text-muted);
-  font-size: 0.75rem;
+  /* Six tabs share a phone's width. */
+  font-size: 0.6875rem;
   font-weight: 600;
   text-align: center;
   text-decoration: none;
@@ -222,6 +223,57 @@
 .adm-stat--hot {
   background: var(--blue-glass);
   color: var(--ink);
+}
+
+/* ---------- «Свой рецепт» requests ---------- */
+
+.adm-stat--wide {
+  grid-column: 1 / -1;
+}
+
+.adm-recipe {
+  display: grid;
+  gap: 8px;
+}
+
+.adm-recipe p {
+  margin: 0;
+}
+
+.adm-recipe__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.adm-recipe__name {
+  font-family: var(--font-heading);
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.adm-recipe__parts {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-s);
+  background: var(--flour);
+}
+
+.adm-recipe__parts div {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  gap: 8px;
+}
+
+.adm-recipe__parts dt {
+  color: var(--text-muted);
+}
+
+.adm-recipe__comment {
+  font-style: italic;
 }
 
 /* ---------- Categories ---------- */

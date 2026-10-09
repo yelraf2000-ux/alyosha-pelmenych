@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import type { Settings } from '@alyosha/shared';
+import { DEFAULT_CUSTOM_BASES, DEFAULT_CUSTOM_MODIFIERS, DEFAULT_CUSTOM_SPICES, type Settings } from '@alyosha/shared';
 import { count } from 'drizzle-orm';
 import { SETTING_KEYS } from '../services/settings';
 import { createDb } from './client';
@@ -58,6 +58,11 @@ const SEED_SETTINGS: Settings = {
   telegramPublic: 'apelmenych', // his Telegram channel
   instagramUrl: 'https://www.instagram.com/bbllbbd',
   tiktokUrl: 'https://www.tiktok.com/@bbllbbd',
+  telegramContact: '', // TODO_CLIENT: his personal Telegram, for the bot's «Написать Алёше» button
+  // «Свой рецепт»: the options Алексей listed. He edits them in «Настройки», one per line.
+  customBases: DEFAULT_CUSTOM_BASES,
+  customModifiers: DEFAULT_CUSTOM_MODIFIERS,
+  customSpices: DEFAULT_CUSTOM_SPICES,
 };
 
 const url = process.env.DATABASE_URL;

@@ -114,7 +114,7 @@ function Footer() {
 function StickyCart() {
   const cart = useCart();
   const { pathname } = useLocation();
-  const hidden = cart.count === 0 || /^\/(cart|checkout|order)/.test(pathname);
+  const hidden = cart.count === 0 || /^\/(cart|checkout|order|custom)/.test(pathname);
   if (hidden) return null;
   return (
     <div className="sticky-cart">

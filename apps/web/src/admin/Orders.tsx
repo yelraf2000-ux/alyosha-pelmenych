@@ -109,6 +109,10 @@ export function OrdersPage() {
   );
 }
 
+/** Whether the buyer hears about status changes from the shop's Telegram bot. */
+const BOT_ON = 'Покупатель подключил бота: о смене статуса ему придёт сообщение в Telegram.';
+const BOT_OFF = 'Бота покупатель не подключил: о заказе сообщите ему сами.';
+
 const ACTIONS: { status: OrderStatus; label: string }[] = [
   { status: 'confirmed', label: 'Подтвердить' },
   { status: 'done', label: 'Выполнен' },
@@ -199,6 +203,7 @@ export function OrderPage() {
         <h2>Покупатель</h2>
         <p className="adm-big">{order.customerName}</p>
         <ContactLinks phone={order.customerPhone} telegram={order.customerTelegram} />
+        <p className="adm-muted">{order.telegramLinked ? BOT_ON : BOT_OFF}</p>
         {order.comment && (
           <p className="adm-note">
             <span className="adm-muted">Комментарий:</span> {order.comment}

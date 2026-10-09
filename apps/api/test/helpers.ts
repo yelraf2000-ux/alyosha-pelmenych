@@ -14,6 +14,11 @@ import { products, settings } from '../src/db/schema';
 import type { Notifier } from '../src/notify';
 import { SETTING_KEYS } from '../src/services/settings';
 
+const NL = String.fromCharCode(10);
+
+/** What Telegram would send with every update for the tests' bot. */
+export const TEST_WEBHOOK_SECRET = 'test-webhook-secret';
+
 export const TEST_ADMIN_PASSWORD = 'test-admin-password';
 
 export const TEST_ADMIN: AdminAuth = {
@@ -35,7 +40,13 @@ export interface TestContext {
   /** A second app on the same database, e.g. with rate limits on or the admin switched off. */
   buildApp: (overrides: Partial<AppOptions>) => Promise<FastifyInstance>;
   /** Everything the app tried to send to the owner. */
-  sent: { orders: string[]; stockRequests: string[] };
+  sent: {
+    orders: string[];
+    stockRequests: string[];
+    customOrders: string[];
+    /** What the Telegram bot wrote to buyers. */
+    buyer: { chatId: number; text: string; button?: { text: string; url: string } }[];
+  };
   reset: () => Promise<void>;
   close: () => Promise<void>;
 }
@@ -52,10 +63,11 @@ export async function createTestContext(): Promise<TestContext> {
   await runMigrations(url);
   const { db, pool } = createDb(url);
 
-  const sent: TestContext['sent'] = { orders: [], stockRequests: [] };
+  const sent: TestContext['sent'] = { orders: [], stockRequests: [], customOrders: [], buyer: [] };
   const notifier: Notifier = {
     orderPlaced: async (order) => void sent.orders.push(order.publicNumber),
     stockRequested: async (request) => void sent.stockRequests.push(request.productName),
+    customOrderPlaced: async (order) => void sent.customOrders.push(order.recipeName),
   };
 
   const uploadsDir = mkdtempSync(join(tmpdir(), 'alyosha-uploads-'));
@@ -64,6 +76,11 @@ export async function createTestContext(): Promise<TestContext> {
     notifier,
     corsOrigin: 'http://localhost:5173',
     admin: TEST_ADMIN,
+    buyerBot: {
+      username: 'test_shop_bot',
+      webhookSecret: TEST_WEBHOOK_SECRET,
+      send: async (chatId, text, button) => void sent.buyer.push({ chatId, text, button }),
+    },
     uploadsDir,
     rateLimit: false,
     logger: false,
@@ -73,17 +90,24 @@ export async function createTestContext(): Promise<TestContext> {
 
   async function reset() {
     await db.execute(
-      sql`TRUNCATE order_items, orders, stock_requests, products, settings RESTART IDENTITY CASCADE`,
+      sql`TRUNCATE order_items, orders, custom_orders, stock_requests, products, settings RESTART IDENTITY CASCADE`,
     );
     await db.execute(sql`ALTER SEQUENCE order_number_seq RESTART WITH 1`);
+    await db.execute(sql`ALTER SEQUENCE custom_order_number_seq RESTART WITH 1`);
     // The base categories come from the migration; whatever a test added goes.
     await db.execute(sql`DELETE FROM categories WHERE slug NOT IN ('pelmeni', 'vareniki', 'manty', 'khinkali', 'other')`);
     await db.insert(settings).values([
       { key: SETTING_KEYS.courierFeeAmd, value: '1000' },
       { key: SETTING_KEYS.freeDeliveryFromAmd, value: '10000' },
+      // «Свой рецепт»: a short menu of the tests' own.
+      { key: SETTING_KEYS.customBases, value: 'Говядина' + NL + 'Куриное бедро' },
+      { key: SETTING_KEYS.customModifiers, value: 'Сливки' + NL + 'Чеснок' + NL + 'Креветка' },
+      { key: SETTING_KEYS.customSpices, value: 'Без соли' + NL + 'Паприка' },
     ]);
     sent.orders.length = 0;
     sent.stockRequests.length = 0;
+    sent.customOrders.length = 0;
+    sent.buyer.length = 0;
   }
 
   return {

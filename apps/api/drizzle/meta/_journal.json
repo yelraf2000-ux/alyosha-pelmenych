@@ -50,6 +50,20 @@
       "when": 1791497444368,
       "tag": "0006_categories_table",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791533644918,
+      "tag": "0007_custom_orders",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791544998412,
+      "tag": "0008_buyer_chat",
+      "breakpoints": true
     }
   ]
 }

@@ -62,7 +62,28 @@ export interface AdminOrder extends AdminOrderSummary {
   /** Delivery is not in the total: the buyer pays the courier separately. */
   deliveryExtra: boolean;
   items: { productId: number; name: string; priceAmd: number; qty: number }[];
+  /** The buyer pressed Start in the shop's bot: status changes reach them in Telegram. */
+  telegramLinked: boolean;
   updatedAt: string;
+}
+
+/** A «Свой рецепт» request as the owner sees it. It has no price: he names one when he confirms. */
+export interface AdminCustomOrder {
+  id: number;
+  publicNumber: string;
+  status: OrderStatus;
+  recipeName: string;
+  base: string;
+  modifiers: string[];
+  spices: string[];
+  weightGrams: number;
+  customerName: string;
+  customerPhone: string;
+  customerTelegram: string | null;
+  comment: string | null;
+  /** The buyer pressed Start in the shop's bot: status changes reach them in Telegram. */
+  telegramLinked: boolean;
+  createdAt: string;
 }
 
 export type ChangeOrderStatusResult =
@@ -74,6 +95,8 @@ export type ChangeOrderStatusResult =
 export interface TodayView {
   newOrders: number;
   confirmedOrders: number;
+  /** «Свой рецепт» requests nobody has answered yet. */
+  newCustomOrders: number;
   /** Total quantity per product across orders that are new or confirmed. */
   totals: { productId: number; name: string; qty: number }[];
 }

@@ -51,10 +51,28 @@ const GROUPS: { title: string; fields: FieldSpec[] }[] = [
     ],
   },
   {
+    title: 'Свой рецепт',
+    fields: [
+      {
+        key: 'customBases',
+        label: 'Основы',
+        multiline: true,
+        hint: 'По одной в строке. Покупатель выбирает одну. Пустой список выключает страницу «Свой рецепт».',
+      },
+      { key: 'customModifiers', label: 'Начинка и добавки', multiline: true, hint: 'По одной в строке. Можно выбрать несколько.' },
+      { key: 'customSpices', label: 'Специи', multiline: true, hint: 'По одной в строке. Можно выбрать несколько.' },
+    ],
+  },
+  {
     title: 'Контакты на сайте',
     fields: [
       { key: 'phonePublic', label: 'Телефон' },
       { key: 'telegramPublic', label: 'Telegram', hint: 'Имя пользователя или канала, например @apelmenych. Пусто — ссылки не будет.' },
+      {
+        key: 'telegramContact',
+        label: 'Ваш личный Telegram',
+        hint: 'Куда ведёт кнопка «Написать Алёше» в сообщениях бота покупателю. Пусто — кнопка ведёт на адрес из поля выше.',
+      },
       { key: 'instagramUrl', label: 'Instagram', hint: 'Ссылка целиком, начиная с https://. Пусто — ссылки не будет.' },
       { key: 'tiktokUrl', label: 'TikTok', hint: 'Ссылка целиком, начиная с https://. Пусто — ссылки не будет.' },
     ],

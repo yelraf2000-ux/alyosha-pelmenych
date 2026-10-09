@@ -2,10 +2,12 @@ import { calcDeliveryFee, isDeliveryExtra, type OrderView, type StockShortage, t
 import { eq, inArray, sql } from 'drizzle-orm';
 import type { Db } from '../db/client';
 import { orderItems, orders, products } from '../db/schema';
+import { newNotifyToken } from './buyer-bot';
 import { getSettings } from './settings';
 
 export type PlaceOrderResult =
-  | { ok: true; order: OrderView; customer: OrderCustomer }
+  /** `notifyToken`: the secret for the order's link to the Telegram bot (the route builds the link). */
+  | { ok: true; order: OrderView; customer: OrderCustomer; notifyToken: string }
   | { ok: false; error: 'insufficient_stock'; shortages: StockShortage[] };
 
 export interface OrderCustomer {
@@ -66,9 +68,11 @@ export async function placeOrder(db: Db, order: ValidOrder): Promise<PlaceOrderR
     const deliveryExtra = isDeliveryExtra(order.deliveryMethod, itemsTotalAmd, settings);
     const deliveryAddress = order.deliveryMethod === 'courier' ? order.deliveryAddress : null;
 
+    const notifyToken = newNotifyToken();
     const [created] = await tx
       .insert(orders)
       .values({
+        notifyToken,
         customerName: order.customerName,
         customerPhone: order.customerPhone,
         customerTelegram: order.customerTelegram,
@@ -103,7 +107,9 @@ export async function placeOrder(db: Db, order: ValidOrder): Promise<PlaceOrderR
         totalAmd: itemsTotalAmd + deliveryFeeAmd,
         deliveryMethod: order.deliveryMethod,
         deliveryAddress,
+        telegramLink: null,
       },
+      notifyToken,
       customer: {
         name: order.customerName,
         phone: order.customerPhone,

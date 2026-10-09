@@ -71,6 +71,7 @@ export async function getOrder(db: Db | Tx, id: number): Promise<AdminOrder | nu
       priceAmd: item.priceAmdSnapshot,
       qty: item.qty,
     })),
+    telegramLinked: row.telegramChatId !== null,
     updatedAt: row.updatedAt.toISOString(),
   };
 }
@@ -125,7 +126,7 @@ export async function changeOrderStatus(db: Db, id: number, next: OrderStatus): 
 }
 
 /** SPEC §7 "today view": how many orders are waiting and how much of each product they need. */
-export async function getToday(db: Db): Promise<TodayView> {
+export async function getToday(db: Db): Promise<Omit<TodayView, 'newCustomOrders'>> {
   const active: OrderStatus[] = ['new', 'confirmed'];
 
   const byStatus = await db

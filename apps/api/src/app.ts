@@ -1,4 +1,11 @@
-import { orderInputSchema, stockRequestSchema, type Product, type SubmitOrderResult } from '@alyosha/shared';
+import {
+  customOrderSchema,
+  orderInputSchema,
+  stockRequestSchema,
+  type Product,
+  type SubmitCustomOrderResult,
+  type SubmitOrderResult,
+} from '@alyosha/shared';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
@@ -6,6 +13,7 @@ import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import { asc, eq } from 'drizzle-orm';
 import Fastify, { type FastifyContextConfig, type FastifyInstance } from 'fastify';
+import { timingSafeEqual } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { registerAdminRoutes } from './admin-routes';
 import type { AdminAuth } from './auth';
@@ -15,6 +23,18 @@ import type { Notifier } from './notify';
 import { placeOrder } from './services/orders';
 import { toProduct } from './services/products';
 import { listCategories } from './services/categories';
+import {
+  chatIdText,
+  contactButton,
+  customLinkedText,
+  linkChat,
+  orderBotLink,
+  orderLinkedText,
+  UNKNOWN_ORDER_TEXT,
+  WELCOME_TEXT,
+  type BuyerBot,
+} from './services/buyer-bot';
+import { placeCustomOrder } from './services/custom-orders';
 import { getSettings } from './services/settings';
 
 export interface AppOptions {
@@ -24,6 +44,8 @@ export interface AppOptions {
   corsOrigin: string;
   /** Admin login. Without it the admin API answers 503. */
   admin?: AdminAuth | null;
+  /** The Telegram bot that tells buyers about their orders. Without it they get no link to it. */
+  buyerBot?: BuyerBot | null;
   /** Folder for uploaded product photos, served at /uploads. */
   uploadsDir: string;
   /**
@@ -39,6 +61,7 @@ export interface AppOptions {
 
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   const { db, notifier } = options;
+  const buyerBot = options.buyerBot ?? null;
   const limits = options.rateLimit ?? true;
 
   const app = Fastify({
@@ -102,6 +125,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     auth: options.admin ?? null,
     origin: options.corsOrigin,
     uploadsDir: options.uploadsDir,
+    buyerBot,
     // SPEC §7: login rate limit.
     loginLimit: limit(5, '15 minutes'),
   });
@@ -139,7 +163,66 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     void notifier.orderPlaced(result.order, result.customer);
 
     reply.code(201);
-    return { ok: true, order: result.order };
+    return { ok: true, order: { ...result.order, telegramLink: orderBotLink(buyerBot, result.notifyToken, 'order') } };
+  });
+
+  // «Свой рецепт»: a request for пельмени to the buyer's own recipe. No price, no stock: the owner calls back.
+  app.post('/api/custom-orders', { config: limit(10) }, async (request, reply): Promise<SubmitCustomOrderResult> => {
+    const parsed = customOrderSchema.safeParse(request.body);
+    if (!parsed.success) {
+      reply.code(400);
+      return { ok: false, error: 'invalid' };
+    }
+    const result = await placeCustomOrder(db, parsed.data);
+    if (!result.ok) {
+      reply.code(result.error === 'unavailable' ? 409 : 400);
+      return result;
+    }
+    void notifier.customOrderPlaced(result.order);
+    reply.code(201);
+    return { ok: true, telegramLink: orderBotLink(buyerBot, result.notifyToken, 'custom') };
+  });
+
+  // Telegram calls this for every message sent to the bot. A buyer who followed the link from the
+  // thank-you page arrives as «/start <token>»: from then on the bot may write to them about that order.
+  app.post('/api/telegram/webhook', { config: limit(600, '1 minute') }, async (request, reply) => {
+    if (!buyerBot) {
+      reply.code(404);
+      return { ok: false, error: 'not_found' };
+    }
+    const given = Buffer.from(String(request.headers['x-telegram-bot-api-secret-token'] ?? ''));
+    const expected = Buffer.from(buyerBot.webhookSecret);
+    if (given.length !== expected.length || !timingSafeEqual(given, expected)) {
+      reply.code(403);
+      return { ok: false, error: 'forbidden' };
+    }
+
+    const message = (request.body as { message?: { text?: unknown; chat?: { id?: unknown; type?: unknown } } } | null)?.message;
+    const chatId = message?.chat?.id;
+    const text = message?.text;
+    if (typeof chatId !== 'number' || typeof text !== 'string') return { ok: true };
+
+    // The one thing the bot answers anywhere, a group included: the number of the chat. The owner
+    // needs it once for TELEGRAM_CHAT_ID, and a group is where two people can both see the orders.
+    if (/^\/chatid(?:@\w+)?\s*$/.test(text)) {
+      void buyerBot.send(chatId, chatIdText(chatId));
+      return { ok: true };
+    }
+    // Everything else is for buyers, and only in a private chat.
+    if (message?.chat?.type !== 'private') return { ok: true };
+
+    const button = contactButton(await getSettings(db));
+    const start = /^\/start(?:@\w+)?(?:\s+(\S+))?\s*$/.exec(text);
+    if (start?.[1]) {
+      const linked = await linkChat(db, start[1], chatId);
+      if (!linked) void buyerBot.send(chatId, UNKNOWN_ORDER_TEXT, button);
+      else if (linked.kind === 'order') void buyerBot.send(chatId, orderLinkedText(linked.order), button);
+      else void buyerBot.send(chatId, customLinkedText(linked.order), button);
+    } else {
+      void buyerBot.send(chatId, WELCOME_TEXT, button);
+    }
+    // Always 200: anything else makes Telegram send the same update again and again.
+    return { ok: true };
   });
 
   app.post('/api/stock-requests', { config: limit(20) }, async (request, reply) => {

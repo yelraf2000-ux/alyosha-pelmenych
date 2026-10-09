@@ -4,6 +4,7 @@ import { Layout } from './components/Layout';
 import CartPage from './pages/CartPage';
 import CatalogPage from './pages/CatalogPage';
 import CheckoutPage from './pages/CheckoutPage';
+import CustomPage from './pages/CustomPage';
 import Home from './pages/Home';
 import OrderSuccessPage from './pages/OrderSuccessPage';
 import ProductPage from './pages/ProductPage';
@@ -43,6 +44,7 @@ export default function App() {
           <Route path="cart" element={<CartPage />} />
           <Route path="checkout" element={<CheckoutPage />} />
           <Route path="order/:any" element={<OrderSuccessPage />} />
+          <Route path="custom" element={<CustomPage />} />
           <Route path="about" element={<AboutPage />} />
           {/* These two used to be pages of their own; what they said is on the home page and in the footer. */}
           <Route path="delivery" element={<Navigate to="/" replace />} />

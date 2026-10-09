@@ -267,36 +267,39 @@ docker compose run --rm --no-deps --user root -v "$PWD/backups:/backups:ro" api 
 
 ## Telegram bot
 
-The owner gets a message for every new order and every «Сообщить о поступлении» request.
+One bot does two jobs:
+
+- **For the owner:** a message for every new order, every «Свой рецепт» request and every
+  «Сообщить о поступлении» request.
+- **For buyers:** after ordering, the thank-you page offers «Получать уведомления в Telegram».
+  The buyer who follows it and presses **Start** gets the order back as a message, then a message
+  at every change of its status, each with a «Написать Алёше» button that opens a chat with the
+  owner. Telegram lets a bot write only to people who pressed Start in it; a @username typed into
+  a form is not enough, which is why there is a button to follow.
+
+Setting it up:
 
 1. In Telegram, open **@BotFather**, send `/newbot`, choose a name and a username. BotFather replies
-   with the bot **token**.
-2. The owner opens the new bot and presses **Start**. A bot cannot write to someone who has not
-   started it.
-3. Find the owner's **chat id**. Open this address in a browser (with the token in place) and look
-   for `"chat":{"id":` followed by a number:
+   with the bot **token**. Keep it secret: whoever has it controls the bot.
+2. Put the token into the server's settings as `TELEGRAM_BOT_TOKEN` (`.env` on a server, the
+   service's Environment page on Render) and restart. On start the server tells Telegram where to
+   deliver messages (`<PUBLIC_BASE_URL>/api/telegram/webhook`); the log says
+   `Telegram bot @… is connected`. This needs a public **https** address, so it does not work on
+   `localhost`.
+3. The owner opens the bot, presses **Start** and sends `/chatid`. The bot answers with a number.
+4. Put that number into `TELEGRAM_CHAT_ID` and restart. From now on new orders arrive in his chat.
+5. In the admin, «Настройки → Ваш личный Telegram»: the owner's own username. That is where the
+   «Написать Алёше» button leads.
 
-   ```
-   https://api.telegram.org/bot<TOKEN>/getUpdates
-   ```
+To send the owner's notifications to a group instead (so that two people see the orders), add the
+bot to the group, send `/chatid` there and use the number it answers with (a negative one) as
+`TELEGRAM_CHAT_ID`. Apart from that command the bot speaks in private chats only.
 
-   If the list is empty, send the bot any message and reload.
-4. Put both values into `.env` (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`) and apply:
+The bot can be created under the developer's Telegram account and handed over later: in
+@BotFather, `/mybots` → the bot → «Transfer Ownership». The token stays the same, so nothing on
+the server changes.
 
-   ```bash
-   docker compose up -d
-   ```
-
-5. Check that the bot can reach the owner:
-
-   ```bash
-   curl -s "https://api.telegram.org/bot<TOKEN>/sendMessage" -d chat_id=<CHAT_ID> -d text="Проверка"
-   ```
-
-To send notifications to a group instead, add the bot to the group, write something there, and use
-the group's id from `getUpdates` (a negative number).
-
-Locally the same two variables go into `apps/api/.env`; restart `npm run dev` afterwards.
+What buyers are told is in `apps/api/src/services/buyer-bot.ts`.
 
 ## Admin password
 

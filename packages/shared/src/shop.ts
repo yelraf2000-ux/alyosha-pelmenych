@@ -47,6 +47,63 @@ export interface Settings {
   telegramPublic: string;
   instagramUrl: string;
   tiktokUrl: string;
+  /** The owner's own Telegram (username without @): where the bot's «Написать Алёше» button leads. */
+  telegramContact: string;
+  /** «Свой рецепт»: what a buyer may choose from, one option per line (see `optionLines`). */
+  customBases: string;
+  customModifiers: string;
+  customSpices: string;
+}
+
+// ---------- «Свой рецепт»: пельмени made to the buyer's own recipe ----------
+
+/** The smallest batch, the step it grows by and the largest one, in grams. */
+export const CUSTOM_MIN_GRAMS = 2000;
+export const CUSTOM_STEP_GRAMS = 500;
+export const CUSTOM_MAX_GRAMS = 30_000;
+export const CUSTOM_NAME_MAX = 40;
+
+/** The lists the shop starts with (Алексей's own, 9 Oct 2026). He edits them in the settings. */
+export const DEFAULT_CUSTOM_BASES = ['Говядина', 'Свинина', 'Свинина + говядина', 'Куриное бедро', 'Куриная грудка', 'Бедро + грудка'].join('\n');
+export const DEFAULT_CUSTOM_MODIFIERS = [
+  'Сливочное масло', 'Сливки', 'Шампиньоны', 'Сладкий перец', 'Острый перец', 'Кабачок', 'Морковь',
+  'Репчатый лук', 'Жареный лук', 'Зелёный лук', 'Креветка', 'Чеснок', 'Кинза', 'Петрушка',
+].join('\n');
+export const DEFAULT_CUSTOM_SPICES = [
+  'Меньше соли', 'Без соли', 'Чёрный перец', 'Кориандр', 'Паприка', 'Сушёный чеснок', 'Хмели-сунели', 'Итальянские травы',
+].join('\n');
+
+/** Options that cancel each other out: choosing one of a group unticks the others. */
+export const CUSTOM_EXCLUSIVE_GROUPS: readonly (readonly string[])[] = [['Меньше соли', 'Без соли']];
+
+/** What the «Свой рецепт» form sends. The server validates it with `customOrderSchema`. */
+export interface CustomOrderInput {
+  /** The buyer's name for the recipe; it goes on the package. */
+  recipeName: string;
+  base: string;
+  modifiers: string[];
+  spices: string[];
+  weightGrams: number;
+  customerName: string;
+  customerPhone: string;
+  customerTelegram: string | null;
+  comment: string | null;
+  /** Honeypot: must stay empty. */
+  website?: string;
+}
+
+export type SubmitCustomOrderResult =
+  | { ok: true; /** See `OrderView.telegramLink`. */ telegramLink: string | null }
+  | { ok: false; error: 'invalid' | 'rate_limited' | 'unavailable' };
+
+/** The options written in a settings field, one per line: trimmed, without blanks or repeats. */
+export function optionLines(text: string): string[] {
+  return [...new Set(text.split('\n').map((line) => line.trim()).filter(Boolean))];
+}
+
+/** 2500 → «2,5 кг». */
+export function formatKg(grams: number): string {
+  return `${String(grams / 1000).replace('.', ',')} кг`;
 }
 
 /** What the checkout form sends. The server validates it with `orderInputSchema`. */
@@ -79,6 +136,11 @@ export interface OrderView {
   totalAmd: number;
   deliveryMethod: DeliveryMethod;
   deliveryAddress: string | null;
+  /**
+   * Opens the shop's Telegram bot for this order: after pressing Start there, the buyer gets a
+   * message at every change of the order's status. null while the bot is not connected.
+   */
+  telegramLink: string | null;
 }
 
 export interface StockShortage {

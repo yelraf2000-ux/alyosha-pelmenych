@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Dumpling } from '../components/Dumpling';
+import { TelegramFollow } from '../components/TelegramFollow';
 import { t } from '../i18n';
 import { formatAmd } from '../lib/format';
 import { useTitle } from '../lib/useTitle';
@@ -46,6 +47,7 @@ export default function OrderSuccessPage() {
       </div>
       <h1>{t.success.title}</h1>
       <p className="lead">{t.success.text}</p>
+      <TelegramFollow link={order?.telegramLink} />
 
       {order && (
         <div className="panel success__order">

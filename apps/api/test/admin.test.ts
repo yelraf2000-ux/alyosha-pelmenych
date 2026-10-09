@@ -15,6 +15,7 @@ import {
   stockOf,
   TEST_ADMIN,
   TEST_ADMIN_PASSWORD,
+  TEST_WEBHOOK_SECRET,
   type TestContext,
 } from './helpers';
 
@@ -450,6 +451,7 @@ describe('admin orders', () => {
     expect((await asAdmin({ url: '/api/admin/today' })).json()).toEqual({
       newOrders: 1,
       confirmedOrders: 2,
+      newCustomOrders: 0,
       totals: [
         { productId: a, name: 'Пельмени', qty: 5 },
         { productId: b, name: 'Манты', qty: 4 },
@@ -546,6 +548,242 @@ describe('categories', () => {
     expect((await ctx.app.inject({ url: '/api/admin/categories' })).statusCode).toBe(401);
     const anonymous = await ctx.app.inject({ method: 'POST', url: '/api/admin/categories', payload: { name: 'X' } });
     expect(anonymous.statusCode).toBe(401);
+  });
+});
+
+describe('«Свой рецепт» requests', () => {
+  const recipe = (overrides: Record<string, unknown> = {}) => ({
+    recipeName: 'Пельмени Рафа',
+    base: 'Куриное бедро',
+    modifiers: ['Сливки', 'Чеснок'],
+    spices: ['Паприка'],
+    weightGrams: 2500,
+    customerName: 'Тест',
+    customerPhone: '+374 91 123456',
+    customerTelegram: '@test_user',
+    comment: 'Поострее',
+    website: '',
+    ...overrides,
+  });
+  const send = (body: Record<string, unknown>) => ctx.app.inject({ method: 'POST', url: '/api/custom-orders', payload: body });
+
+  it('stores a recipe, tells the owner, and shows it in the admin with the count of new ones', async () => {
+    const response = await send(recipe());
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toEqual({ ok: true, telegramLink: expect.stringMatching(/^https:\/\/t\.me\/test_shop_bot\?start=r[\w-]{22}$/) });
+    expect(ctx.sent.customOrders).toEqual(['Пельмени Рафа']);
+
+    const list = (await asAdmin({ url: '/api/admin/custom-orders' })).json();
+    expect(list).toHaveLength(1);
+    expect(list[0]).toMatchObject({
+      publicNumber: 'R-0001',
+      status: 'new',
+      recipeName: 'Пельмени Рафа',
+      base: 'Куриное бедро',
+      modifiers: ['Сливки', 'Чеснок'],
+      spices: ['Паприка'],
+      weightGrams: 2500,
+      customerName: 'Тест',
+      customerPhone: '+37491123456',
+      customerTelegram: 'test_user',
+      comment: 'Поострее',
+    });
+    expect((await asAdmin({ url: '/api/admin/today' })).json().newCustomOrders).toBe(1);
+
+    const confirmed = await asAdmin({ method: 'PATCH', url: `/api/admin/custom-orders/${list[0].id}`, payload: { status: 'confirmed' } });
+    expect(confirmed.json().status).toBe('confirmed');
+    expect((await asAdmin({ url: '/api/admin/today' })).json().newCustomOrders).toBe(0);
+    expect((await asAdmin({ method: 'PATCH', url: '/api/admin/custom-orders/999', payload: { status: 'done' } })).statusCode).toBe(404);
+  });
+
+  it('accepts a recipe with nothing but a base, and numbers requests on their own', async () => {
+    expect((await send(recipe({ modifiers: [], spices: [], customerTelegram: null, comment: null, weightGrams: 2000 }))).statusCode).toBe(201);
+    expect((await send(recipe({ recipeName: 'Вторые' }))).statusCode).toBe(201);
+    const list = (await asAdmin({ url: '/api/admin/custom-orders' })).json();
+    expect(list.map((o: { publicNumber: string }) => o.publicNumber)).toEqual(['R-0002', 'R-0001']);
+    expect(list[1]).toMatchObject({ modifiers: [], spices: [], customerTelegram: null, comment: null });
+    // Ordinary orders keep their own numbering.
+    expect(await countRows(ctx.db, 'orders')).toBe(0);
+  });
+
+  it.each([
+    ['less than two kilograms', { weightGrams: 1500 }],
+    ['a weight between the steps', { weightGrams: 2300 }],
+    ['more than the largest batch', { weightGrams: 30500 }],
+    ['a base the shop does not offer', { base: 'Баранина' }],
+    ['an addition the shop does not offer', { modifiers: ['Сливки', 'Трюфель'] }],
+    ['a spice the shop does not offer', { spices: ['Шафран'] }],
+    ['no name for the recipe', { recipeName: '   ' }],
+    ['a name longer than fits on the package', { recipeName: 'я'.repeat(41) }],
+    ['a bad phone', { customerPhone: '12345' }],
+    ['a filled honeypot', { website: 'http://spam.example' }],
+  ])('refuses %s', async (_label, patch) => {
+    expect((await send(recipe(patch))).statusCode).toBe(400);
+    expect((await asAdmin({ url: '/api/admin/custom-orders' })).json()).toEqual([]);
+    expect(ctx.sent.customOrders).toEqual([]);
+  });
+
+  it('is switched off when the shop offers no bases', async () => {
+    await ctx.db.execute(sql`UPDATE settings SET value = '' WHERE key = 'custom_bases'`);
+    const response = await send(recipe());
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toEqual({ ok: false, error: 'unavailable' });
+  });
+
+  it('shows the lists to buyers through the settings, and the list of requests to the admin only', async () => {
+    const settings = (await ctx.app.inject({ url: '/api/settings' })).json();
+    expect(settings.customBases.split('\n')).toEqual(['Говядина', 'Куриное бедро']);
+    expect((await ctx.app.inject({ url: '/api/admin/custom-orders' })).statusCode).toBe(401);
+  });
+});
+
+describe('the Telegram bot for buyers', () => {
+  /** What Telegram sends to the webhook when someone writes `text` to the bot from chat `chatId`. */
+  const say = (text: string, chatId = 777, secret: string | null = TEST_WEBHOOK_SECRET, type = 'private') =>
+    ctx.app.inject({
+      method: 'POST',
+      url: '/api/telegram/webhook',
+      headers: secret === null ? {} : { 'x-telegram-bot-api-secret-token': secret },
+      payload: { update_id: 1, message: { message_id: 1, text, chat: { id: chatId, type } } },
+    });
+  /** The start parameter in a link the shop handed out. */
+  const startOf = (link: string) => new URL(link).searchParams.get('start')!;
+
+  async function placeCourierOrder() {
+    const id = await addProduct(ctx.db, { name: 'Пельмени', priceAmd: 2400, stockQty: 20 });
+    const response = await postOrder(
+      ctx.app,
+      orderBody([{ productId: id, qty: 2 }], { deliveryMethod: 'courier', deliveryAddress: 'ул. Тестовая, 1' }),
+    );
+    expect(response.statusCode).toBe(201);
+    return response.json().order as { telegramLink: string };
+  }
+
+  it('greets the buyer who follows the link with their order, and then reports every change of status', async () => {
+    await ctx.db.execute(sql`INSERT INTO settings (key, value) VALUES ('telegram_contact', 'alyosha_personal')`);
+    const order = await placeCourierOrder();
+    expect((await asAdmin({ url: '/api/admin/orders/1' })).json().telegramLinked).toBe(false);
+
+    expect((await say(`/start ${startOf(order.telegramLink)}`)).statusCode).toBe(200);
+    expect(ctx.sent.buyer).toHaveLength(1);
+    expect(ctx.sent.buyer[0]).toMatchObject({
+      chatId: 777,
+      button: { text: 'Написать Алёше', url: 'https://t.me/alyosha_personal' },
+    });
+    expect(ctx.sent.buyer[0]!.text).toContain('Мы получили ваш заказ');
+    expect(ctx.sent.buyer[0]!.text).toContain('Пельмени × 2');
+    // The buyer is never shown the order's number.
+    expect(ctx.sent.buyer[0]!.text).not.toContain('A-0001');
+    expect((await asAdmin({ url: '/api/admin/orders/1' })).json().telegramLinked).toBe(true);
+
+    await setStatus(1, 'confirmed');
+    expect(ctx.sent.buyer).toHaveLength(2);
+    expect(ctx.sent.buyer[1]!.text).toContain('Заказ подтверждён');
+    expect(ctx.sent.buyer[1]!.text).toContain('напишем или позвоним');
+    expect(ctx.sent.buyer[1]!.text).toContain('о доставке');
+    expect(ctx.sent.buyer[1]!.button?.url).toBe('https://t.me/alyosha_personal');
+
+    // The same status again is not news.
+    await setStatus(1, 'confirmed');
+    expect(ctx.sent.buyer).toHaveLength(2);
+
+    await setStatus(1, 'done');
+    expect(ctx.sent.buyer[2]!.text).toContain('Заказ выполнен');
+    await setStatus(1, 'cancelled');
+    expect(ctx.sent.buyer[3]!.text).toContain('Заказ отменён');
+    expect(ctx.sent.buyer.every((message) => message.chatId === 777)).toBe(true);
+  });
+
+  it('says nothing to a buyer who did not connect the bot, and speaks of pickup to one who collects', async () => {
+    const id = await addProduct(ctx.db, { stockQty: 20 });
+    const silent = await placeOrderFor(id, 1);
+    await setStatus(silent, 'confirmed');
+    expect(ctx.sent.buyer).toEqual([]);
+
+    const pickup = await postOrder(ctx.app, orderBody([{ productId: id, qty: 1 }]));
+    await say(`/start ${startOf(pickup.json().order.telegramLink)}`, 555);
+    await setStatus(2, 'confirmed');
+    expect(ctx.sent.buyer.at(-1)).toMatchObject({ chatId: 555 });
+    expect(ctx.sent.buyer.at(-1)!.text).toContain('когда вы его заберёте');
+  });
+
+  it('does the same for a «Свой рецепт» request', async () => {
+    const response = await ctx.app.inject({
+      method: 'POST',
+      url: '/api/custom-orders',
+      payload: {
+        recipeName: 'Острые', base: 'Говядина', modifiers: ['Чеснок'], spices: [], weightGrams: 2000,
+        customerName: 'Тест', customerPhone: '+374 91 123456', customerTelegram: null, comment: null, website: '',
+      },
+    });
+    await say(`/start ${startOf(response.json().telegramLink)}`, 888);
+    expect(ctx.sent.buyer[0]).toMatchObject({ chatId: 888 });
+    expect(ctx.sent.buyer[0]!.text).toContain('Мы получили ваш рецепт');
+    expect(ctx.sent.buyer[0]!.text).toContain('«Острые» — 2 кг');
+
+    const list = (await asAdmin({ url: '/api/admin/custom-orders' })).json();
+    expect(list[0].telegramLinked).toBe(true);
+    await asAdmin({ method: 'PATCH', url: `/api/admin/custom-orders/${list[0].id}`, payload: { status: 'confirmed' } });
+    expect(ctx.sent.buyer[1]!.text).toContain('Рецепт «Острые» подтверждён');
+    expect(ctx.sent.buyer[1]!.chatId).toBe(888);
+  });
+
+  it('explains itself to someone who just opens the bot, and does not accept a made-up order', async () => {
+    await say('/start');
+    await say('привет');
+    expect(ctx.sent.buyer.map((message) => message.text)).toEqual([expect.stringContaining('Это бот'), expect.stringContaining('Это бот')]);
+    // Without the owner's own Telegram in the settings there is nowhere for the button to lead.
+    expect(ctx.sent.buyer[0]!.button).toBeUndefined();
+
+    await say('/start oAAAAAAAAAAAAAAAAAAAAAA');
+    await say('/start not-a-token');
+    expect(ctx.sent.buyer.slice(2).map((message) => message.text)).toEqual([
+      expect.stringContaining('Не нашли такой заказ'),
+      expect.stringContaining('Не нашли такой заказ'),
+    ]);
+  });
+
+  it('tells the owner the number of his chat when he asks for it, in a group too', async () => {
+    await say('/chatid', 4242);
+    expect(ctx.sent.buyer).toEqual([{ chatId: 4242, text: expect.stringContaining('4242'), button: undefined }]);
+
+    // A group where the owner and the developer both see the orders: its number is negative.
+    await say('/chatid@test_shop_bot', -1001234, TEST_WEBHOOK_SECRET, 'supergroup');
+    expect(ctx.sent.buyer[1]).toEqual({ chatId: -1001234, text: expect.stringContaining('-1001234'), button: undefined });
+  });
+
+  it('listens only to Telegram, and only in private chats', async () => {
+    const order = await placeCourierOrder();
+    const start = `/start ${startOf(order.telegramLink)}`;
+
+    expect((await say(start, 777, 'wrong-secret')).statusCode).toBe(403);
+    expect((await say(start, 777, null)).statusCode).toBe(403);
+    expect((await say(start, -100123, TEST_WEBHOOK_SECRET, 'group')).statusCode).toBe(200);
+    expect(ctx.sent.buyer).toEqual([]);
+    expect((await asAdmin({ url: '/api/admin/orders/1' })).json().telegramLinked).toBe(false);
+
+    // A body that is not a message at all is accepted and ignored.
+    const odd = await ctx.app.inject({
+      method: 'POST',
+      url: '/api/telegram/webhook',
+      headers: { 'x-telegram-bot-api-secret-token': TEST_WEBHOOK_SECRET },
+      payload: { update_id: 2, edited_message: {} },
+    });
+    expect(odd.statusCode).toBe(200);
+  });
+
+  it('offers no link and has no webhook when the bot is not connected', async () => {
+    const app = await ctx.buildApp({ buyerBot: null });
+    const id = await addProduct(ctx.db, { stockQty: 5 });
+    const response = await postOrder(app, orderBody([{ productId: id, qty: 1 }]));
+    expect(response.json().order.telegramLink).toBeNull();
+    const webhook = await app.inject({
+      method: 'POST',
+      url: '/api/telegram/webhook',
+      headers: { 'x-telegram-bot-api-secret-token': TEST_WEBHOOK_SECRET },
+      payload: {},
+    });
+    expect(webhook.statusCode).toBe(404);
   });
 });
 
@@ -680,6 +918,10 @@ describe('stock requests and settings', () => {
     telegramPublic: '@alyosha_pelmenych',
     instagramUrl: 'https://instagram.com/alyosha',
     tiktokUrl: '',
+    telegramContact: '@alyosha_personal',
+    customBases: 'Говядина',
+    customModifiers: '',
+    customSpices: '',
   };
 
   it('saves the settings, and the shop uses them straight away', async () => {
@@ -689,7 +931,8 @@ describe('stock requests and settings', () => {
     expect(saved.statusCode).toBe(200);
 
     const shown = (await ctx.app.inject({ url: '/api/settings' })).json();
-    expect(shown).toEqual({ ...validSettings, telegramPublic: 'alyosha_pelmenych' });
+    // Telegram names are stored without the @.
+    expect(shown).toEqual({ ...validSettings, telegramPublic: 'alyosha_pelmenych', telegramContact: 'alyosha_personal' });
 
     // The new fee and threshold apply to the next order.
     const courier = { deliveryMethod: 'courier' as const, deliveryAddress: 'ул. Тестовая, 1' };

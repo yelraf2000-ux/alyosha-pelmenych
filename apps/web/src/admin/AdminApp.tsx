@@ -6,6 +6,7 @@ import { LogoBadge } from '../components/Logo';
 import '../styles/admin.css';
 import { adminApi, ApiError, setUnauthorizedHandler } from './api';
 import { CategoriesPage } from './Categories';
+import { CustomOrdersPage } from './CustomOrders';
 import { OrderPage, OrdersPage } from './Orders';
 import { OrderStatsPage } from './OrderStats';
 import { ProductFormPage } from './ProductForm';
@@ -22,6 +23,7 @@ type AuthState = 'checking' | 'in' | 'out' | 'off' | 'error';
 const TABS = [
   { to: '/admin', label: 'Сегодня', end: true },
   { to: '/admin/orders', label: 'Заказы', end: false },
+  { to: '/admin/recipes', label: 'Рецепты', end: false },
   { to: '/admin/products', label: 'Товары', end: false },
   { to: '/admin/requests', label: 'Заявки', end: false },
   { to: '/admin/settings', label: 'Настройки', end: false },
@@ -175,6 +177,7 @@ export default function AdminApp() {
           <Route path="orders" element={<OrdersPage />} />
           <Route path="orders/stats" element={<OrderStatsPage />} />
           <Route path="orders/:id" element={<OrderPage />} />
+          <Route path="recipes" element={<CustomOrdersPage />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="products/categories" element={<CategoriesPage />} />
           <Route path="products/new" element={<ProductFormPage />} />

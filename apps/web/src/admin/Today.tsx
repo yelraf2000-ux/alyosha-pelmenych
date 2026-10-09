@@ -24,6 +24,13 @@ export function TodayPage() {
               <span className="adm-stat__value">{data.confirmedOrders}</span>
               <span className="adm-stat__label">Подтверждённые</span>
             </Link>
+            {/* «Свой рецепт» requests nobody has answered yet; the tile is there only when there are some. */}
+            {data.newCustomOrders > 0 && (
+              <Link to="/admin/recipes" className="adm-stat adm-stat--hot adm-stat--wide">
+                <span className="adm-stat__value">{data.newCustomOrders}</span>
+                <span className="adm-stat__label">Новые заявки «Свой рецепт»</span>
+              </Link>
+            )}
           </div>
 
           <section className="adm-card">

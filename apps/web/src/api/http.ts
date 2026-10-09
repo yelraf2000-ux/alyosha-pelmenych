@@ -1,6 +1,15 @@
 // The real API (apps/api). In development Vite proxies /api to it; in production nginx does.
 
-import type { Category, OrderInput, Product, Settings, StockRequestInput, SubmitOrderResult } from '../types';
+import type {
+  Category,
+  CustomOrderInput,
+  OrderInput,
+  Product,
+  Settings,
+  StockRequestInput,
+  SubmitCustomOrderResult,
+  SubmitOrderResult,
+} from '../types';
 
 const BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -40,6 +49,15 @@ export async function submitOrder(input: OrderInput): Promise<SubmitOrderResult>
   if (response.status === 429) return { ok: false, error: 'rate_limited' };
   if (response.status === 400) return { ok: false, error: 'invalid' };
   throw new Error(`POST /api/orders failed: ${response.status}`);
+}
+
+export async function submitCustomOrder(input: CustomOrderInput): Promise<SubmitCustomOrderResult> {
+  const response = await post('/api/custom-orders', input);
+  if (response.status === 201) return (await response.json()) as SubmitCustomOrderResult;
+  if (response.status === 429) return { ok: false, error: 'rate_limited' };
+  if (response.status === 409) return { ok: false, error: 'unavailable' };
+  if (response.status === 400) return { ok: false, error: 'invalid' };
+  throw new Error(`POST /api/custom-orders failed: ${response.status}`);
 }
 
 export async function createStockRequest(input: StockRequestInput): Promise<void> {
