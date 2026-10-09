@@ -112,10 +112,16 @@ What is still a guess is marked `TODO_CLIENT` or `PLACEHOLDER` in the code and l
 
 ### Hosting
 
-- [ ] Domain registered in Алексей's name (`pelmeni.am` or another `.am`), with its DNS A record
-      pointed at the server
-- [ ] VPS paid in Алексей's name: Ubuntu 24.04, 1 vCPU, 1 GB memory is enough
-- [ ] Somewhere off the server to keep copies of the nightly backups
+The shop runs on Render's paid plans (about $13.25, roughly 4 800 ֏, a month), on Rafayel's
+Render account.
+
+- [ ] Whose card pays for it in the long run. The card is the one on the account's Billing page
+      and can be replaced there at any time.
+- [ ] A domain registered in Алексей's name (`pelmeni.am` or another `.am`, about 9 000 ֏ a year).
+      Not required: the shop works at `alyosha-pelmenych.onrender.com`. Render connects a domain
+      for free and issues its certificate.
+- [ ] Copies of the product photos somewhere besides Render's disk. The database has Render's own
+      backups; the photos do not, so he should keep the originals on his phone or computer.
 
 ## Added beyond the original spec, because of his data
 

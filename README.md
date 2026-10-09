@@ -180,20 +180,27 @@ docker compose logs -f api
 
 Replace `api` with `web` (HTTPS and certificates), `db` or `backup`.
 
-## Trying it on Render (free)
+## Running on Render
 
-For a trial or a demo without a server or a card. [render.yaml](render.yaml) describes the whole
-shop as one free web service (the API also serves the storefront) plus a free Postgres.
+The shop runs on [Render](https://render.com) from [render.yaml](render.yaml): one web service
+(the API also serves the storefront), a 1 GB disk for product photos and videos, and a Postgres,
+all on Render's smallest paid plans. Together they cost about $13.25 a month, billed by the second
+to the card on the account's Billing page.
 
-Render's free plan has limits that make it unsuitable for the real shop:
+Every push to the repository's main branch is built and deployed. Render also re-reads
+`render.yaml` on each push, so **a change of plan or disk size in that file changes the bill**.
+Sizes can be raised later but not lowered.
 
-- the service sleeps after 15 minutes without visitors, and the next visitor waits about a minute;
-- there is no disk, so product photos uploaded in the admin disappear when the service restarts
-  or sleeps (the shop then shows the drawn placeholder again);
-- the free database is deleted 30 days after it is created;
-- there are no backups.
+- Migrations run on every start, and an empty database gets the placeholder products and texts.
+- Secrets (`ADMIN_PASSWORD_HASH`, `TELEGRAM_BOT_TOKEN`, the `TELEGRAM_CHAT_ID*` variables) are set
+  on the service's **Environment** page, never in the repository.
+- With a disk attached, Render stops the old version before it starts the new one: the site is
+  away for a few seconds on each deploy.
+- The paid database keeps Render's own backups (point-in-time recovery for the last 3 days). The
+  disk with photos is not copied anywhere else by this project.
+- The account includes 5 GB of traffic a month; more is billed per GB.
 
-Steps:
+### Starting from nothing
 
 1. Push this repository to GitHub.
 2. Create the admin password hash on your own machine and copy the printed value (the part after `=`):
@@ -202,13 +209,22 @@ Steps:
    npm run admin:password -w @alyosha/api -- --print
    ```
 
-3. On https://dashboard.render.com choose **New → Blueprint**, connect the GitHub repository, and
+3. Add a card on Render's **Billing** page.
+4. On https://dashboard.render.com choose **New → Blueprint**, connect the GitHub repository, and
    paste the hash into `ADMIN_PASSWORD_HASH` when asked. The two Telegram fields may stay empty.
-4. Press **Apply**. The first build takes several minutes. The shop then opens at the
+5. Press **Apply**. The first build takes several minutes. The shop then opens at the
    `https://<name>.onrender.com` address Render shows; the admin is at `/admin`.
 
-Migrations run on every start, and a new database gets the placeholder products and texts
-automatically. Every push to the repository's main branch is deployed.
+### Trying it for free
+
+Set both plans in `render.yaml` to `free` and remove `disk` and `diskSizeGB`; no card is needed.
+The free plan is for a demo only:
+
+- the service sleeps after 15 minutes without visitors, and the next visitor waits about a minute;
+- there is no disk, so photos and videos uploaded in the admin disappear when the service restarts
+  or sleeps (the shop then shows the drawn placeholder again);
+- the free database stops working 30 days after it is created and is deleted two weeks later;
+- there are no backups.
 
 ## Product photos and videos
 

@@ -1,19 +1,33 @@
-# Render Blueprint: the whole shop as one free web service plus a free Postgres.
-# For a trial or a demo only. On Render's free plan:
-#   - the service sleeps after 15 minutes without visitors; the next visitor waits about a minute
-#   - there is no disk: uploaded product photos disappear whenever the service restarts or sleeps
-#   - the free database is deleted 30 days after it is created
-# The real deployment is docker-compose.yml on a VPS (README, "Deploying to a server").
+# Render Blueprint: the whole shop as one web service plus a Postgres, on Render's smallest paid
+# plans (about $13.25 a month in all; prices on https://render.com/pricing):
+#   - web service 0.5c-512mb ("Starter"), $7: always on, so the Telegram bot answers at once
+#   - a 1 GB disk for product photos and videos, $0.25: they survive restarts and deploys
+#   - Postgres 0.1c-256mb ("Basic"), $6, with the 1 GB of storage that is included: never expires
+#
+# Render applies this file on every push to the main branch (the Blueprint's Auto Sync), so a
+# change of plan here changes the bill. Sizes can be raised later but never lowered.
+#
+# To try the shop for free instead, set both plans to `free` and remove `disk` and `diskSizeGB`.
+# Then the service sleeps after 15 minutes without visitors, uploaded photos disappear on every
+# restart, and the database is deleted about six weeks after it is created.
+#
+# The other way to run the shop is docker-compose.yml on a VPS (README, "Deploying to a server").
 
 services:
   - type: web
     name: alyosha-pelmenych
     runtime: docker
-    plan: free
+    plan: 0.5c-512mb
     region: frankfurt
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /api/health
+    # Mounted over the image's UPLOADS_DIR (Dockerfile). With a disk Render stops the old version
+    # before it starts the new one, so the site is away for a few seconds on each deploy.
+    disk:
+      name: uploads
+      mountPath: /data/uploads
+      sizeGB: 1
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -36,7 +50,9 @@ services:
 
 databases:
   - name: alyosha-db
-    plan: free
+    plan: 0.1c-256mb
+    # Without this line a paid database gets 15 GB, and every GB past the first is billed.
+    diskSizeGB: 1
     region: frankfurt
     databaseName: alyosha
     user: alyosha
