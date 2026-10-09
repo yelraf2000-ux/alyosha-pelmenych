@@ -100,6 +100,9 @@ export async function sendOpenOrders(db: Db, bot: BuyerBot, chatId: number): Pro
  * /password: a link for setting a new admin password, good for a few minutes and for one use.
  * The secret rides in the part of the address after «#», which browsers keep to themselves:
  * it reaches neither the server's log nor any other site.
+ *
+ * The address is written out in the message rather than hidden behind a button: Telegram opens
+ * such a link at once, while a button's link makes it ask «Open Link?» first.
  */
 export async function sendPasswordReset(db: Db, bot: BuyerBot, auth: AdminAuth | null, chatId: number): Promise<void> {
   if (!auth || !bot.adminUrl) return bot.send(chatId, 'Админка на сервере выключена, задать пароль отсюда нельзя.');
@@ -108,9 +111,11 @@ export async function sendPasswordReset(db: Db, bot: BuyerBot, auth: AdminAuth |
     chatId,
     [
       '<b>Новый пароль от админки</b>',
-      `Откройте ссылку ниже и придумайте пароль. Она работает ${ADMIN_PASSWORD_RESET_MINUTES} минут и только один раз.`,
+      `Откройте эту ссылку и придумайте пароль. Она работает ${ADMIN_PASSWORD_RESET_MINUTES} минут и только один раз:`,
+      '',
+      `${bot.adminUrl}/reset#${token}`,
+      '',
       'Пока новый пароль не задан, действует прежний.',
     ].join('\n'),
-    [[{ text: 'Задать новый пароль', url: `${bot.adminUrl}/reset#${token}` }]],
   );
 }

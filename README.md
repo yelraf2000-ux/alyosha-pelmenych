@@ -340,8 +340,8 @@ replaces it. Changing it, either way below, signs out every device.
 For this the Telegram bot must be connected (above).
 
 1. In an admin chat he sends the bot `/password`.
-2. The bot answers with a «Задать новый пароль» button. The link behind it works for 15 minutes
-   and once; asking again cancels the previous link.
+2. The bot answers with a link, written out in the message. It works for 15 minutes and once;
+   asking again cancels the previous link.
 3. The page asks for the new password twice (at least 10 characters) and saves it.
 4. Every admin chat is told «Пароль от админки изменён».
 

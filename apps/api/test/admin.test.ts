@@ -1198,15 +1198,17 @@ describe('a forgotten admin password', () => {
   async function askForLink(): Promise<string> {
     ctx.sent.buyer.length = 0;
     expect((await say('/password')).statusCode).toBe(200);
-    const url = ctx.sent.buyer[0]!.button!.url;
-    expect(url.startsWith('https://shop.test/admin/reset#')).toBe(true);
-    return url.split('#')[1]!;
+    // The address stands in the text itself, on a line of its own, with no button to press.
+    const link = /^https:\/\/shop\.test\/admin\/reset#([\w-]+)$/m.exec(ctx.sent.buyer[0]!.text);
+    expect(link).not.toBeNull();
+    expect(ctx.sent.buyer[0]!.keyboard).toBeUndefined();
+    return link![1]!;
   }
 
   it('sends the link to an admin chat only', async () => {
     const token = await askForLink();
     expect(token.length).toBeGreaterThanOrEqual(40);
-    expect(ctx.sent.buyer[0]).toMatchObject({ chatId: TEST_ADMIN_CHAT, button: { text: 'Задать новый пароль' } });
+    expect(ctx.sent.buyer[0]!.chatId).toBe(TEST_ADMIN_CHAT);
     expect(ctx.sent.buyer[0]!.text).toContain('15 минут');
 
     // Anybody else is a buyer to the bot: they get its greeting and no way to the password.
