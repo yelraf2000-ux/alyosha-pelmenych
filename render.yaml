@@ -22,12 +22,6 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /api/health
-    # Mounted over the image's UPLOADS_DIR (Dockerfile). With a disk Render stops the old version
-    # before it starts the new one, so the site is away for a few seconds on each deploy.
-    disk:
-      name: uploads
-      mountPath: /data/uploads
-      sizeGB: 1
     envVars:
       - key: DATABASE_URL
         fromDatabase:
