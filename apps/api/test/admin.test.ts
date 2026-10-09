@@ -75,6 +75,8 @@ describe('admin access', () => {
     { method: 'GET', url: '/api/admin/orders' },
     { method: 'GET', url: '/api/admin/orders/1' },
     { method: 'PATCH', url: '/api/admin/orders/1', payload: { status: 'cancelled' } },
+    { method: 'DELETE', url: '/api/admin/orders/1' },
+    { method: 'DELETE', url: '/api/admin/custom-orders/1' },
     { method: 'GET', url: '/api/admin/stock-requests' },
     { method: 'PATCH', url: '/api/admin/stock-requests/1', payload: { status: 'notified' } },
     { method: 'POST', url: '/api/admin/products/1/stock-requests/notified' },
@@ -460,6 +462,72 @@ describe('admin orders', () => {
         { productId: b, name: 'Манты', qty: 4 },
       ],
     });
+  });
+});
+
+describe('deleting orders', () => {
+  const remove = (orderId: number) => asAdmin({ method: 'DELETE', url: `/api/admin/orders/${orderId}` });
+
+  it('removes an order with its lines and puts back the goods it was still holding', async () => {
+    const id = await addProduct(ctx.db, { stockQty: 10 });
+    const fresh = await placeOrderFor(id, 3);
+    const confirmed = await placeOrderFor(id, 2);
+    await setStatus(confirmed, 'confirmed');
+    expect(await stockOf(ctx.db, id)).toBe(5);
+
+    expect((await remove(fresh)).json()).toEqual({ ok: true });
+    expect(await stockOf(ctx.db, id)).toBe(8);
+    expect((await remove(confirmed)).statusCode).toBe(200);
+    expect(await stockOf(ctx.db, id)).toBe(10);
+
+    expect(await countRows(ctx.db, 'orders')).toBe(0);
+    expect(await countRows(ctx.db, 'order_items')).toBe(0);
+    expect((await asAdmin({ url: `/api/admin/orders/${fresh}` })).statusCode).toBe(404);
+    // Gone is gone: a second press finds nothing and returns nothing.
+    expect((await remove(fresh)).statusCode).toBe(404);
+    expect(await stockOf(ctx.db, id)).toBe(10);
+  });
+
+  it('leaves the stock alone for an order that was completed or cancelled', async () => {
+    const id = await addProduct(ctx.db, { stockQty: 10 });
+    const done = await placeOrderFor(id, 4);
+    await setStatus(done, 'done');
+    const cancelled = await placeOrderFor(id, 1);
+    await setStatus(cancelled, 'cancelled');
+    expect(await stockOf(ctx.db, id)).toBe(6);
+
+    expect((await remove(done)).statusCode).toBe(200);
+    expect((await remove(cancelled)).statusCode).toBe(200);
+
+    // The four that were handed over stay handed over; the cancelled one had come back already.
+    expect(await stockOf(ctx.db, id)).toBe(6);
+    expect((await asAdmin({ url: '/api/admin/orders' })).json().orders).toEqual([]);
+    expect((await remove(999)).statusCode).toBe(404);
+  });
+
+  it('removes a «Свой рецепт» request', async () => {
+    await ctx.app.inject({
+      method: 'POST',
+      url: '/api/custom-orders',
+      payload: {
+        recipeName: 'Пробные',
+        base: 'Говядина',
+        modifiers: [],
+        spices: [],
+        weightGrams: 2000,
+        customerName: 'Тест',
+        customerPhone: '+374 91 123456',
+        customerTelegram: null,
+        comment: null,
+        website: '',
+      },
+    });
+    const [request] = (await asAdmin({ url: '/api/admin/custom-orders' })).json();
+    expect(request.publicNumber).toBe('R-0001');
+
+    expect((await asAdmin({ method: 'DELETE', url: `/api/admin/custom-orders/${request.id}` })).json()).toEqual({ ok: true });
+    expect((await asAdmin({ url: '/api/admin/custom-orders' })).json()).toEqual([]);
+    expect((await asAdmin({ method: 'DELETE', url: `/api/admin/custom-orders/${request.id}` })).statusCode).toBe(404);
   });
 });
 

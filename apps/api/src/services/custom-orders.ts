@@ -89,6 +89,12 @@ export async function setCustomOrderStatus(db: Db, id: number, status: OrderStat
   return row ? toView(row) : null;
 }
 
+/** Removes a request for good; false when there is no such request. The buyer is told nothing. */
+export async function deleteCustomOrder(db: Db, id: number): Promise<boolean> {
+  const removed = await db.delete(customOrders).where(eq(customOrders.id, id)).returning({ id: customOrders.id });
+  return removed.length > 0;
+}
+
 export async function countNewCustomOrders(db: Db): Promise<number> {
   const [row] = await db.select({ n: count() }).from(customOrders).where(eq(customOrders.status, 'new'));
   return row?.n ?? 0;

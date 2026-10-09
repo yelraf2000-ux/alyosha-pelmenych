@@ -119,10 +119,13 @@ export const adminApi = {
   orderStats: (from: string, to: string) => request<OrderStats>('GET', `/orders/stats?from=${from}&to=${to}`),
   setOrderStatus: (id: number, status: OrderStatus) =>
     request<{ ok: true; order: AdminOrder }>('PATCH', `/orders/${id}`, { status }),
+  /** For good: the order leaves the list and the statistics, and the buyer is told nothing. */
+  deleteOrder: (id: number) => request<{ ok: true }>('DELETE', `/orders/${id}`),
 
   customOrders: () => request<AdminCustomOrder[]>('GET', '/custom-orders'),
   setCustomOrderStatus: (id: number, status: OrderStatus) =>
     request<AdminCustomOrder>('PATCH', `/custom-orders/${id}`, { status }),
+  deleteCustomOrder: (id: number) => request<{ ok: true }>('DELETE', `/custom-orders/${id}`),
 
   settings: () => request<Settings>('GET', '/settings'),
   saveSettings: (settings: Settings) => request<Settings>('PUT', '/settings', settings),

@@ -125,6 +125,40 @@ export async function changeOrderStatus(db: Db, id: number, next: OrderStatus): 
   });
 }
 
+/**
+ * Removes an order for good, with its lines. For orders placed to try the shop out, and for
+ * mistakes: the buyer is told nothing, and the order leaves the statistics. A real order that
+ * fell through is cancelled instead.
+ *
+ * Stock follows what the order was holding. A new or confirmed order still has its goods set
+ * aside, so they go back on the shelf, as cancelling would put them. A completed order handed
+ * its goods over, and a cancelled one has returned them already: neither changes the stock.
+ */
+export async function deleteOrder(db: Db, id: number): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    // Locked like a status change, so the two cannot both return the same goods.
+    const [order] = await tx.select().from(orders).where(eq(orders.id, id)).for('update');
+    if (!order) return false;
+
+    if (order.status === 'new' || order.status === 'confirmed') {
+      const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, id));
+      const qtyBy = new Map<number, number>();
+      for (const item of items) qtyBy.set(item.productId, (qtyBy.get(item.productId) ?? 0) + item.qty);
+      // Same lock order as placing an order (by product id), so the two cannot deadlock.
+      for (const productId of [...qtyBy.keys()].sort((a, b) => a - b)) {
+        await tx
+          .update(products)
+          .set({ stockQty: sql`${products.stockQty} + ${qtyBy.get(productId)!}`, updatedAt: new Date() })
+          .where(eq(products.id, productId));
+      }
+    }
+
+    // The order's lines go with it (ON DELETE CASCADE).
+    await tx.delete(orders).where(eq(orders.id, id));
+    return true;
+  });
+}
+
 /** SPEC §7 "today view": how many orders are waiting and how much of each product they need. */
 export async function getToday(db: Db): Promise<Omit<TodayView, 'newCustomOrders'>> {
   const active: OrderStatus[] = ['new', 'confirmed'];

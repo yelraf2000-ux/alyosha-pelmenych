@@ -130,6 +130,8 @@ Render account.
 - A TikTok link next to Instagram.
 - The shop can be run from Telegram: in the admin chat every order comes with buttons to confirm,
   complete or cancel it, and `/orders` lists the open ones.
+- Orders and «Свой рецепт» requests can be deleted in the admin (for test orders and mistakes).
+  The spec only had statuses; a cancelled order stays in the history, a deleted one does not.
 - A forgotten admin password is replaced by the owner himself: `/password` in his admin chat, a
   one-time link, a new password. The spec had one password set on the server and no way to recover it.
 - The Telegram bot also talks to buyers: a button on the thank-you page connects their chat to the

@@ -32,11 +32,11 @@ import {
 } from './auth';
 import type { Db } from './db/client';
 import { PASSWORD_CHANGED_TEXT } from './services/admin-bot';
-import { getOrder, getOrderStats, getToday, listOrders } from './services/admin-orders';
+import { deleteOrder, getOrder, getOrderStats, getToday, listOrders } from './services/admin-orders';
 import { finishPasswordReset } from './services/admin-password';
 import { categoryExists, createCategory, deleteCategory, listAdminCategories, renameCategory } from './services/categories';
 import type { BuyerBot } from './services/buyer-bot';
-import { countNewCustomOrders, listCustomOrders } from './services/custom-orders';
+import { countNewCustomOrders, deleteCustomOrder, listCustomOrders } from './services/custom-orders';
 import { deleteProductImage, InvalidImageError, MAX_UPLOAD_BYTES, saveProductImage } from './services/images';
 import {
   createProduct,
@@ -362,6 +362,13 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
         return result;
       });
 
+      // For good, and without a word to the buyer: for test orders and mistakes.
+      admin.delete('/orders/:id', async (request, reply) => {
+        const id = idParam(request);
+        if (!id || !(await deleteOrder(db, id))) return fail(reply, 404, 'not_found');
+        return { ok: true };
+      });
+
       // ---------- Settings ----------
 
       // ----- «Свой рецепт» requests -----
@@ -375,6 +382,12 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
         if (!parsed.success) return fail(reply, 400, 'invalid');
 
         return (await changeCustomStatusAndTell(db, buyerBot, id, parsed.data.status)) ?? fail(reply, 404, 'not_found');
+      });
+
+      admin.delete('/custom-orders/:id', async (request, reply) => {
+        const id = idParam(request);
+        if (!id || !(await deleteCustomOrder(db, id))) return fail(reply, 404, 'not_found');
+        return { ok: true };
       });
 
       admin.get('/settings', async () => getSettings(db));

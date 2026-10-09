@@ -375,9 +375,15 @@ Locally, `npm run admin:password` writes the new hash straight into `apps/api/.e
 
 To sign everyone out without changing the password, put a new `SESSION_SECRET` into the settings.
 
-## Clearing the orders before opening
+## Deleting orders
 
-While the shop is being tried out it fills with test orders. One command removes everything
+One at a time, in the admin: an order's page ends with «Удалить заказ», and every «Свой рецепт»
+request has «Удалить». Both are for test orders and mistakes: the order disappears for good, from
+the statistics too, and the buyer is told nothing. A new or confirmed order gives its goods back
+to the stock when it is deleted; a completed or cancelled one leaves the stock as it is. A real
+order that fell through should be cancelled instead, so that it stays in the history.
+
+All at once, before the shop opens: one command removes everything
 buyers have sent: orders, «Свой рецепт» requests and «Сообщить о поступлении» requests, with the
 names, phones and addresses in them. The next order is `A-0001` again. Products, photos, texts,
 settings and the admin password stay; stock is not put back, so check it under «Товары» afterwards.

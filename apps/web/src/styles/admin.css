@@ -188,6 +188,11 @@
   margin: 12px 0 0;
 }
 
+/* A button that stands apart from the others in its row: pushed to the far end. */
+.adm-actions__last {
+  margin-left: auto;
+}
+
 .adm .btn:hover {
   transform: none;
 }

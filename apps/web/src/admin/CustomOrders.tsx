@@ -13,10 +13,12 @@ const ACTIONS: { status: OrderStatus; label: string }[] = [
 function RecipeCard({
   order,
   onChanged,
+  onDeleted,
   onError,
 }: {
   order: AdminCustomOrder;
   onChanged: (order: AdminCustomOrder) => void;
+  onDeleted: () => void;
   onError: (message: string | null) => void;
 }) {
   const [busy, setBusy] = useState(false);
@@ -29,6 +31,21 @@ function RecipeCard({
     } catch (reason) {
       onError(errorText(reason));
     } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    if (!window.confirm(`Удалить заявку ${order.publicNumber} навсегда? Вернуть её будет нельзя, покупателю ничего не придёт.`)) {
+      return;
+    }
+    setBusy(true);
+    onError(null);
+    try {
+      await adminApi.deleteCustomOrder(order.id);
+      onDeleted();
+    } catch (reason) {
+      onError(errorText(reason));
       setBusy(false);
     }
   }
@@ -83,6 +100,10 @@ function RecipeCard({
             {action.label}
           </button>
         ))}
+        {/* Apart from the status buttons, at the far end of the row. */}
+        <button type="button" className="btn adm-danger adm-actions__last" disabled={busy} onClick={remove}>
+          Удалить
+        </button>
       </div>
     </li>
   );
@@ -119,6 +140,7 @@ export function CustomOrdersPage() {
               order={order}
               onError={setActionError}
               onChanged={(changed) => setData(orders.map((item) => (item.id === changed.id ? changed : item)))}
+              onDeleted={() => setData(orders.filter((item) => item.id !== order.id))}
             />
           ))}
         </ul>

@@ -1,6 +1,6 @@
 import { formatAmd, ORDER_STATUSES, type AdminOrderSummary, type OrderStatus, type StockShortage } from '@alyosha/shared';
 import { useEffect, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { adminApi, ApiError } from './api';
 import { ContactLinks, errorText, formatDateTime, LoadState, PageHead, StatusBadge, useLoad } from './shared';
 
@@ -126,6 +126,8 @@ export function OrderPage() {
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [shortages, setShortages] = useState<StockShortage[]>([]);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   if (!order) {
     return (
@@ -154,6 +156,25 @@ export function OrderPage() {
       setActionError(errorText(reason));
       if (reason instanceof ApiError && reason.body?.shortages) setShortages(reason.body.shortages);
     } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    if (!order) return;
+    // A new or confirmed order still has its goods set aside.
+    const holdsGoods = order.status === 'new' || order.status === 'confirmed';
+    const question =
+      `Удалить заказ ${order.publicNumber} навсегда? Вернуть его будет нельзя.` +
+      (holdsGoods ? ' Товары из него вернутся на склад.' : '');
+    if (!window.confirm(question)) return;
+    setBusy(true);
+    setDeleteError(null);
+    try {
+      await adminApi.deleteOrder(order.id);
+      navigate('..', { relative: 'path', replace: true });
+    } catch (reason) {
+      setDeleteError(errorText(reason));
       setBusy(false);
     }
   }
@@ -257,6 +278,24 @@ export function OrderPage() {
             </tr>
           </tfoot>
         </table>
+      </section>
+
+      <section className="adm-card">
+        <h2>Удаление</h2>
+        <p className="adm-muted">
+          Для пробных и ошибочных заказов. Заказ пропадёт из списка и из статистики, покупателю ничего не придёт. Если
+          настоящий заказ сорвался, его лучше отменить: тогда он останется в истории.
+        </p>
+        <div className="adm-actions">
+          <button type="button" className="btn adm-danger" disabled={busy} onClick={remove}>
+            Удалить заказ
+          </button>
+        </div>
+        {deleteError && (
+          <p className="alert alert--error" role="alert">
+            {deleteError}
+          </p>
+        )}
       </section>
     </>
   );
