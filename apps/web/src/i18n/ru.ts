@@ -75,7 +75,7 @@ export const ru = {
   cart: {
     title: 'Корзина',
     emptyTitle: 'В корзине пока пусто',
-    emptyText: 'Загляните в каталог — там есть из чего выбрать.',
+    emptyText: 'Загляните в каталог — там много интересного.',
     removeItem: (name: string) => `Убрать «${name}» из корзины`,
     subtotal: 'Товары',
     delivery: 'Доставка',
