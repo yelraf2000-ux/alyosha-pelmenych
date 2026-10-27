@@ -233,8 +233,8 @@ The free plan is for a demo only:
 
 ## Product photos and videos
 
-Both are uploaded on a product's page in the admin and stored in the uploads folder
-(`apps/api/uploads` locally, the `uploads` volume on the server).
+Both are uploaded on a product's page (or a news post's, see «Новости» below) in the admin and
+stored in the uploads folder (`apps/api/uploads` locally, the `uploads` volume on the server).
 
 - **Photos** (JPG, PNG or WebP, up to 12 MB) are resized to 400 px and 1000 px WebP.
 - **Videos** (any clip a phone records, up to 100 MB) are converted to a small MP4: at most 720 px
@@ -374,6 +374,19 @@ Type the new password; copy what is printed after `ADMIN_PASSWORD_HASH=`.
 Locally, `npm run admin:password` writes the new hash straight into `apps/api/.env`.
 
 To sign everyone out without changing the password, put a new `SESSION_SECRET` into the settings.
+
+## «Новости»
+
+The owner writes news in the admin («Новости»): a title, the text, a date (today unless he picks
+another), a photo and a video, each optional, and «Показывать на сайте» for drafts. On the site
+`/news` lists the published posts, newest first by their date: the photo (or the video's poster),
+the date, the title and the beginning of the first paragraph. A post opens on a page of its own,
+`/news/<id>`, with all of the text, the photo and the video. The home page shows the three latest
+posts between «Свой рецепт» and «О нас», and the footer links to `/news`; with no posts the block
+is not there.
+
+News photos are kept under `uploads/news`, the videos with the products' ones. Unlike a product's
+clip, a news video keeps its sound (the owner may be the one speaking) and plays with it.
 
 ## Pre-orders
 

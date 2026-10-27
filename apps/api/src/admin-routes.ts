@@ -4,6 +4,7 @@ import {
   daysInRange,
   isIsoDate,
   loginSchema,
+  newsPostSchema,
   orderEditSchema,
   ORDER_STATUSES,
   orderStatusSchema,
@@ -39,7 +40,16 @@ import { finishPasswordReset } from './services/admin-password';
 import { categoryExists, createCategory, deleteCategory, listAdminCategories, renameCategory } from './services/categories';
 import type { BuyerBot } from './services/buyer-bot';
 import { countNewCustomOrders, deleteCustomOrder, listCustomOrders, setCustomOrderPrice } from './services/custom-orders';
-import { deleteProductImage, InvalidImageError, MAX_UPLOAD_BYTES, saveProductImage } from './services/images';
+import { deleteProductImage, InvalidImageError, MAX_UPLOAD_BYTES, saveProductImage, type ImageFolder } from './services/images';
+import {
+  createNewsPost,
+  deleteNewsPost,
+  getAdminNewsPost,
+  listAdminNews,
+  setNewsImage,
+  setNewsVideo,
+  updateNewsPost,
+} from './services/news';
 import {
   createProduct,
   deleteProduct,
@@ -80,6 +90,9 @@ function idParam(request: FastifyRequest): number | null {
   const id = Number((request.params as { id?: string }).id);
   return Number.isInteger(id) && id > 0 ? id : null;
 }
+
+/** An uploaded file, saved; or why it was refused. */
+type Received = { ok: true; path: string } | { ok: false; status: number; error: string };
 
 function fail(reply: FastifyReply, code: number, error: string) {
   return reply.code(code).send({ ok: false, error });
@@ -201,26 +214,58 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
         return listAdminProducts(db);
       });
 
+      /**
+       * Takes the photo from the request and saves it in both sizes. Answers the public path, or
+       * what to tell the admin when the file will not do.
+       */
+      async function receivePhoto(request: FastifyRequest, folder: ImageFolder): Promise<Received> {
+        const file = await request.file();
+        if (!file) return { ok: false, status: 400, error: 'invalid' };
+        try {
+          // toBuffer() throws once the file passes MAX_UPLOAD_BYTES.
+          return { ok: true, path: await saveProductImage(uploadsDir, await file.toBuffer(), folder) };
+        } catch (error) {
+          if (error instanceof InvalidImageError) return { ok: false, status: 400, error: 'bad_image' };
+          if ((error as { statusCode?: number }).statusCode === 413) return { ok: false, status: 413, error: 'too_large' };
+          throw error;
+        }
+      }
+
+      /**
+       * A clip from the owner's phone. It is converted before this answers, which can take a minute
+       * or two; if the phone drops the connection meanwhile, the video is saved all the same.
+       */
+      async function receiveVideo(request: FastifyRequest, sound: boolean): Promise<Received> {
+        // Videos are far larger than photos, so this raises the upload limit for itself.
+        const file = await request.file({ limits: { fileSize: MAX_VIDEO_BYTES } });
+        if (!file) return { ok: false, status: 400, error: 'invalid' };
+
+        // Written to disk, not held in memory: 100 MB in RAM is too much for a small server.
+        const input = join(tmpdir(), `alyosha-video-${randomBytes(8).toString('hex')}`);
+        try {
+          await pipeline(file.file, createWriteStream(input));
+          if (file.file.truncated) return { ok: false, status: 413, error: 'too_large' };
+          return { ok: true, path: await saveProductVideo(uploadsDir, input, { sound }) };
+        } catch (error) {
+          if (error instanceof InvalidVideoError) return { ok: false, status: 400, error: 'bad_video' };
+          if (error instanceof VideoBusyError) return { ok: false, status: 409, error: 'video_busy' };
+          if ((error as { statusCode?: number }).statusCode === 413) return { ok: false, status: 413, error: 'too_large' };
+          throw error;
+        } finally {
+          await unlink(input).catch(() => undefined);
+        }
+      }
+
       admin.post('/products/:id/image', async (request, reply) => {
         const id = idParam(request);
         if (!id || !(await getAdminProduct(db, id))) return fail(reply, 404, 'not_found');
 
-        const file = await request.file();
-        if (!file) return fail(reply, 400, 'invalid');
+        const received = await receivePhoto(request, 'products');
+        if (!received.ok) return fail(reply, received.status, received.error);
 
-        let imagePath: string;
-        try {
-          // toBuffer() throws once the file passes MAX_UPLOAD_BYTES.
-          imagePath = await saveProductImage(uploadsDir, await file.toBuffer());
-        } catch (error) {
-          if (error instanceof InvalidImageError) return fail(reply, 400, 'bad_image');
-          if ((error as { statusCode?: number }).statusCode === 413) return fail(reply, 413, 'too_large');
-          throw error;
-        }
-
-        const saved = await setProductImage(db, id, imagePath);
+        const saved = await setProductImage(db, id, received.path);
         if (!saved) {
-          await deleteProductImage(uploadsDir, imagePath);
+          await deleteProductImage(uploadsDir, received.path);
           return fail(reply, 404, 'not_found');
         }
         await deleteProductImage(uploadsDir, saved.previous);
@@ -235,35 +280,16 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
         return { product: await getAdminProduct(db, id) };
       });
 
-      // A clip from the owner's phone. It is converted before this answers, which can take a minute
-      // or two; if the phone drops the connection meanwhile, the video is saved all the same.
       admin.post('/products/:id/video', async (request, reply) => {
         const id = idParam(request);
         if (!id || !(await getAdminProduct(db, id))) return fail(reply, 404, 'not_found');
 
-        // Videos are far larger than photos, so this route raises the upload limit for itself.
-        const file = await request.file({ limits: { fileSize: MAX_VIDEO_BYTES } });
-        if (!file) return fail(reply, 400, 'invalid');
+        const received = await receiveVideo(request, false);
+        if (!received.ok) return fail(reply, received.status, received.error);
 
-        // Written to disk, not held in memory: 100 MB in RAM is too much for a small server.
-        const input = join(tmpdir(), `alyosha-video-${randomBytes(8).toString('hex')}`);
-        let videoPath: string;
-        try {
-          await pipeline(file.file, createWriteStream(input));
-          if (file.file.truncated) return fail(reply, 413, 'too_large');
-          videoPath = await saveProductVideo(uploadsDir, input);
-        } catch (error) {
-          if (error instanceof InvalidVideoError) return fail(reply, 400, 'bad_video');
-          if (error instanceof VideoBusyError) return fail(reply, 409, 'video_busy');
-          if ((error as { statusCode?: number }).statusCode === 413) return fail(reply, 413, 'too_large');
-          throw error;
-        } finally {
-          await unlink(input).catch(() => undefined);
-        }
-
-        const saved = await setProductVideo(db, id, videoPath);
+        const saved = await setProductVideo(db, id, received.path);
         if (!saved) {
-          await deleteProductVideo(uploadsDir, videoPath);
+          await deleteProductVideo(uploadsDir, received.path);
           return fail(reply, 404, 'not_found');
         }
         await deleteProductVideo(uploadsDir, saved.previous);
@@ -276,6 +302,88 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
         if (!id || !saved) return fail(reply, 404, 'not_found');
         await deleteProductVideo(uploadsDir, saved.previous);
         return { product: await getAdminProduct(db, id) };
+      });
+
+      // ----- «Новости» -----
+
+      admin.get('/news', async () => listAdminNews(db));
+
+      admin.get('/news/:id', async (request, reply) => {
+        const id = idParam(request);
+        const post = id ? await getAdminNewsPost(db, id) : null;
+        return post ?? fail(reply, 404, 'not_found');
+      });
+
+      admin.post('/news', async (request, reply) => {
+        const parsed = newsPostSchema.safeParse(request.body);
+        if (!parsed.success) return fail(reply, 400, 'invalid');
+        reply.code(201);
+        return createNewsPost(db, parsed.data);
+      });
+
+      admin.put('/news/:id', async (request, reply) => {
+        const id = idParam(request);
+        const parsed = newsPostSchema.safeParse(request.body);
+        if (!parsed.success) return fail(reply, 400, 'invalid');
+        const post = id ? await updateNewsPost(db, id, parsed.data) : null;
+        return post ?? fail(reply, 404, 'not_found');
+      });
+
+      admin.delete('/news/:id', async (request, reply) => {
+        const id = idParam(request);
+        const removed = id ? await deleteNewsPost(db, id) : null;
+        if (!removed) return fail(reply, 404, 'not_found');
+        await deleteProductImage(uploadsDir, removed.imagePath);
+        await deleteProductVideo(uploadsDir, removed.videoPath);
+        return { ok: true };
+      });
+
+      admin.post('/news/:id/image', async (request, reply) => {
+        const id = idParam(request);
+        if (!id || !(await getAdminNewsPost(db, id))) return fail(reply, 404, 'not_found');
+
+        const received = await receivePhoto(request, 'news');
+        if (!received.ok) return fail(reply, received.status, received.error);
+
+        const saved = await setNewsImage(db, id, received.path);
+        if (!saved) {
+          await deleteProductImage(uploadsDir, received.path);
+          return fail(reply, 404, 'not_found');
+        }
+        await deleteProductImage(uploadsDir, saved.previous);
+        return getAdminNewsPost(db, id);
+      });
+
+      admin.delete('/news/:id/image', async (request, reply) => {
+        const id = idParam(request);
+        const saved = id ? await setNewsImage(db, id, null) : null;
+        if (!id || !saved) return fail(reply, 404, 'not_found');
+        await deleteProductImage(uploadsDir, saved.previous);
+        return getAdminNewsPost(db, id);
+      });
+
+      admin.post('/news/:id/video', async (request, reply) => {
+        const id = idParam(request);
+        if (!id || !(await getAdminNewsPost(db, id))) return fail(reply, 404, 'not_found');
+
+        const received = await receiveVideo(request, true);
+        if (!received.ok) return fail(reply, received.status, received.error);
+
+        const saved = await setNewsVideo(db, id, received.path);
+        if (!saved) {
+          await deleteProductVideo(uploadsDir, received.path);
+          return fail(reply, 404, 'not_found');
+        }
+        await deleteProductVideo(uploadsDir, saved.previous);
+        return getAdminNewsPost(db, id);
+      });
+
+      admin.delete('/news/:id/video', async (request, reply) => {
+        const id = idParam(request);
+        const saved = id ? await setNewsVideo(db, id, null) : null;
+        if (!id || !saved) return fail(reply, 404, 'not_found');
+        await deleteProductVideo(uploadsDir, saved.previous);
+        return getAdminNewsPost(db, id);
       });
 
       // ----- Categories: the owner's own groups of the catalog -----

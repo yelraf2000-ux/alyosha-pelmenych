@@ -3,3 +3,4 @@ export * from './shop-schemas';
 export * from './admin';
 export * from './admin-schemas';
 export * from './promo';
+export * from './news';

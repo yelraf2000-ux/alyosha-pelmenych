@@ -26,6 +26,7 @@ import { getOrder } from './services/admin-orders';
 import { placeOrder } from './services/orders';
 import { toProduct } from './services/products';
 import { listCategories } from './services/categories';
+import { getNewsPost, listNews } from './services/news';
 import {
   chatIdText,
   contactButton,
@@ -146,6 +147,22 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   });
 
   app.get('/api/categories', async () => listCategories(db));
+
+  // «Новости»: `?limit=3` for the home page's block.
+  app.get('/api/news', async (request) => {
+    const limit = Number((request.query as { limit?: string }).limit);
+    return listNews(db, Number.isInteger(limit) && limit > 0 && limit <= 100 ? limit : undefined);
+  });
+
+  app.get('/api/news/:id', async (request, reply) => {
+    const id = Number((request.params as { id: string }).id);
+    const post = Number.isInteger(id) && id > 0 ? await getNewsPost(db, id) : null;
+    if (!post) {
+      reply.code(404);
+      return { ok: false, error: 'not_found' };
+    }
+    return post;
+  });
 
   app.get('/api/settings', async () => getSettings(db));
 

@@ -2,10 +2,11 @@ import { videoInfo } from '@alyosha/shared';
 import { useState } from 'react';
 
 /**
- * A product's clip. Nothing but the poster picture is fetched until the buyer presses play,
- * so product pages stay light on mobile data. There is no sound track.
+ * A product's or a news post's clip. Nothing but the poster picture is fetched until the buyer
+ * presses play, so pages stay light on mobile data. A product's clip has no sound track; a news
+ * post's may (`sound`).
  */
-export function ProductVideo({ path, label }: { path: string; label: string }) {
+export function ProductVideo({ path, label, sound = false }: { path: string; label: string; sound?: boolean }) {
   const info = videoInfo(path);
   // The file can be missing (hosting without a disk, a restored database): then show nothing.
   const [failed, setFailed] = useState(false);
@@ -25,7 +26,7 @@ export function ProductVideo({ path, label }: { path: string; label: string }) {
         height={info?.height}
         controls
         playsInline
-        muted
+        muted={!sound}
         preload="none"
         aria-label={label}
         onError={() => setFailed(true)}

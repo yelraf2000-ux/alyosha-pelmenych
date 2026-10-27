@@ -3,6 +3,7 @@
 import type {
   Category,
   CustomOrderInput,
+  NewsPost,
   OrderInput,
   Product,
   PromoCheckResult,
@@ -38,6 +39,19 @@ export function getCategories(): Promise<Category[]> {
 
 export function getSettings(): Promise<Settings> {
   return get<Settings>('/api/settings');
+}
+
+/** Published news, newest first; `limit` for the home page's block. */
+export function getNews(limit?: number): Promise<NewsPost[]> {
+  return get<NewsPost[]>(limit ? `/api/news?limit=${limit}` : '/api/news');
+}
+
+/** One post, or null when there is no such post (or it was hidden). */
+export async function getNewsPost(id: number): Promise<NewsPost | null> {
+  const response = await fetch(`${BASE}/api/news/${id}`);
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`GET /api/news/${id} failed: ${response.status}`);
+  return (await response.json()) as NewsPost;
 }
 
 /** What a promo code takes off these goods. The order checks the code again when it is placed. */

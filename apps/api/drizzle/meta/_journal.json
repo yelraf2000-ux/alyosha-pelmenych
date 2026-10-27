@@ -99,6 +99,13 @@
       "when": 1793136511453,
       "tag": "0013_drop_stock_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793137628559,
+      "tag": "0014_news",
+      "breakpoints": true
     }
   ]
 }

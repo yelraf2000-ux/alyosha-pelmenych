@@ -109,7 +109,7 @@
   padding: 0 2px;
   border-top: 3px solid transparent;
   color: var(--text-muted);
-  /* Six tabs share a phone's width. */
+  /* Seven tabs share a phone's width. */
   font-size: 0.6875rem;
   font-weight: 600;
   text-align: center;
@@ -720,6 +720,22 @@
   gap: 12px;
 }
 
+/* ---------- News (admin/News.tsx) ---------- */
+
+/* A news row looks like a product's, but is not dragged anywhere. */
+.adm-news {
+  cursor: auto;
+}
+
+.adm-news .adm-product__top {
+  grid-template-columns: 64px 1fr;
+}
+
+.adm-news__text {
+  min-height: 12em;
+  resize: vertical;
+}
+
 /* ---------- Promo codes (admin/PromoCodes.tsx) ---------- */
 
 /* Each code is a row like an order's, and a button: pressing it opens the code in the form. */
@@ -903,7 +919,7 @@
   }
 }
 
-/* Wide enough for all six tabs in one row: they move from the bottom of the screen into the top bar. */
+/* Wide enough for all seven tabs in one row: they move from the bottom of the screen into the top bar. */
 @media (min-width: 1000px) {
   .adm {
     padding-bottom: 24px;

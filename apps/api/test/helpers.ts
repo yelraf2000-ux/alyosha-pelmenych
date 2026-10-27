@@ -104,7 +104,7 @@ export async function createTestContext(): Promise<TestContext> {
 
   async function reset() {
     await db.execute(
-      sql`TRUNCATE order_items, orders, custom_orders, products, settings, admin_password, promo_codes RESTART IDENTITY CASCADE`,
+      sql`TRUNCATE order_items, orders, custom_orders, products, settings, admin_password, promo_codes, news_posts RESTART IDENTITY CASCADE`,
     );
     await db.execute(sql`ALTER SEQUENCE order_number_seq RESTART WITH 1`);
     await db.execute(sql`ALTER SEQUENCE custom_order_number_seq RESTART WITH 1`);

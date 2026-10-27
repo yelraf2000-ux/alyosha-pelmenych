@@ -12,6 +12,7 @@ import { MOCK_SETTINGS } from '../mock/settings';
 import type {
   Category,
   CustomOrderInput,
+  NewsPost,
   OrderInput,
   OrderItemView,
   Product,
@@ -87,6 +88,17 @@ export async function getCategories(): Promise<Category[]> {
 export async function getSettings(): Promise<Settings> {
   await delay(60);
   return { ...MOCK_SETTINGS };
+}
+
+// The demo has no news: the home page then shows no news block.
+export async function getNews(): Promise<NewsPost[]> {
+  await delay(60);
+  return [];
+}
+
+export async function getNewsPost(): Promise<NewsPost | null> {
+  await delay(60);
+  return null;
 }
 
 export async function submitOrder(input: OrderInput): Promise<SubmitOrderResult> {

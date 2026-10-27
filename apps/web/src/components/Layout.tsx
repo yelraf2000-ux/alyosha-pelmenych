@@ -104,6 +104,11 @@ function Footer() {
     <footer className="footer">
       <div className="container footer__inner">
         <p className="footer__brand">© {t.brand}</p>
+        <nav className="footer__nav" aria-label={t.nav.main}>
+          <Link to="/catalog">{t.nav.catalog}</Link>
+          <Link to="/news">{t.news.title}</Link>
+          <Link to="/about">{t.nav.about}</Link>
+        </nav>
         {settings && <SocialLinks settings={settings} />}
       </div>
     </footer>

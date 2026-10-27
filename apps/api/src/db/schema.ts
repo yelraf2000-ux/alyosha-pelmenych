@@ -229,3 +229,19 @@ export const promoCodes = pgTable(
     check('promo_codes_max_uses_positive', sql`${t.maxUses} IS NULL OR ${t.maxUses} > 0`),
   ],
 );
+
+/** «Новости»: the owner's posts, newest first by `published_on`. */
+export const newsPosts = pgTable(
+  'news_posts',
+  {
+    id: serial('id').primaryKey(),
+    title: text('title').notNull(),
+    text: text('text').notNull().default(''),
+    imagePath: text('image_path'),
+    videoPath: text('video_path'),
+    publishedOn: date('published_on').notNull().default(sql`CURRENT_DATE`),
+    isPublished: boolean('is_published').notNull().default(true),
+    ...timestamps,
+  },
+  (t) => [index('news_posts_published_idx').on(t.publishedOn, t.id)],
+);

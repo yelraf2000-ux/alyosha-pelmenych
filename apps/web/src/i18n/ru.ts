@@ -30,6 +30,17 @@ export const ru = {
     deliveryTitle: 'Доставка',
   },
 
+  news: {
+    title: 'Новости',
+    all: 'Все новости',
+    readMore: 'Читать полностью',
+    empty: 'Новостей пока нет.',
+    loadError: 'Не получилось загрузить новости. Обновите страницу.',
+    notFoundTitle: 'Новость не найдена',
+    notFoundText: 'Возможно, её уже убрали.',
+    video: 'Видео к новости',
+  },
+
   catalog: {
     title: 'Каталог',
     filterLabel: 'Категория',

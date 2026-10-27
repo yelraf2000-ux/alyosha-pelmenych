@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Catalog } from '../components/Catalog';
 import { Hero } from '../components/Hero';
 import { AboutPhoto, DeliveryInfo } from '../components/InfoBlocks';
+import { LatestNews } from '../components/News';
 import { ProductCard } from '../components/ProductCard';
 import { Reveal } from '../components/Reveal';
 import { t } from '../i18n';
@@ -64,6 +65,8 @@ export default function Home() {
           </Reveal>
         </section>
       )}
+
+      <LatestNews />
 
       <section className="section section--tinted" aria-labelledby="about-title">
         <div className="container narrow">

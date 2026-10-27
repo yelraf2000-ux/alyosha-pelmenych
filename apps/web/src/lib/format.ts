@@ -19,3 +19,11 @@ export function paragraphs(text: string): string[] {
 export function telHref(phone: string): string {
   return 'tel:' + phone.replace(/[^\d+]/g, '');
 }
+
+/** 2026-10-25 → «25 октября 2026». */
+export function formatDate(isoDate: string): string {
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
+    .format(date)
+    .replace(/\s*г\.$/, '');
+}

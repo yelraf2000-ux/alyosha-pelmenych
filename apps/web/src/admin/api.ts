@@ -3,11 +3,13 @@
 
 import type {
   AdminCategory,
+  AdminNewsPost,
   AdminCustomOrder,
   AdminOrder,
   AdminOrderSummary,
   AdminProduct,
   AdminPromoCode,
+  NewsPostInput,
   OrderStats,
   OrderStatus,
   PromoCodeInput,
@@ -52,6 +54,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   }
   return data as T;
 }
+
+export type { NewsPostInput };
 
 export type OrderEditInput = {
   customerName: string;
@@ -106,6 +110,25 @@ export const adminApi = {
     return request<SaveProductResult>('POST', `/products/${id}/video`, form);
   },
   deleteVideo: (id: number) => request<SaveProductResult>('DELETE', `/products/${id}/video`),
+
+  news: () => request<AdminNewsPost[]>('GET', '/news'),
+  newsPost: (id: number) => request<AdminNewsPost>('GET', `/news/${id}`),
+  createNewsPost: (input: NewsPostInput) => request<AdminNewsPost>('POST', '/news', input),
+  updateNewsPost: (id: number, input: NewsPostInput) => request<AdminNewsPost>('PUT', `/news/${id}`, input),
+  deleteNewsPost: (id: number) => request<{ ok: true }>('DELETE', `/news/${id}`),
+  uploadNewsImage: (id: number, file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return request<AdminNewsPost>('POST', `/news/${id}/image`, form);
+  },
+  deleteNewsImage: (id: number) => request<AdminNewsPost>('DELETE', `/news/${id}/image`),
+  /** Converted before the server answers, like a product's video. */
+  uploadNewsVideo: (id: number, file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return request<AdminNewsPost>('POST', `/news/${id}/video`, form);
+  },
+  deleteNewsVideo: (id: number) => request<AdminNewsPost>('DELETE', `/news/${id}/video`),
 
   categories: () => request<AdminCategory[]>('GET', '/categories'),
   createCategory: (name: string) => request<AdminCategory>('POST', '/categories', { name }),

@@ -8,12 +8,13 @@ import sharp from 'sharp';
 // Product videos: uploaded in the admin (a clip straight from a phone), converted here to a small
 // MP4 every browser plays, and stored under <uploads>/videos next to a poster picture.
 //
-//   <id>-<width>x<height>.mp4    H.264, at most 720 px on the short side, 30 fps, no sound
+//   <id>-<width>x<height>.mp4    H.264, at most 720 px on the short side, 30 fps
 //   <id>-<width>x<height>.webp   the poster shown before the buyer presses play
 //
 // The frame size is in the name so the page can reserve the right space before anything loads.
-// Sound is removed on purpose: clips made for social networks often carry music the shop
-// has no right to publish.
+// A product's clip loses its sound on purpose: clips made for social networks often carry music
+// the shop has no right to publish. A news post keeps it (`sound`): there the owner may be the
+// one speaking.
 
 export const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 const MAX_SECONDS = 60;
@@ -67,7 +68,7 @@ async function describe(file: string): Promise<{ seconds: number; width: number;
  * Converts the uploaded file at `inputPath` and returns the public path of the MP4,
  * which is what `products.video_path` stores.
  */
-export async function saveProductVideo(uploadsDir: string, inputPath: string): Promise<string> {
+export async function saveProductVideo(uploadsDir: string, inputPath: string, { sound = false } = {}): Promise<string> {
   if (converting) throw new VideoBusyError('another video is being converted');
   converting = true;
 
@@ -90,7 +91,7 @@ export async function saveProductVideo(uploadsDir: string, inputPath: string): P
       '-loglevel', 'error', '-y',
       '-i', inputPath,
       '-t', String(MAX_SECONDS),
-      '-an',
+      ...(sound && source.hasAudio ? ['-c:a', 'aac', '-b:a', '96k', '-ac', '2'] : ['-an']),
       '-vf', `fps=30,${scale},format=yuv420p`,
       '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '27', '-profile:v', 'main',
       '-movflags', '+faststart',

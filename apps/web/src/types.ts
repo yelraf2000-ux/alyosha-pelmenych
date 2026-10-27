@@ -3,6 +3,7 @@ export type {
   Category,
   CustomOrderInput,
   DeliveryMethod,
+  NewsPost,
   OrderInput,
   OrderItemView,
   OrderView,
