@@ -18,6 +18,7 @@ import type {
   Settings,
   StockRequestInput,
   StockShortage,
+  PromoCheckResult,
   SubmitCustomOrderResult,
   SubmitOrderResult,
 } from '../types';
@@ -141,6 +142,8 @@ export async function submitOrder(input: OrderInput): Promise<SubmitOrderResult>
       publicNumber: 'A-' + String(db.orderSeq).padStart(4, '0'),
       items,
       itemsTotalAmd,
+      discountAmd: 0,
+      promoCode: null,
       deliveryFeeAmd,
       deliveryExtra: isDeliveryExtra(input.deliveryMethod, itemsTotalAmd, MOCK_SETTINGS),
       totalAmd: itemsTotalAmd + deliveryFeeAmd,
@@ -149,6 +152,12 @@ export async function submitOrder(input: OrderInput): Promise<SubmitOrderResult>
       telegramLink: null, // the demo has no bot
     },
   };
+}
+
+/** The demo has no promo codes: the owner makes them in the admin, which the demo does not have. */
+export async function checkPromoCode(): Promise<PromoCheckResult> {
+  await delay(300);
+  return { ok: false, error: 'not_found' };
 }
 
 /** The demo has nobody to send a recipe to: it only checks the form the way the server would. */

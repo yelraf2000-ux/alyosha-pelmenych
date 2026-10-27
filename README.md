@@ -375,6 +375,27 @@ Locally, `npm run admin:password` writes the new hash straight into `apps/api/.e
 
 To sign everyone out without changing the password, put a new `SESSION_SECRET` into the settings.
 
+## Promo codes
+
+The owner makes them in the admin under «Промокоды»: the code (letters of any alphabet, digits,
+`-` and `_`; `pelmeni20` and `PELMENI20` are the same code), a percentage or a fixed amount off,
+and what it works on — every product, or chosen categories and products (a category includes
+products added to it later). Optional limits: how many orders may use it, and the last day it works
+(in Yerevan time, that day included). A code can be switched off without deleting it.
+
+- The buyer types the code at checkout and sees the discount before sending the order. The order
+  checks the code again when it is placed; if it has run out or expired meanwhile, the order is not
+  sent and the buyer sees why.
+- The discount applies to the goods it covers only, a percentage is rounded down, and a fixed
+  amount is never more than those goods cost. Delivery is never discounted, and free delivery
+  still goes by the goods before the discount.
+- Uses are counted from the orders: a cancelled or deleted order gives its use back. Two buyers
+  racing for a code's last use are served one after the other.
+- The order's page, the owner's Telegram message and the buyer's messages show the code and the
+  discount. Deleting a code leaves the orders placed with it as they were.
+- «Заказы → Статистика» has a «Промокоды» table for the chosen days: per code, its orders, the
+  discount they got and what they came to. The period's sums are what buyers paid, after discounts.
+
 ## Deleting orders
 
 One at a time, in the admin: an order's page ends with «Удалить заказ», and every «Свой рецепт»

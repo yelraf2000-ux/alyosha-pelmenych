@@ -1383,6 +1383,47 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* A promo code's discount: in the shop's blue, like the news that delivery is free. */
+.totals__discount dt,
+.totals__discount dd {
+  color: var(--sky-700);
+}
+
+/* The promo code field in the order summary. */
+.promo {
+  display: grid;
+  gap: 6px;
+}
+
+.promo__row {
+  display: flex;
+  gap: 8px;
+}
+
+.promo__row .field__input {
+  flex: 1;
+  min-width: 0;
+  text-transform: uppercase;
+}
+
+.promo__row .field__input::placeholder {
+  text-transform: none;
+}
+
+.promo__applied {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px 12px;
+  color: var(--sky-700);
+  font-weight: 700;
+}
+
+.promo .field__error {
+  margin: 0;
+}
+
 .totals__total {
   padding-top: 10px;
   border-top: 1px dashed var(--border);

@@ -39,6 +39,7 @@ export function formatOrderMessage(order: AdminOrder): string {
     ...order.items.map((item) => `• ${escapeHtml(item.name)} × ${item.qty} — ${formatAmd(item.priceAmd * item.qty)}`),
     '',
     `Товары: ${formatAmd(order.itemsTotalAmd)}`,
+    ...(order.discountAmd > 0 ? [`Промокод ${escapeHtml(order.promoCode ?? '')}: −${formatAmd(order.discountAmd)}`] : []),
     order.deliveryMethod === 'pickup'
       ? 'Самовывоз'
       : order.deliveryExtra

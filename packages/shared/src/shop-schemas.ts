@@ -64,6 +64,7 @@ export const orderInputSchema = z
       )
       .min(1)
       .max(50),
+    promoCode: z.string().trim().max(40).nullish(),
   })
   .superRefine((order, ctx) => {
     if (order.deliveryMethod === 'courier' && !order.deliveryAddress) {

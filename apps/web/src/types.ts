@@ -7,6 +7,8 @@ export type {
   OrderItemView,
   OrderView,
   Product,
+  PromoCheckResult,
+  PromoProblem,
   Settings,
   StockRequestInput,
   StockShortage,

@@ -130,6 +130,9 @@ Render account.
 - A TikTok link next to Instagram.
 - The shop can be run from Telegram: in the admin chat every order comes with buttons to confirm,
   complete or cancel it, and `/orders` lists the open ones.
+- Promo codes («Промокоды» in the admin): a percentage or a fixed amount off, on everything or on
+  chosen categories and products, with an optional number of uses and a last day. Asked for by
+  Алексей in October 2026; the spec had no discounts.
 - Orders and «Свой рецепт» requests can be deleted in the admin (for test orders and mistakes).
   The spec only had statuses; a cancelled order stays in the history, a deleted one does not.
 - A forgotten admin password is replaced by the owner himself: `/password` in his admin chat, a

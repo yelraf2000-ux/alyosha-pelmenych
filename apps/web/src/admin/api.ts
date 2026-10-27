@@ -7,8 +7,10 @@ import type {
   AdminOrder,
   AdminOrderSummary,
   AdminProduct,
+  AdminPromoCode,
   OrderStats,
   OrderStatus,
+  PromoCodeInput,
   SaveProductResult,
   Settings,
   StockRequestGroup,
@@ -126,6 +128,11 @@ export const adminApi = {
   setCustomOrderStatus: (id: number, status: OrderStatus) =>
     request<AdminCustomOrder>('PATCH', `/custom-orders/${id}`, { status }),
   deleteCustomOrder: (id: number) => request<{ ok: true }>('DELETE', `/custom-orders/${id}`),
+
+  promoCodes: () => request<AdminPromoCode[]>('GET', '/promo-codes'),
+  createPromoCode: (input: PromoCodeInput) => request<AdminPromoCode>('POST', '/promo-codes', input),
+  updatePromoCode: (id: number, input: PromoCodeInput) => request<AdminPromoCode>('PUT', `/promo-codes/${id}`, input),
+  deletePromoCode: (id: number) => request<{ ok: true }>('DELETE', `/promo-codes/${id}`),
 
   settings: () => request<Settings>('GET', '/settings'),
   saveSettings: (settings: Settings) => request<Settings>('PUT', '/settings', settings),

@@ -94,7 +94,9 @@
   inset: auto 0 0 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  /* One column per tab, however many there are. */
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   padding-bottom: env(safe-area-inset-bottom);
   border-top: 1px solid var(--border);
   background: #fff;
@@ -107,7 +109,7 @@
   padding: 0 2px;
   border-top: 3px solid transparent;
   color: var(--text-muted);
-  /* Six tabs share a phone's width. */
+  /* Seven tabs share a phone's width. */
   font-size: 0.6875rem;
   font-weight: 600;
   text-align: center;
@@ -669,6 +671,86 @@
   justify-self: start;
 }
 
+/* ---------- Promo codes (admin/PromoCodes.tsx) ---------- */
+
+/* Each code is a row like an order's, and a button: pressing it opens the code in the form. */
+.adm-promo {
+  width: 100%;
+  border: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.adm-promo--editing {
+  outline: 2px solid var(--sky-500);
+}
+
+.adm-promo__code {
+  letter-spacing: 0.04em;
+}
+
+.adm-promo__status--on {
+  background: #dcefe0;
+  color: #23603a;
+}
+
+.adm-promo__status--off {
+  background: var(--terracotta-soft);
+  color: #7c2416;
+}
+
+.adm-promo-form {
+  margin-bottom: 16px;
+}
+
+.adm-promo-form h2 {
+  margin: 0;
+}
+
+.adm-promo-form__code {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.adm-promo-form__group {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.adm-promo-form__value {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.adm-promo-form__value .field__input {
+  width: 8em;
+}
+
+.adm-promo-form__scope {
+  display: grid;
+  gap: 8px;
+}
+
+.adm-promo-form__scope .adm-muted {
+  margin: 4px 0 0;
+}
+
+.adm-promo-form .field__hint,
+.adm-promo-form .field__error {
+  margin: 0;
+}
+
+/* An order's promo code, in the shop's blue like the discount on the storefront. */
+.adm-table tfoot .adm-discount td {
+  color: var(--sky-700);
+}
+
 /* ---------- Forms ---------- */
 
 .adm-form {
@@ -753,9 +835,27 @@
   text-align: center;
 }
 
-/* ---------- Wider screens: tabs move into the top bar ---------- */
+/* The narrowest phones (320 px): a size smaller, so that every label fits its tab. */
+@media (max-width: 359px) {
+  .adm-tabs__link {
+    font-size: 0.625rem;
+  }
+}
+
+/* ---------- Wider screens ---------- */
 
 @media (min-width: 760px) {
+  .adm-main {
+    padding: 24px;
+  }
+
+  .adm h1 {
+    font-size: 1.6rem;
+  }
+}
+
+/* Wide enough for all seven tabs in one row: they move from the bottom of the screen into the top bar. */
+@media (min-width: 1000px) {
   .adm {
     padding-bottom: 24px;
   }
@@ -788,13 +888,5 @@
   .adm-bar .adm-tabs__link.active {
     background: var(--amber-400);
     color: var(--ink);
-  }
-
-  .adm-main {
-    padding: 24px;
-  }
-
-  .adm h1 {
-    font-size: 1.6rem;
   }
 }

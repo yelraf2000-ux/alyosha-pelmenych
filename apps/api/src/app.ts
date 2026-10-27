@@ -1,8 +1,10 @@
 import {
   customOrderSchema,
   orderInputSchema,
+  promoCheckSchema,
   stockRequestSchema,
   type Product,
+  type PromoCheckResult,
   type SubmitCustomOrderResult,
   type SubmitOrderResult,
 } from '@alyosha/shared';
@@ -37,6 +39,7 @@ import {
   type BuyerBot,
 } from './services/buyer-bot';
 import { placeCustomOrder } from './services/custom-orders';
+import { evaluatePromo, promoLinesFor } from './services/promo-codes';
 import { getSettings } from './services/settings';
 
 export interface AppOptions {
@@ -166,6 +169,20 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
 
     reply.code(201);
     return { ok: true, order: { ...result.order, telegramLink: orderBotLink(buyerBot, result.notifyToken, 'order') } };
+  });
+
+  // The checkout asks what a promo code is worth for the cart before the order is sent. The order
+  // itself checks the code again, so this answer is only ever shown, never trusted. Limited, so
+  // that codes cannot be guessed by trying them one after another.
+  app.post('/api/promo-codes/check', { config: limit(30) }, async (request, reply): Promise<PromoCheckResult> => {
+    const parsed = promoCheckSchema.safeParse(request.body);
+    if (!parsed.success) {
+      reply.code(400);
+      return { ok: false, error: 'invalid' };
+    }
+    const outcome = await evaluatePromo(db, parsed.data.code, await promoLinesFor(db, parsed.data.items));
+    if (!outcome.ok) return { ok: false, error: outcome.problem };
+    return { ok: true, code: outcome.promo.code, discountAmd: outcome.discountAmd };
   });
 
   // «Свой рецепт»: a request for пельмени to the buyer's own recipe. No price, no stock: the owner calls back.

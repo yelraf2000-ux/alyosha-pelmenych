@@ -63,6 +63,14 @@ export default function OrderSuccessPage() {
             ))}
           </ul>
           <dl className="totals">
+            {order.discountAmd > 0 && (
+              <div className="totals__discount">
+                <dt>
+                  {t.checkout.discount} {order.promoCode}
+                </dt>
+                <dd>−{formatAmd(order.discountAmd)}</dd>
+              </div>
+            )}
             <div>
               <dt>{order.deliveryMethod === 'pickup' ? t.cart.pickup : t.checkout.courier}</dt>
               <dd>

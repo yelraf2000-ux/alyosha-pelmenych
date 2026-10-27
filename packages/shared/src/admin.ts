@@ -58,6 +58,9 @@ export interface AdminOrder extends AdminOrderSummary {
   comment: string | null;
   deliveryAddress: string | null;
   itemsTotalAmd: number;
+  /** Taken off the goods by `promoCode`; 0 without one. */
+  discountAmd: number;
+  promoCode: string | null;
   deliveryFeeAmd: number;
   /** Delivery is not in the total: the buyer pays the courier separately. */
   deliveryExtra: boolean;
@@ -132,6 +135,11 @@ export interface OrderStats {
   products: { productId: number; name: string; qty: number; totalAmd: number }[];
   /** One line per day that had orders, oldest first. */
   days: { date: string; count: number; cancelledCount: number; totalAmd: number }[];
+  /**
+   * Orders placed with a promo code, cancelled ones left out: one line per code, most used first.
+   * `totalAmd` is what those orders came to after their discount.
+   */
+  promoCodes: { code: string; count: number; discountAmd: number; totalAmd: number }[];
 }
 
 /** YYYY-MM-DD and a real calendar day. */

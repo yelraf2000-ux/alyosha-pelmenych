@@ -113,6 +113,7 @@ function orderLines(order: AdminOrder): string[] {
   return [
     ...order.items.map((item) => `• ${escapeHtml(item.name)} × ${item.qty} — ${formatAmd(item.priceAmd * item.qty)}`),
     '',
+    ...(order.discountAmd > 0 ? [`Скидка по промокоду ${escapeHtml(order.promoCode ?? '')}: −${formatAmd(order.discountAmd)}`] : []),
     `<b>Итого: ${formatAmd(order.totalAmd)}${order.deliveryExtra ? ' + доставка' : ''}</b>`,
   ];
 }

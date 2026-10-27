@@ -1,6 +1,6 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { submitOrder } from '../api';
+import { checkPromoCode, submitOrder } from '../api';
 import { Field } from '../components/Field';
 import { t } from '../i18n';
 import { calcDeliveryFee, isDeliveryExtra } from '../lib/delivery';
@@ -32,6 +32,37 @@ export default function CheckoutPage() {
   const [failure, setFailure] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
+  // Promo code: what the buyer typed, and what the shop said it is worth for this cart. The order
+  // checks the code again when it is placed; this is only what the buyer is shown meanwhile.
+  const [promoInput, setPromoInput] = useState('');
+  const [promo, setPromo] = useState<{ code: string; discountAmd: number } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [checkingPromo, setCheckingPromo] = useState(false);
+
+  const cartItems = () => cart.lines.map((line) => ({ productId: line.product.id, qty: line.qty }));
+
+  // The cart can still change on this page (goods that ran out meanwhile), and the discount with it.
+  const cartKey = cart.lines.map((line) => `${line.product.id}:${line.qty}`).join(',');
+  useEffect(() => {
+    if (!promo || cart.lines.length === 0) return;
+    let stale = false;
+    checkPromoCode(promo.code, cartItems())
+      .then((result) => {
+        if (stale) return;
+        if (result.ok) {
+          setPromo({ code: result.code, discountAmd: result.discountAmd });
+        } else {
+          setPromo(null);
+          setPromoError(t.checkout.promoProblems[result.error]);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      stale = true;
+    };
+    // Only a change of the cart asks again; applying the code has just asked.
+  }, [cartKey]);
+
   if (!settings) return null;
 
   if (cart.lines.length === 0) {
@@ -59,7 +90,29 @@ export default function CheckoutPage() {
   // No fixed courier price: delivery is paid separately and is not part of the total.
   const deliveryExtra = isDeliveryExtra(method, cart.subtotal, settings);
   const courierExtra = isDeliveryExtra('courier', cart.subtotal, settings);
-  const total = cart.subtotal + deliveryFee;
+  // Free delivery goes by the goods before the discount, as on the server.
+  const discount = promo?.discountAmd ?? 0;
+  const total = cart.subtotal - discount + deliveryFee;
+
+  async function applyPromo() {
+    const code = promoInput.trim();
+    if (!code || checkingPromo) return;
+    setCheckingPromo(true);
+    setPromoError(null);
+    try {
+      const result = await checkPromoCode(code, cartItems());
+      if (result.ok) {
+        setPromo({ code: result.code, discountAmd: result.discountAmd });
+        setPromoInput('');
+      } else {
+        setPromoError(t.checkout.promoProblems[result.error]);
+      }
+    } catch {
+      setPromoError(t.checkout.promoProblems.failed);
+    } finally {
+      setCheckingPromo(false);
+    }
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -85,7 +138,8 @@ export default function CheckoutPage() {
         deliveryMethod: method,
         deliveryAddress: method === 'courier' ? address.trim() : null,
         website,
-        items: cart.lines.map((line) => ({ productId: line.product.id, qty: line.qty })),
+        items: cartItems(),
+        promoCode: promo?.code ?? null,
       });
 
       if (result.ok) {
@@ -102,6 +156,11 @@ export default function CheckoutPage() {
         await refresh();
         cart.dismissNotice();
         window.scrollTo({ top: 0 });
+      } else if (result.error === 'promo') {
+        // The code ran out or expired after it was applied: the buyer sees the full sum before sending again.
+        setPromo(null);
+        setPromoError(t.checkout.promoProblems[result.problem]);
+        setFailure(t.checkout.promoStopped);
       } else {
         setFailure(result.error === 'rate_limited' ? t.checkout.rateLimited : t.checkout.failed);
       }
@@ -241,11 +300,78 @@ export default function CheckoutPage() {
               </li>
             ))}
           </ul>
+
+          <div className="promo">
+            {promo ? (
+              <p className="promo__applied">
+                <span>{t.checkout.promoApplied(promo.code)}</span>
+                <button
+                  type="button"
+                  className="link-btn"
+                  onClick={() => {
+                    setPromo(null);
+                    setPromoError(null);
+                  }}
+                >
+                  {t.checkout.promoRemove}
+                </button>
+              </p>
+            ) : (
+              <>
+                <label className="field__label" htmlFor="promo-code">
+                  {t.checkout.promoLabel}
+                </label>
+                <div className="promo__row">
+                  <input
+                    id="promo-code"
+                    className="field__input"
+                    value={promoInput}
+                    placeholder={t.checkout.promoPlaceholder}
+                    maxLength={40}
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    autoComplete="off"
+                    spellCheck={false}
+                    aria-invalid={promoError ? true : undefined}
+                    aria-describedby={promoError ? 'promo-error' : undefined}
+                    onChange={(event) => {
+                      setPromoInput(event.target.value);
+                      setPromoError(null);
+                    }}
+                    // Enter here applies the code; it must not send the whole order.
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        void applyPromo();
+                      }
+                    }}
+                  />
+                  <button type="button" className="btn" disabled={!promoInput.trim() || checkingPromo} onClick={() => void applyPromo()}>
+                    {checkingPromo ? t.checkout.promoChecking : t.checkout.promoApply}
+                  </button>
+                </div>
+              </>
+            )}
+            {promoError && (
+              <p className="field__error" id="promo-error" role="alert">
+                {promoError}
+              </p>
+            )}
+          </div>
+
           <dl className="totals">
             <div>
               <dt>{t.cart.subtotal}</dt>
               <dd>{formatAmd(cart.subtotal)}</dd>
             </div>
+            {promo && discount > 0 && (
+              <div className="totals__discount">
+                <dt>
+                  {t.checkout.discount} {promo.code}
+                </dt>
+                <dd>−{formatAmd(discount)}</dd>
+              </div>
+            )}
             <div>
               <dt>{method === 'pickup' ? t.cart.pickup : t.cart.delivery}</dt>
               <dd>{deliveryExtra ? t.cart.deliveryExtra : deliveryFee === 0 ? t.cart.free : formatAmd(deliveryFee)}</dd>

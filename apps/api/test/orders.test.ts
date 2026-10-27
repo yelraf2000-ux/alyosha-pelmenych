@@ -140,6 +140,8 @@ describe('order contents', () => {
       publicNumber: 'A-0001',
       items: [{ productId: id, name: 'Пельмени домашние', priceAmd: 2400, qty: 3 }],
       itemsTotalAmd: 7200,
+      discountAmd: 0,
+      promoCode: null,
       deliveryFeeAmd: 0,
       deliveryExtra: false,
       totalAmd: 7200,

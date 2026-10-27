@@ -259,6 +259,12 @@ export function OrderPage() {
               <td>Товары</td>
               <td className="adm-num">{formatAmd(order.itemsTotalAmd)}</td>
             </tr>
+            {order.discountAmd > 0 && (
+              <tr className="adm-discount">
+                <td>Промокод {order.promoCode}</td>
+                <td className="adm-num">−{formatAmd(order.discountAmd)}</td>
+              </tr>
+            )}
             <tr>
               <td>Доставка</td>
               <td className="adm-num">

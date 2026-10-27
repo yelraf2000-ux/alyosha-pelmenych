@@ -12,6 +12,7 @@ export const getProducts = api.getProducts;
 export const getCategories = api.getCategories;
 export const getSettings = api.getSettings;
 export const submitOrder = api.submitOrder;
+export const checkPromoCode = api.checkPromoCode;
 export const submitCustomOrder = api.submitCustomOrder;
 export const createStockRequest = api.createStockRequest;
 export const resetDemo = mock.resetDemo;

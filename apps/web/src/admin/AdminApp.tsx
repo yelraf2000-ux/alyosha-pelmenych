@@ -11,6 +11,7 @@ import { OrderPage, OrdersPage } from './Orders';
 import { OrderStatsPage } from './OrderStats';
 import { ProductFormPage } from './ProductForm';
 import { ProductsPage } from './Products';
+import { PromoCodesPage } from './PromoCodes';
 import { RequestsPage } from './Requests';
 import { ResetPassword } from './ResetPassword';
 import { SettingsPage } from './SettingsPage';
@@ -21,13 +22,16 @@ type AuthState = 'checking' | 'in' | 'out' | 'off' | 'error';
 
 // Absolute paths: the bar sits outside the nested <Routes>, where relative links
 // would resolve against whatever admin page is open.
+// The two longest labels carry a soft hyphen (\u00AD): on a phone, where seven tabs share the
+// width, they break into two lines (Промо-/коды); anywhere wider they stay whole.
 const TABS = [
   { to: '/admin', label: 'Сегодня', end: true },
   { to: '/admin/orders', label: 'Заказы', end: false },
   { to: '/admin/recipes', label: 'Рецепты', end: false },
   { to: '/admin/products', label: 'Товары', end: false },
+  { to: '/admin/promo-codes', label: 'Промо\u00ADкоды', end: false },
   { to: '/admin/requests', label: 'Заявки', end: false },
-  { to: '/admin/settings', label: 'Настройки', end: false },
+  { to: '/admin/settings', label: 'На\u00ADстрой\u00ADки', end: false },
 ];
 
 function Login({ onSignedIn }: { onSignedIn: () => void }) {
@@ -204,6 +208,7 @@ export default function AdminApp() {
           <Route path="products/categories" element={<CategoriesPage />} />
           <Route path="products/new" element={<ProductFormPage />} />
           <Route path="products/:id" element={<ProductFormPage />} />
+          <Route path="promo-codes" element={<PromoCodesPage />} />
           <Route path="requests" element={<RequestsPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route

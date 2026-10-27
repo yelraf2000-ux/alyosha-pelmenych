@@ -5,6 +5,7 @@ import type {
   CustomOrderInput,
   OrderInput,
   Product,
+  PromoCheckResult,
   Settings,
   StockRequestInput,
   SubmitCustomOrderResult,
@@ -40,9 +41,18 @@ export function getSettings(): Promise<Settings> {
   return get<Settings>('/api/settings');
 }
 
+/** What a promo code takes off these goods. The order checks the code again when it is placed. */
+export async function checkPromoCode(code: string, items: { productId: number; qty: number }[]): Promise<PromoCheckResult> {
+  const response = await post('/api/promo-codes/check', { code, items });
+  if (response.status === 429) return { ok: false, error: 'rate_limited' };
+  if (response.status === 400) return { ok: false, error: 'invalid' };
+  if (!response.ok) throw new Error(`POST /api/promo-codes/check failed: ${response.status}`);
+  return (await response.json()) as PromoCheckResult;
+}
+
 export async function submitOrder(input: OrderInput): Promise<SubmitOrderResult> {
   const response = await post('/api/orders', input);
-  // 201 accepted, 409 not enough stock: both carry a SubmitOrderResult body.
+  // 201 accepted, 409 not enough stock or a promo code that stopped working: both carry a SubmitOrderResult body.
   if (response.status === 201 || response.status === 409) {
     return (await response.json()) as SubmitOrderResult;
   }

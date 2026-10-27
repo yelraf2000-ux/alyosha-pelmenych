@@ -1,14 +1,23 @@
-import { calcDeliveryFee, isDeliveryExtra, type OrderView, type StockShortage, type ValidOrder } from '@alyosha/shared';
+import {
+  calcDeliveryFee,
+  isDeliveryExtra,
+  type OrderView,
+  type PromoProblem,
+  type StockShortage,
+  type ValidOrder,
+} from '@alyosha/shared';
 import { eq, inArray, sql } from 'drizzle-orm';
 import type { Db } from '../db/client';
 import { orderItems, orders, products } from '../db/schema';
 import { newNotifyToken } from './buyer-bot';
+import { evaluatePromo } from './promo-codes';
 import { getSettings } from './settings';
 
 export type PlaceOrderResult =
   /** `notifyToken`: the secret for the order's link to the Telegram bot (the route builds the link). */
   | { ok: true; id: number; order: OrderView; customer: OrderCustomer; notifyToken: string }
-  | { ok: false; error: 'insufficient_stock'; shortages: StockShortage[] };
+  | { ok: false; error: 'insufficient_stock'; shortages: StockShortage[] }
+  | { ok: false; error: 'promo'; problem: PromoProblem };
 
 export interface OrderCustomer {
   name: string;
@@ -24,6 +33,9 @@ export interface OrderCustomer {
  * so a second buyer ordering the same product waits here until the first transaction commits
  * and then sees the reduced stock. Rows are locked in id order, so two orders with the same
  * products in a different order cannot deadlock.
+ *
+ * A promo code is checked inside the same transaction, after the products, with its row locked
+ * too: two buyers racing for a code's last use are served one after the other.
  */
 export async function placeOrder(db: Db, order: ValidOrder): Promise<PlaceOrderResult> {
   // The same product may come in twice; treat it as one line.
@@ -54,6 +66,15 @@ export async function placeOrder(db: Db, order: ValidOrder): Promise<PlaceOrderR
       return { productId: id, name: product.name, priceAmd: product.priceAmd, qty: wanted.get(id)! };
     });
 
+    // Before any stock moves: a code that no longer works ends the order here, and nothing changed.
+    let promo: { id: number; code: string; discountAmd: number } | null = null;
+    if (order.promoCode) {
+      const lines = items.map((item) => ({ ...item, category: byId.get(item.productId)!.category }));
+      const outcome = await evaluatePromo(tx, order.promoCode, lines, { lock: true });
+      if (!outcome.ok) return { ok: false, error: 'promo', problem: outcome.problem };
+      promo = { id: outcome.promo.id, code: outcome.promo.code, discountAmd: outcome.discountAmd };
+    }
+
     for (const item of items) {
       await tx
         .update(products)
@@ -63,9 +84,12 @@ export async function placeOrder(db: Db, order: ValidOrder): Promise<PlaceOrderR
 
     // Prices and the delivery fee are taken from the database, never from the request.
     const itemsTotalAmd = items.reduce((sum, item) => sum + item.priceAmd * item.qty, 0);
+    const discountAmd = promo?.discountAmd ?? 0;
     const settings = await getSettings(tx);
+    // Free delivery goes by the goods before the discount: a promo code never costs the buyer it.
     const deliveryFeeAmd = calcDeliveryFee(order.deliveryMethod, itemsTotalAmd, settings);
     const deliveryExtra = isDeliveryExtra(order.deliveryMethod, itemsTotalAmd, settings);
+    const totalAmd = itemsTotalAmd - discountAmd + deliveryFeeAmd;
     const deliveryAddress = order.deliveryMethod === 'courier' ? order.deliveryAddress : null;
 
     const notifyToken = newNotifyToken();
@@ -80,9 +104,12 @@ export async function placeOrder(db: Db, order: ValidOrder): Promise<PlaceOrderR
         deliveryMethod: order.deliveryMethod,
         deliveryAddress,
         itemsTotalAmd,
+        promoCodeId: promo?.id ?? null,
+        promoCode: promo?.code ?? null,
+        discountAmd,
         deliveryFeeAmd,
         deliveryExtra,
-        totalAmd: itemsTotalAmd + deliveryFeeAmd,
+        totalAmd,
       })
       .returning({ id: orders.id, publicNumber: orders.publicNumber });
 
@@ -103,9 +130,11 @@ export async function placeOrder(db: Db, order: ValidOrder): Promise<PlaceOrderR
         publicNumber: created!.publicNumber,
         items,
         itemsTotalAmd,
+        discountAmd,
+        promoCode: promo?.code ?? null,
         deliveryFeeAmd,
         deliveryExtra,
-        totalAmd: itemsTotalAmd + deliveryFeeAmd,
+        totalAmd,
         deliveryMethod: order.deliveryMethod,
         deliveryAddress,
         telegramLink: null,

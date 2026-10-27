@@ -10,7 +10,7 @@ import {
   type StockShortage,
   type TodayView,
 } from '@alyosha/shared';
-import { and, asc, count, desc, eq, inArray, ne, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, isNotNull, ne, sql } from 'drizzle-orm';
 import type { Db, Tx } from '../db/client';
 import { orderItems, orders, products } from '../db/schema';
 
@@ -63,6 +63,8 @@ export async function getOrder(db: Db | Tx, id: number): Promise<AdminOrder | nu
     comment: row.comment,
     deliveryAddress: row.deliveryAddress,
     itemsTotalAmd: row.itemsTotalAmd,
+    discountAmd: row.discountAmd,
+    promoCode: row.promoCode,
     deliveryFeeAmd: row.deliveryFeeAmd,
     deliveryExtra: row.deliveryExtra,
     items: items.map((item) => ({
@@ -245,6 +247,19 @@ export async function getOrderStats(db: Db, from: string, to: string): Promise<O
     .groupBy(day)
     .orderBy(day);
 
+  // By the code's text on the order, so a code deleted since still has its line.
+  const promoRows = await db
+    .select({
+      code: orders.promoCode,
+      count: count(),
+      discountAmd: sql<number>`coalesce(sum(${orders.discountAmd}), 0)::int`,
+      totalAmd: sum,
+    })
+    .from(orders)
+    .where(and(inPeriod, notCancelled, isNotNull(orders.promoCode)))
+    .groupBy(orders.promoCode)
+    .orderBy(desc(count()), asc(orders.promoCode));
+
   const byStatus = Object.fromEntries(
     ORDER_STATUSES.map((status) => {
       const row = statusRows.find((item) => item.status === status);
@@ -267,5 +282,6 @@ export async function getOrderStats(db: Db, from: string, to: string): Promise<O
     courierCount: methodRows.find((row) => row.method === 'courier')?.count ?? 0,
     products: productRows,
     days: dayRows,
+    promoCodes: promoRows.map((row) => ({ ...row, code: row.code ?? '' })),
   };
 }

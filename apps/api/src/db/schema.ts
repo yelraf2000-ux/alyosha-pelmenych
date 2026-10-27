@@ -3,6 +3,7 @@ import {
   bigint,
   boolean,
   check,
+  date,
   index,
   integer,
   pgEnum,
@@ -18,6 +19,7 @@ import {
 export const deliveryMethod = pgEnum('delivery_method', ['pickup', 'courier']);
 export const orderStatus = pgEnum('order_status', ['new', 'confirmed', 'done', 'cancelled']);
 export const stockRequestStatus = pgEnum('stock_request_status', ['open', 'notified', 'closed']);
+export const promoKind = pgEnum('promo_kind', ['percent', 'amount']);
 
 /** Feeds the human-friendly order number: A-0001, A-0002, … */
 export const orderNumberSeq = pgSequence('order_number_seq', { startWith: 1, increment: 1 });
@@ -92,13 +94,22 @@ export const orders = pgTable(
     /** True when the courier is paid separately, on top of `totalAmd` (no fixed fee in the settings). */
     deliveryExtra: boolean('delivery_extra').notNull().default(false),
     totalAmd: integer('total_amd').notNull(),
+    /**
+     * The promo code, if any: the link to it for counting its uses, and its text and the discount
+     * as they were, which stay when the code itself is deleted.
+     */
+    promoCodeId: integer('promo_code_id').references(() => promoCodes.id, { onDelete: 'set null' }),
+    promoCode: text('promo_code'),
+    discountAmd: integer('discount_amd').notNull().default(0),
     status: orderStatus('status').notNull().default('new'),
     ...buyerChat('orders'),
     ...timestamps,
   },
   (t) => [
     check('orders_courier_has_address', sql`${t.deliveryMethod} <> 'courier' OR ${t.deliveryAddress} IS NOT NULL`),
+    check('orders_discount_non_negative', sql`${t.discountAmd} >= 0`),
     index('orders_status_created_idx').on(t.status, t.createdAt),
+    index('orders_promo_code_idx').on(t.promoCodeId),
   ],
 );
 
@@ -188,4 +199,32 @@ export const adminPassword = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [check('admin_password_single_row', sql`${t.id} = 1`)],
+);
+
+/**
+ * The owner's promo codes (services/promo-codes.ts). `code` is kept in upper case, so a buyer may
+ * type it either way. How often a code was used is counted from the orders, never stored.
+ */
+export const promoCodes = pgTable(
+  'promo_codes',
+  {
+    id: serial('id').primaryKey(),
+    code: text('code').notNull().unique(),
+    kind: promoKind('kind').notNull(),
+    /** Percent (1–100) or whole AMD, by `kind`. */
+    value: integer('value').notNull(),
+    /** What it works on; both empty: every product. */
+    categories: text('categories').array().notNull().default(sql`'{}'::text[]`),
+    productIds: integer('product_ids').array().notNull().default(sql`'{}'::integer[]`),
+    maxUses: integer('max_uses'),
+    /** The last day it works, in the shop's time zone. */
+    validUntil: date('valid_until'),
+    isActive: boolean('is_active').notNull().default(true),
+    ...timestamps,
+  },
+  (t) => [
+    check('promo_codes_value_positive', sql`${t.value} > 0`),
+    check('promo_codes_percent_at_most_100', sql`${t.kind} <> 'percent' OR ${t.value} <= 100`),
+    check('promo_codes_max_uses_positive', sql`${t.maxUses} IS NULL OR ${t.maxUses} > 0`),
+  ],
 );

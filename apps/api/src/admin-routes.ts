@@ -8,6 +8,7 @@ import {
   passwordResetSchema,
   productCreateSchema,
   productPatchSchema,
+  promoCodeSchema,
   reorderSchema,
   settingsSchema,
   STATS_MAX_DAYS,
@@ -52,6 +53,7 @@ import {
   updateProduct,
 } from './services/products';
 import { changeCustomStatusAndTell, changeOrderStatusAndTell } from './services/order-status';
+import { deletePromoCode, listPromoCodes, savePromoCode } from './services/promo-codes';
 import { getSettings, saveSettings } from './services/settings';
 import { deleteProductVideo, InvalidVideoError, MAX_VIDEO_BYTES, saveProductVideo, VideoBusyError } from './services/videos';
 
@@ -387,6 +389,35 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
       admin.delete('/custom-orders/:id', async (request, reply) => {
         const id = idParam(request);
         if (!id || !(await deleteCustomOrder(db, id))) return fail(reply, 404, 'not_found');
+        return { ok: true };
+      });
+
+      // ----- Promo codes -----
+
+      admin.get('/promo-codes', async () => listPromoCodes(db));
+
+      admin.post('/promo-codes', async (request, reply) => {
+        const parsed = promoCodeSchema.safeParse(request.body);
+        if (!parsed.success) return fail(reply, 400, 'invalid');
+        const result = await savePromoCode(db, null, parsed.data);
+        if (!result.ok) return fail(reply, 409, result.error);
+        reply.code(201);
+        return result.promo;
+      });
+
+      admin.put('/promo-codes/:id', async (request, reply) => {
+        const id = idParam(request);
+        if (!id) return fail(reply, 404, 'not_found');
+        const parsed = promoCodeSchema.safeParse(request.body);
+        if (!parsed.success) return fail(reply, 400, 'invalid');
+        const result = await savePromoCode(db, id, parsed.data);
+        if (!result.ok) return fail(reply, result.error === 'not_found' ? 404 : 409, result.error);
+        return result.promo;
+      });
+
+      admin.delete('/promo-codes/:id', async (request, reply) => {
+        const id = idParam(request);
+        if (!id || !(await deletePromoCode(db, id))) return fail(reply, 404, 'not_found');
         return { ok: true };
       });
 

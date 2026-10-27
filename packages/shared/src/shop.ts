@@ -1,3 +1,4 @@
+import type { PromoProblem } from './promo';
 // Types and rules shared by the storefront and the API (SPEC §5–6).
 // Nothing here depends on zod, so the storefront bundle stays small; the schemas are in shop-schemas.ts.
 
@@ -117,6 +118,8 @@ export interface OrderInput {
   /** Honeypot: real buyers never fill it. */
   website: string;
   items: { productId: number; qty: number }[];
+  /** A promo code the buyer typed, if any. The server decides what it is worth. */
+  promoCode?: string | null;
 }
 
 export interface OrderItemView {
@@ -130,9 +133,14 @@ export interface OrderView {
   publicNumber: string;
   items: OrderItemView[];
   itemsTotalAmd: number;
+  /** Taken off the goods by a promo code; 0 without one. */
+  discountAmd: number;
+  /** The code that gave the discount, as the shop knows it (upper case). */
+  promoCode: string | null;
   deliveryFeeAmd: number;
   /** Delivery is not in the total: the buyer pays the courier separately (see `isDeliveryExtra`). */
   deliveryExtra: boolean;
+  /** Goods, minus the discount, plus delivery. */
   totalAmd: number;
   deliveryMethod: DeliveryMethod;
   deliveryAddress: string | null;
@@ -152,6 +160,8 @@ export interface StockShortage {
 export type SubmitOrderResult =
   | { ok: true; order: OrderView }
   | { ok: false; error: 'insufficient_stock'; shortages: StockShortage[] }
+  /** The promo code stopped working between the check and the order (it ran out, say). */
+  | { ok: false; error: 'promo'; problem: PromoProblem }
   | { ok: false; error: 'invalid' }
   | { ok: false; error: 'rate_limited' };
 

@@ -191,7 +191,45 @@ export function OrderStatsPage() {
                     </tbody>
                   </table>
                 )}
+                {stats.promoCodes.length > 0 && (
+                  <p className="adm-muted">Суммы по товарам — по их ценам, до скидок по промокодам.</p>
+                )}
               </section>
+
+              {stats.promoCodes.length > 0 && (
+                <section className="adm-card">
+                  <h2>Промокоды</h2>
+                  <table className="adm-table">
+                    <thead>
+                      <tr>
+                        <th>Промокод</th>
+                        <th className="adm-num">Заказов</th>
+                        <th className="adm-num">Скидка</th>
+                        <th className="adm-num">Сумма заказов</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stats.promoCodes.map((row) => (
+                        <tr key={row.code}>
+                          <td>{row.code}</td>
+                          <td className="adm-num">{row.count}</td>
+                          <td className="adm-num">−{formatAmd(row.discountAmd)}</td>
+                          <td className="adm-num">{formatAmd(row.totalAmd)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="adm-total">
+                        <td>Всего скидок</td>
+                        <td className="adm-num">{stats.promoCodes.reduce((total, row) => total + row.count, 0)}</td>
+                        <td className="adm-num">−{formatAmd(stats.promoCodes.reduce((total, row) => total + row.discountAmd, 0))}</td>
+                        <td className="adm-num">{formatAmd(stats.promoCodes.reduce((total, row) => total + row.totalAmd, 0))}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                  <p className="adm-muted">Без отменённых заказов. «Сумма заказов» — сколько эти заказы стоили уже со скидкой.</p>
+                </section>
+              )}
 
               {days > 1 && (
                 <section className="adm-card">
@@ -225,8 +263,8 @@ export function OrderStatsPage() {
           )}
 
           <p className="adm-muted">
-            Заказ считается за тот день, когда его оформили (по времени Еревана). В суммах — товары и доставка с фиксированной
-            ценой; доставка, которую покупатель оплачивает отдельно, сюда не входит.
+            Заказ считается за тот день, когда его оформили (по времени Еревана). В суммах — товары со скидкой по промокоду, если
+            она была, и доставка с фиксированной ценой; доставка, которую покупатель оплачивает отдельно, сюда не входит.
           </p>
         </>
       )}
