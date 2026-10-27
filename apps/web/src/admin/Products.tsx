@@ -120,6 +120,11 @@ function ProductRow({
           <span className="adm-tags">
             {!product.isActive && <span className="adm-tag">скрыт</span>}
             {product.isNew && <span className="adm-tag adm-tag--new">новинка</span>}
+            {product.badges.map((badge) => (
+              <span key={badge} className="adm-tag adm-tag--own">
+                {badge}
+              </span>
+            ))}
             {product.stockQty === 0 && <span className="adm-tag adm-tag--out">нет в наличии</span>}
             {product.waitingCount > 0 && (
               <Link to="/admin/requests" className="adm-tag adm-tag--wait">

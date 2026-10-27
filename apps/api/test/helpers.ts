@@ -119,6 +119,8 @@ export async function createTestContext(): Promise<TestContext> {
       { key: SETTING_KEYS.customBases, value: 'Говядина' + NL + 'Куриное бедро' },
       { key: SETTING_KEYS.customModifiers, value: 'Сливки' + NL + 'Чеснок' + NL + 'Креветка' },
       { key: SETTING_KEYS.customSpices, value: 'Без соли' + NL + 'Паприка' },
+      // The tests' shop sells only what it has; the pre-order tests switch this on.
+      { key: SETTING_KEYS.preorderEnabled, value: 'false' },
     ]);
     sent.orders.length = 0;
     sent.stockRequests.length = 0;

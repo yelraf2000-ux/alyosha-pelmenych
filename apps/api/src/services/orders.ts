@@ -36,6 +36,10 @@ export interface OrderCustomer {
  *
  * A promo code is checked inside the same transaction, after the products, with its row locked
  * too: two buyers racing for a code's last use are served one after the other.
+ *
+ * With pre-orders on (the default), more than the stock is not a shortage: what is in stock is
+ * taken from it, and the rest of the line is made to order (`preorderQty`). Stock never goes
+ * below zero either way. A hidden product can never be ordered.
  */
 export async function placeOrder(db: Db, order: ValidOrder): Promise<PlaceOrderResult> {
   // The same product may come in twice; treat it as one line.
@@ -48,14 +52,14 @@ export async function placeOrder(db: Db, order: ValidOrder): Promise<PlaceOrderR
   return db.transaction(async (tx) => {
     const rows = await tx.select().from(products).where(inArray(products.id, ids)).orderBy(products.id).for('update');
     const byId = new Map(rows.map((row) => [row.id, row]));
+    const settings = await getSettings(tx);
 
     const shortages: StockShortage[] = [];
     for (const id of ids) {
       const product = byId.get(id);
       const available = product?.isActive ? product.stockQty : 0;
-      if (wanted.get(id)! > available) {
-        shortages.push({ productId: id, name: product?.name ?? 'Товар', available });
-      }
+      const short = !product?.isActive || (!settings.preorderEnabled && wanted.get(id)! > available);
+      if (short) shortages.push({ productId: id, name: product?.name ?? 'Товар', available });
     }
     if (shortages.length > 0) {
       return { ok: false, error: 'insufficient_stock', shortages };
@@ -63,8 +67,11 @@ export async function placeOrder(db: Db, order: ValidOrder): Promise<PlaceOrderR
 
     const items = ids.map((id) => {
       const product = byId.get(id)!;
-      return { productId: id, name: product.name, priceAmd: product.priceAmd, qty: wanted.get(id)! };
+      const qty = wanted.get(id)!;
+      const fromStock = Math.min(qty, product.stockQty);
+      return { productId: id, name: product.name, priceAmd: product.priceAmd, qty, preorderQty: qty - fromStock };
     });
+    const isPreorder = items.some((item) => item.preorderQty > 0);
 
     // Before any stock moves: a code that no longer works ends the order here, and nothing changed.
     let promo: { id: number; code: string; discountAmd: number } | null = null;
@@ -76,16 +83,17 @@ export async function placeOrder(db: Db, order: ValidOrder): Promise<PlaceOrderR
     }
 
     for (const item of items) {
+      const fromStock = item.qty - item.preorderQty;
+      if (fromStock === 0) continue;
       await tx
         .update(products)
-        .set({ stockQty: sql`${products.stockQty} - ${item.qty}`, updatedAt: new Date() })
+        .set({ stockQty: sql`${products.stockQty} - ${fromStock}`, updatedAt: new Date() })
         .where(eq(products.id, item.productId));
     }
 
     // Prices and the delivery fee are taken from the database, never from the request.
     const itemsTotalAmd = items.reduce((sum, item) => sum + item.priceAmd * item.qty, 0);
     const discountAmd = promo?.discountAmd ?? 0;
-    const settings = await getSettings(tx);
     // Free delivery goes by the goods before the discount: a promo code never costs the buyer it.
     const deliveryFeeAmd = calcDeliveryFee(order.deliveryMethod, itemsTotalAmd, settings);
     const deliveryExtra = isDeliveryExtra(order.deliveryMethod, itemsTotalAmd, settings);
@@ -107,6 +115,7 @@ export async function placeOrder(db: Db, order: ValidOrder): Promise<PlaceOrderR
         promoCodeId: promo?.id ?? null,
         promoCode: promo?.code ?? null,
         discountAmd,
+        isPreorder,
         deliveryFeeAmd,
         deliveryExtra,
         totalAmd,
@@ -120,6 +129,7 @@ export async function placeOrder(db: Db, order: ValidOrder): Promise<PlaceOrderR
         productNameSnapshot: item.name,
         priceAmdSnapshot: item.priceAmd,
         qty: item.qty,
+        preorderQty: item.preorderQty,
       })),
     );
 
@@ -137,6 +147,7 @@ export async function placeOrder(db: Db, order: ValidOrder): Promise<PlaceOrderR
         totalAmd,
         deliveryMethod: order.deliveryMethod,
         deliveryAddress,
+        isPreorder,
         telegramLink: null,
       },
       notifyToken,

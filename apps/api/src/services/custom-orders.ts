@@ -21,6 +21,7 @@ function toView(row: Row): AdminCustomOrder {
     customerPhone: row.customerPhone,
     customerTelegram: row.customerTelegram,
     comment: row.comment,
+    priceAmd: row.priceAmd,
     telegramLinked: row.telegramChatId !== null,
     createdAt: row.createdAt.toISOString(),
   };
@@ -93,6 +94,16 @@ export async function setCustomOrderStatus(db: Db, id: number, status: OrderStat
 export async function deleteCustomOrder(db: Db, id: number): Promise<boolean> {
   const removed = await db.delete(customOrders).where(eq(customOrders.id, id)).returning({ id: customOrders.id });
   return removed.length > 0;
+}
+
+/** The price the owner named for a request (null takes it away); null when there is no such request. */
+export async function setCustomOrderPrice(db: Db, id: number, priceAmd: number | null): Promise<AdminCustomOrder | null> {
+  const [row] = await db
+    .update(customOrders)
+    .set({ priceAmd, updatedAt: new Date() })
+    .where(eq(customOrders.id, id))
+    .returning();
+  return row ? toView(row) : null;
 }
 
 export async function countNewCustomOrders(db: Db): Promise<number> {

@@ -1,5 +1,12 @@
 import 'dotenv/config';
-import { DEFAULT_CUSTOM_BASES, DEFAULT_CUSTOM_MODIFIERS, DEFAULT_CUSTOM_SPICES, type Settings } from '@alyosha/shared';
+import {
+  DEFAULT_BOT_TEXTS,
+  DEFAULT_CUSTOM_BASES,
+  DEFAULT_CUSTOM_MODIFIERS,
+  DEFAULT_CUSTOM_SPICES,
+  DEFAULT_PREORDER_NOTE,
+  type Settings,
+} from '@alyosha/shared';
 import { count } from 'drizzle-orm';
 import { SETTING_KEYS } from '../services/settings';
 import { createDb } from './client';
@@ -59,6 +66,10 @@ const SEED_SETTINGS: Settings = {
   instagramUrl: 'https://www.instagram.com/bbllbbd',
   tiktokUrl: 'https://www.tiktok.com/@bbllbbd',
   telegramContact: 'whosit', // where the bot's «Написать Алёше» button leads
+  // Out-of-stock products can be pre-ordered; Алексей asked for it (October 2026).
+  preorderEnabled: true,
+  preorderNote: DEFAULT_PREORDER_NOTE,
+  ...DEFAULT_BOT_TEXTS,
   // «Свой рецепт»: the options Алексей listed. He edits them in «Настройки», one per line.
   customBases: DEFAULT_CUSTOM_BASES,
   customModifiers: DEFAULT_CUSTOM_MODIFIERS,

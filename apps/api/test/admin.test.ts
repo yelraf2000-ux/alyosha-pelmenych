@@ -4,6 +4,7 @@ import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { DEFAULT_BOT_TEXTS } from '@alyosha/shared';
 import { SESSION_TTL_SECONDS, type AdminAuth } from '../src/auth';
 import { applyStoredPassword, startPasswordReset } from '../src/services/admin-password';
 import type { Keyboard } from '../src/services/buyer-bot';
@@ -1137,6 +1138,9 @@ describe('stock requests and settings', () => {
     customBases: 'Говядина',
     customModifiers: '',
     customSpices: '',
+    preorderEnabled: false,
+    preorderNote: 'Будет готово через 2–3 дня',
+    ...DEFAULT_BOT_TEXTS,
   };
 
   it('saves the settings, and the shop uses them straight away', async () => {

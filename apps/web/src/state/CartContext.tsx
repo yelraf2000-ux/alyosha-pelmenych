@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { orderableQty } from '@alyosha/shared';
 import { t } from '../i18n';
 import type { Product } from '../types';
 import { useShop } from './ShopContext';
@@ -60,7 +61,7 @@ function saveCart(items: StoredLine[]): void {
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const { products, loading } = useShop();
+  const { products, loading, settings } = useShop();
   const [items, setItems] = useState<StoredLine[]>(loadCart);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -75,7 +76,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (loading) return;
     let changed = false;
     const next = items.flatMap((line) => {
-      const max = byId.get(line.productId)?.stockQty ?? 0;
+      const product = byId.get(line.productId);
+      const max = product ? orderableQty(product, settings) : 0;
       if (line.qty <= max) return [line];
       changed = true;
       return max > 0 ? [{ ...line, qty: max }] : [];
@@ -84,11 +86,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setItems(next);
       setNotice(t.cart.adjusted);
     }
-  }, [items, byId, loading]);
+  }, [items, byId, loading, settings]);
 
   const add = useCallback(
     (productId: number, qty: number) => {
-      const max = byId.get(productId)?.stockQty ?? 0;
+      const product = byId.get(productId);
+      const max = product ? orderableQty(product, settings) : 0;
       setItems((prev) => {
         const current = prev.find((line) => line.productId === productId)?.qty ?? 0;
         const nextQty = Math.min(max, current + qty);
@@ -98,16 +101,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
           : prev.map((line) => (line.productId === productId ? { ...line, qty: nextQty } : line));
       });
     },
-    [byId],
+    [byId, settings],
   );
 
   const setQty = useCallback(
     (productId: number, qty: number) => {
-      const max = byId.get(productId)?.stockQty ?? 0;
+      const product = byId.get(productId);
+      const max = product ? orderableQty(product, settings) : 0;
       const nextQty = Math.max(1, Math.min(max, qty));
       setItems((prev) => prev.map((line) => (line.productId === productId ? { ...line, qty: nextQty } : line)));
     },
-    [byId],
+    [byId, settings],
   );
 
   const remove = useCallback((productId: number) => {

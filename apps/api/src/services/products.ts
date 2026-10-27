@@ -27,6 +27,7 @@ export function toProduct(row: ProductRow): Product {
     weightLabel: row.weightLabel,
     stockQty: row.stockQty,
     isNew: row.isNew,
+    badges: row.badges,
     isActive: row.isActive,
     sortOrder: row.sortOrder,
     imagePath: row.imagePath,
@@ -98,6 +99,7 @@ export async function createProduct(db: Db, input: ProductCreate): Promise<Admin
         weightLabel: input.weightLabel ?? '',
         stockQty: input.stockQty ?? 0,
         isNew: input.isNew ?? false,
+        badges: input.badges ?? [],
         isActive: input.isActive ?? true,
         sortOrder: (last?.value ?? 0) + 10,
       })

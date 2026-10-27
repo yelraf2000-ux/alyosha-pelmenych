@@ -2,7 +2,8 @@
 
 import { z } from 'zod';
 import { ORDER_STATUSES, STOCK_REQUEST_STATUSES } from './admin';
-import { normalizeTelegram } from './shop';
+import { DELIVERY_METHODS, normalizeTelegram, PRODUCT_BADGE_MAX_LENGTH, PRODUCT_BADGES_MAX } from './shop';
+import { nameSchema, optionalText, phoneSchema, telegramSchema } from './shop-schemas';
 
 const productFields = {
   name: z.string().trim().min(1).max(120),
@@ -20,6 +21,12 @@ const productFields = {
   weightLabel: z.string().trim().max(40),
   stockQty: z.number().int().min(0).max(100_000),
   isNew: z.boolean(),
+  /** The owner's own labels; repeats and empty ones are dropped. */
+  badges: z
+    .array(z.string().trim().max(PRODUCT_BADGE_MAX_LENGTH))
+    .max(PRODUCT_BADGES_MAX * 2)
+    .transform((badges) => [...new Set(badges.filter(Boolean))])
+    .refine((badges) => badges.length <= PRODUCT_BADGES_MAX),
   isActive: z.boolean(),
 };
 
@@ -30,6 +37,7 @@ export const productCreateSchema = z.object({
   weightLabel: productFields.weightLabel.optional(),
   stockQty: productFields.stockQty.optional(),
   isNew: productFields.isNew.optional(),
+  badges: productFields.badges.optional(),
   isActive: productFields.isActive.optional(),
 });
 export type ProductCreate = z.output<typeof productCreateSchema>;
@@ -59,6 +67,8 @@ export const passwordResetSchema = z.object({
 });
 
 const longText = z.string().trim().max(5000);
+/** A message of the bot; empty brings back the shop's own wording. */
+const botText = z.string().trim().max(1000);
 const shortText = z.string().trim().max(200);
 const amd = z.number().int().min(0).max(10_000_000);
 
@@ -102,4 +112,45 @@ export const settingsSchema = z.object({
   customBases: longText,
   customModifiers: longText,
   customSpices: longText,
+  preorderEnabled: z.boolean(),
+  preorderNote: shortText,
+  botOrderReceived: botText,
+  botOrderConfirmed: botText,
+  botOrderDone: botText,
+  botOrderCancelled: botText,
+  botRecipeReceived: botText,
+  botRecipeConfirmed: botText,
+  botRecipeDone: botText,
+  botRecipeCancelled: botText,
 });
+
+/**
+ * The owner's changes to an order: who it is for, how it is delivered, and what is in it. The
+ * items are the whole new list; a product left out is taken out of the order.
+ */
+export const orderEditSchema = z
+  .object({
+    customerName: nameSchema,
+    customerPhone: phoneSchema,
+    customerTelegram: telegramSchema,
+    comment: optionalText(500),
+    deliveryMethod: z.enum(DELIVERY_METHODS),
+    deliveryAddress: optionalText(200),
+    items: z
+      .array(z.object({ productId: z.number().int().positive(), qty: z.number().int().min(1).max(999) }))
+      .min(1)
+      .max(50),
+  })
+  .superRefine((order, ctx) => {
+    if (order.deliveryMethod === 'courier' && !order.deliveryAddress) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['deliveryAddress'], message: 'address required for courier' });
+    }
+    const ids = order.items.map((item) => item.productId);
+    if (new Set(ids).size !== ids.length) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['items'], message: 'each product once' });
+    }
+  });
+export type ValidOrderEdit = z.output<typeof orderEditSchema>;
+
+/** The price the owner names for a «Свой рецепт» request; null takes it away again. */
+export const customPriceSchema = z.object({ priceAmd: z.number().int().min(0).max(10_000_000).nullable() });

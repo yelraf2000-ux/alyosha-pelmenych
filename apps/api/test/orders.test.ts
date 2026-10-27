@@ -138,7 +138,7 @@ describe('order contents', () => {
     expect(response.statusCode).toBe(201);
     expect(response.json().order).toEqual({
       publicNumber: 'A-0001',
-      items: [{ productId: id, name: 'Пельмени домашние', priceAmd: 2400, qty: 3 }],
+      items: [{ productId: id, name: 'Пельмени домашние', priceAmd: 2400, qty: 3, preorderQty: 0 }],
       itemsTotalAmd: 7200,
       discountAmd: 0,
       promoCode: null,
@@ -146,6 +146,7 @@ describe('order contents', () => {
       deliveryExtra: false,
       totalAmd: 7200,
       deliveryMethod: 'pickup',
+      isPreorder: false,
       deliveryAddress: null,
       telegramLink: expect.stringMatching(/^https:\/\/t\.me\/test_shop_bot\?start=o[\w-]{22}$/),
     });

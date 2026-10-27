@@ -1,5 +1,8 @@
 import {
+  calcDeliveryFee,
+  isDeliveryExtra,
   ORDER_STATUSES,
+  promoDiscount,
   SHOP_TIME_ZONE,
   type AdminOrder,
   type AdminOrderSummary,
@@ -9,10 +12,12 @@ import {
   type OrderStatus,
   type StockShortage,
   type TodayView,
+  type ValidOrderEdit,
 } from '@alyosha/shared';
 import { and, asc, count, desc, eq, inArray, isNotNull, ne, sql } from 'drizzle-orm';
 import type { Db, Tx } from '../db/client';
-import { orderItems, orders, products } from '../db/schema';
+import { customOrders, orderItems, orders, products, promoCodes } from '../db/schema';
+import { getSettings } from './settings';
 
 type OrderRow = typeof orders.$inferSelect;
 
@@ -32,6 +37,7 @@ function toSummary(row: OrderRow, items: number): AdminOrderSummary {
     deliveryMethod: row.deliveryMethod,
     totalAmd: row.totalAmd,
     itemsCount: items,
+    isPreorder: row.isPreorder,
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -72,16 +78,39 @@ export async function getOrder(db: Db | Tx, id: number): Promise<AdminOrder | nu
       name: item.productNameSnapshot,
       priceAmd: item.priceAmdSnapshot,
       qty: item.qty,
+      preorderQty: item.preorderQty,
     })),
     telegramLinked: row.telegramChatId !== null,
     updatedAt: row.updatedAt.toISOString(),
   };
 }
 
+type ItemRow = typeof orderItems.$inferSelect;
+
+/** What a line has taken out of the stock: all of it but the part made to order. */
+const held = (item: Pick<ItemRow, 'qty' | 'preorderQty'>) => item.qty - item.preorderQty;
+
+/** Locks the products, always in id order: the order every transaction here locks them in. */
+function lockProducts(tx: Tx, ids: number[]) {
+  const sorted = [...new Set(ids)].sort((a, b) => a - b);
+  return sorted.length
+    ? tx.select().from(products).where(inArray(products.id, sorted)).orderBy(products.id).for('update')
+    : Promise.resolve([]);
+}
+
+async function moveStock(tx: Tx, productId: number, delta: number) {
+  if (delta === 0) return;
+  await tx
+    .update(products)
+    .set({ stockQty: sql`${products.stockQty} + ${delta}`, updatedAt: new Date() })
+    .where(eq(products.id, productId));
+}
+
 /**
- * Changes an order's status and keeps stock consistent with it (SPEC §7), in one transaction:
- * cancelling puts the items back in stock; reopening a cancelled order takes them out again,
- * and is refused when they are no longer available.
+ * Changes an order's status and keeps stock consistent with it (SPEC §7), in one transaction.
+ * Cancelling puts back what the order took from the stock (not its made-to-order part).
+ * Reopening a cancelled order takes it out again; what is no longer there becomes made to order
+ * when pre-orders are on, and refuses the change when they are off.
  */
 export async function changeOrderStatus(db: Db, id: number, next: OrderStatus): Promise<ChangeOrderStatusResult> {
   return db.transaction(async (tx) => {
@@ -94,35 +123,174 @@ export async function changeOrderStatus(db: Db, id: number, next: OrderStatus): 
     const reopening = next !== 'cancelled' && order.status === 'cancelled';
 
     if (cancelling || reopening) {
-      const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, id));
-      const qtyBy = new Map<number, number>();
-      for (const item of items) qtyBy.set(item.productId, (qtyBy.get(item.productId) ?? 0) + item.qty);
-      const ids = [...qtyBy.keys()].sort((a, b) => a - b);
+      const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, id)).orderBy(asc(orderItems.id));
+      const rows = await lockProducts(
+        tx,
+        items.map((item) => item.productId),
+      );
 
-      // Same lock order as placing an order (by product id), so the two cannot deadlock.
-      const rows = ids.length
-        ? await tx.select().from(products).where(inArray(products.id, ids)).orderBy(products.id).for('update')
-        : [];
-
-      if (reopening) {
-        const shortages: StockShortage[] = rows
-          .filter((product) => product.stockQty < qtyBy.get(product.id)!)
-          .map((product) => ({ productId: product.id, name: product.name, available: product.stockQty }));
+      if (cancelling) {
+        for (const item of items) await moveStock(tx, item.productId, held(item));
+      } else {
+        const { preorderEnabled } = await getSettings(tx);
+        const left = new Map(rows.map((product) => [product.id, product.stockQty]));
+        const shortages: StockShortage[] = [];
+        const plan = items.map((item) => {
+          const have = left.get(item.productId) ?? 0;
+          const take = Math.min(held(item), have);
+          if (take < held(item) && !preorderEnabled) {
+            const product = rows.find((row) => row.id === item.productId);
+            shortages.push({ productId: item.productId, name: product?.name ?? item.productNameSnapshot, available: have });
+          }
+          left.set(item.productId, have - take);
+          return { item, take };
+        });
         if (shortages.length > 0) return { ok: false, error: 'insufficient_stock', shortages };
-      }
 
-      for (const product of rows) {
-        const qty = qtyBy.get(product.id)!;
-        await tx
-          .update(products)
-          .set({ stockQty: sql`${products.stockQty} + ${cancelling ? qty : -qty}`, updatedAt: new Date() })
-          .where(eq(products.id, product.id));
+        for (const { item, take } of plan) {
+          await moveStock(tx, item.productId, -take);
+          const preorderQty = item.qty - take;
+          if (preorderQty !== item.preorderQty) {
+            await tx.update(orderItems).set({ preorderQty }).where(eq(orderItems.id, item.id));
+          }
+        }
+        const isPreorder = plan.some(({ item, take }) => item.qty > take);
+        await tx.update(orders).set({ isPreorder }).where(eq(orders.id, id));
       }
     }
 
     if (next !== order.status) {
       await tx.update(orders).set({ status: next, updatedAt: new Date() }).where(eq(orders.id, id));
     }
+    return { ok: true, order: (await getOrder(tx, id))! };
+  });
+}
+
+export type EditOrderResult =
+  | { ok: true; order: AdminOrder }
+  /** `items_locked`: a completed or cancelled order keeps its goods as they were. */
+  | { ok: false; error: 'not_found' | 'items_locked' }
+  | { ok: false; error: 'insufficient_stock'; shortages: StockShortage[] };
+
+/**
+ * The owner rewrites an order: the buyer's details, the delivery, and the goods.
+ *
+ * The goods can change only while the order holds them (new or confirmed): the stock moves by
+ * the difference, the order's own goods count as available to it, and with pre-orders on what is
+ * not in stock is made to order, as when buying. Lines that were there keep the price and name
+ * they were bought at; new ones take today's. The promo code's discount is worked out again for
+ * the new goods (without asking whether the code is still valid: the buyer had it); a deleted
+ * code keeps its discount, but never more than the goods. Delivery is worked out again only when
+ * the goods or the way of delivery change.
+ */
+export async function editOrder(db: Db, id: number, input: ValidOrderEdit): Promise<EditOrderResult> {
+  return db.transaction(async (tx) => {
+    const [order] = await tx.select().from(orders).where(eq(orders.id, id)).for('update');
+    if (!order) return { ok: false, error: 'not_found' };
+    const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, id)).orderBy(asc(orderItems.id));
+
+    const wanted = new Map(input.items.map((item) => [item.productId, item.qty]));
+    const sameGoods = items.length === wanted.size && items.every((item) => wanted.get(item.productId) === item.qty);
+    const holdsGoods = order.status === 'new' || order.status === 'confirmed';
+    if (!sameGoods && !holdsGoods) return { ok: false, error: 'items_locked' };
+
+    const settings = await getSettings(tx);
+    type Line = { productId: number; name: string; priceAmd: number; qty: number; preorderQty: number };
+    let lines: Line[] = items.map((item) => ({
+      productId: item.productId,
+      name: item.productNameSnapshot,
+      priceAmd: item.priceAmdSnapshot,
+      qty: item.qty,
+      preorderQty: item.preorderQty,
+    }));
+
+    if (!sameGoods) {
+      const rows = await lockProducts(tx, [...items.map((item) => item.productId), ...wanted.keys()]);
+      const byId = new Map(rows.map((row) => [row.id, row]));
+      const oldBy = new Map(items.map((item) => [item.productId, item]));
+      const shortages: StockShortage[] = [];
+      const moves: [number, number][] = [];
+      const next: Line[] = [];
+
+      for (const [productId, qty] of wanted) {
+        const old = oldBy.get(productId);
+        const product = byId.get(productId);
+        // A product that was not in the order can be added only while it is on sale.
+        if (!old && !product?.isActive) {
+          shortages.push({ productId, name: product?.name ?? 'Товар', available: 0 });
+          continue;
+        }
+        const mine = old ? held(old) : 0;
+        const available = (product?.stockQty ?? 0) + mine;
+        const take = Math.min(qty, available);
+        if (take < qty && !settings.preorderEnabled) {
+          shortages.push({ productId, name: product?.name ?? old!.productNameSnapshot, available });
+        }
+        moves.push([productId, mine - take]);
+        next.push({
+          productId,
+          name: old?.productNameSnapshot ?? product!.name,
+          priceAmd: old?.priceAmdSnapshot ?? product!.priceAmd,
+          qty,
+          preorderQty: qty - take,
+        });
+      }
+      for (const old of items) if (!wanted.has(old.productId)) moves.push([old.productId, held(old)]);
+      if (shortages.length > 0) return { ok: false, error: 'insufficient_stock', shortages };
+
+      for (const [productId, delta] of moves) await moveStock(tx, productId, delta);
+      await tx.delete(orderItems).where(eq(orderItems.orderId, id));
+      await tx.insert(orderItems).values(
+        next.map((line) => ({
+          orderId: id,
+          productId: line.productId,
+          productNameSnapshot: line.name,
+          priceAmdSnapshot: line.priceAmd,
+          qty: line.qty,
+          preorderQty: line.preorderQty,
+        })),
+      );
+      lines = next;
+    }
+
+    const itemsTotalAmd = lines.reduce((sum, line) => sum + line.priceAmd * line.qty, 0);
+
+    let discountAmd = order.discountAmd;
+    if (!sameGoods && order.promoCodeId !== null) {
+      const [promo] = await tx.select().from(promoCodes).where(eq(promoCodes.id, order.promoCodeId));
+      if (promo) {
+        const categories = await tx
+          .select({ id: products.id, category: products.category })
+          .from(products)
+          .where(inArray(products.id, lines.map((line) => line.productId)));
+        const categoryOf = new Map(categories.map((row) => [row.id, row.category]));
+        discountAmd = promoDiscount(promo, lines.map((line) => ({ ...line, category: categoryOf.get(line.productId) ?? '' })));
+      }
+    }
+    discountAmd = Math.min(discountAmd, itemsTotalAmd);
+
+    const deliveryChanged = !sameGoods || input.deliveryMethod !== order.deliveryMethod;
+    const deliveryFeeAmd = deliveryChanged ? calcDeliveryFee(input.deliveryMethod, itemsTotalAmd, settings) : order.deliveryFeeAmd;
+    const deliveryExtra = deliveryChanged ? isDeliveryExtra(input.deliveryMethod, itemsTotalAmd, settings) : order.deliveryExtra;
+
+    await tx
+      .update(orders)
+      .set({
+        customerName: input.customerName,
+        customerPhone: input.customerPhone,
+        customerTelegram: input.customerTelegram,
+        comment: input.comment,
+        deliveryMethod: input.deliveryMethod,
+        deliveryAddress: input.deliveryMethod === 'courier' ? input.deliveryAddress : null,
+        itemsTotalAmd,
+        discountAmd,
+        deliveryFeeAmd,
+        deliveryExtra,
+        totalAmd: itemsTotalAmd - discountAmd + deliveryFeeAmd,
+        isPreorder: lines.some((line) => line.preorderQty > 0),
+        updatedAt: new Date(),
+      })
+      .where(eq(orders.id, id));
     return { ok: true, order: (await getOrder(tx, id))! };
   });
 }
@@ -144,15 +312,13 @@ export async function deleteOrder(db: Db, id: number): Promise<boolean> {
 
     if (order.status === 'new' || order.status === 'confirmed') {
       const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, id));
-      const qtyBy = new Map<number, number>();
-      for (const item of items) qtyBy.set(item.productId, (qtyBy.get(item.productId) ?? 0) + item.qty);
       // Same lock order as placing an order (by product id), so the two cannot deadlock.
-      for (const productId of [...qtyBy.keys()].sort((a, b) => a - b)) {
-        await tx
-          .update(products)
-          .set({ stockQty: sql`${products.stockQty} + ${qtyBy.get(productId)!}`, updatedAt: new Date() })
-          .where(eq(products.id, productId));
-      }
+      await lockProducts(
+        tx,
+        items.map((item) => item.productId),
+      );
+      // Only what came out of the stock goes back: the made-to-order part never was in it.
+      for (const item of items) await moveStock(tx, item.productId, held(item));
     }
 
     // The order's lines go with it (ON DELETE CASCADE).
@@ -247,6 +413,21 @@ export async function getOrderStats(db: Db, from: string, to: string): Promise<O
     .groupBy(day)
     .orderBy(day);
 
+  // «Свой рецепт» requests of the same days; only a priced one adds to the money.
+  const recipeInPeriod = and(
+    sql`${customOrders.createdAt} >= (${from}::date)::timestamp AT TIME ZONE ${zone}`,
+    sql`${customOrders.createdAt} < (${to}::date + 1)::timestamp AT TIME ZONE ${zone}`,
+    ne(customOrders.status, 'cancelled'),
+  );
+  const [recipes] = await db
+    .select({
+      count: count(),
+      pricedCount: sql<number>`count(${customOrders.priceAmd})::int`,
+      totalAmd: sql<number>`coalesce(sum(${customOrders.priceAmd}), 0)::int`,
+    })
+    .from(customOrders)
+    .where(recipeInPeriod);
+
   // By the code's text on the order, so a code deleted since still has its line.
   const promoRows = await db
     .select({
@@ -283,5 +464,6 @@ export async function getOrderStats(db: Db, from: string, to: string): Promise<O
     products: productRows,
     days: dayRows,
     promoCodes: promoRows.map((row) => ({ ...row, code: row.code ?? '' })),
+    recipes: recipes ?? { count: 0, pricedCount: 0, totalAmd: 0 },
   };
 }

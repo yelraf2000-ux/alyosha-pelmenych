@@ -12,10 +12,16 @@ interface FieldSpec {
   hint?: string;
   multiline?: boolean;
   numeric?: boolean;
+  /** A yes/no setting, shown as a tick box. */
+  checkbox?: boolean;
 }
 
 // Every key from SPEC §5 `Setting`, grouped the way the owner thinks about them.
-const GROUPS: { title: string; fields: FieldSpec[] }[] = [
+const BOT_NOTE =
+  'Бот пишет это покупателю, который подключил уведомления. Если в тексте несколько строк, первая будет жирной. ' +
+  '{номер} заменится номером заказа, {рецепт} — названием рецепта. Очистите поле, чтобы вернуть стандартный текст.';
+
+const GROUPS: { title: string; note?: string; fields: FieldSpec[] }[] = [
   {
     title: 'Главная страница',
     fields: [
@@ -40,6 +46,22 @@ const GROUPS: { title: string; fields: FieldSpec[] }[] = [
         hint: 'Если сумма товаров не меньше этой, доставка бесплатная. 0 — доставка всегда бесплатная.',
       },
       { key: 'deliveryNote', label: 'Примечание о доставке', hint: 'Например: «Заказы после 15:00 — на следующий день».' },
+    ],
+  },
+  {
+    title: 'Предзаказ',
+    fields: [
+      {
+        key: 'preorderEnabled',
+        label: 'Можно заказать товар, которого нет в наличии',
+        checkbox: true,
+        hint: 'Что есть на складе, спишется со склада, остальное будет «под заказ». Выключено — закончившийся товар заказать нельзя.',
+      },
+      {
+        key: 'preorderNote',
+        label: 'Срок предзаказа',
+        hint: 'Так покупатель видит его на сайте и в сообщениях. Например: «Будет готово через 2–3 дня».',
+      },
     ],
   },
   {
@@ -75,6 +97,30 @@ const GROUPS: { title: string; fields: FieldSpec[] }[] = [
       },
       { key: 'instagramUrl', label: 'Instagram', hint: 'Ссылка целиком, начиная с https://. Пусто — ссылки не будет.' },
       { key: 'tiktokUrl', label: 'TikTok', hint: 'Ссылка целиком, начиная с https://. Пусто — ссылки не будет.' },
+    ],
+  },
+  {
+    title: 'Сообщения бота покупателям',
+    note: BOT_NOTE,
+    fields: [
+      { key: 'botOrderReceived', label: 'Заказ получен', multiline: true, hint: 'Идёт после состава заказа, когда покупатель подключил бота.' },
+      {
+        key: 'botOrderConfirmed',
+        label: 'Заказ подтверждён',
+        multiline: true,
+        hint: 'Пока текст стандартный, для самовывоза бот пишет «…когда вы его заберёте».',
+      },
+      { key: 'botOrderDone', label: 'Заказ выполнен', multiline: true },
+      { key: 'botOrderCancelled', label: 'Заказ отменён', multiline: true },
+      { key: 'botRecipeReceived', label: 'Рецепт получен', multiline: true },
+      {
+        key: 'botRecipeConfirmed',
+        label: 'Рецепт подтверждён',
+        multiline: true,
+        hint: 'Если вы указали цену рецепта, бот добавит строку «Цена: …».',
+      },
+      { key: 'botRecipeDone', label: 'Рецепт готов', multiline: true },
+      { key: 'botRecipeCancelled', label: 'Рецепт отменён', multiline: true },
     ],
   },
 ];
@@ -118,7 +164,10 @@ export function SettingsPage() {
     if (notNumbers.length > 0) return setError('В полях с суммами должны быть целые числа.');
 
     const values = Object.fromEntries(
-      ALL_FIELDS.map((field) => [field.key, field.numeric ? Number(form[field.key]) : form[field.key]]),
+      ALL_FIELDS.map((field) => [
+        field.key,
+        field.checkbox ? form[field.key] === 'true' : field.numeric ? Number(form[field.key]) : form[field.key],
+      ]),
     ) as unknown as Settings;
 
     setBusy(true);
@@ -141,7 +190,24 @@ export function SettingsPage() {
         {GROUPS.map((group) => (
           <section key={group.title} className="adm-card">
             <h2>{group.title}</h2>
-            {group.fields.map((field) => (
+            {group.note && <p className="adm-muted">{group.note}</p>}
+            {group.fields.map((field) =>
+              field.checkbox ? (
+                <div key={field.key} className="field">
+                  <label className="adm-check">
+                    <input
+                      type="checkbox"
+                      checked={form[field.key] === 'true'}
+                      onChange={(event) => {
+                        setSaved(false);
+                        setForm({ ...form, [field.key]: String(event.target.checked) });
+                      }}
+                    />
+                    {field.label}
+                  </label>
+                  {field.hint && <p className="field__hint">{field.hint}</p>}
+                </div>
+              ) : (
               <Field
                 key={field.key}
                 label={field.label}
@@ -155,7 +221,8 @@ export function SettingsPage() {
                 hint={field.hint}
                 error={badFields.includes(field.key) ? 'Проверьте это поле' : null}
               />
-            ))}
+              ),
+            )}
           </section>
         ))}
 

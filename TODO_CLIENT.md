@@ -130,6 +130,9 @@ Render account.
 - A TikTok link next to Instagram.
 - The shop can be run from Telegram: in the admin chat every order comes with buttons to confirm,
   complete or cancel it, and `/orders` lists the open ones.
+- Asked for by Алексей in October 2026: pre-orders of sold-out products («под заказ», 2–3 days;
+  on by default, switched in «Настройки»), editing orders, prices for «Свой рецепт» that count in
+  the statistics, his own labels on products, and his own wording of the bot's messages.
 - Promo codes («Промокоды» in the admin): a percentage or a fixed amount off, on everything or on
   chosen categories and products, with an optional number of uses and a last day. Asked for by
   Алексей in October 2026; the spec had no discounts.

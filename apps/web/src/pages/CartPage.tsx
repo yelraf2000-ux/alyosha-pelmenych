@@ -1,3 +1,4 @@
+import { orderableQty } from '@alyosha/shared';
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ProductPhoto } from '../components/ProductPhoto';
@@ -88,14 +89,20 @@ export default function CartPage() {
                 <span className="muted">
                   {product.weightLabel} · {formatAmd(product.priceAmd)}
                 </span>
-                {qty >= product.stockQty && <span className="buy__low">{t.cart.maxReached(product.stockQty)}</span>}
+                {settings?.preorderEnabled
+                  ? qty > product.stockQty && (
+                      <span className="buy__preorder">
+                        {t.cart.preorderLine(qty - Math.max(0, product.stockQty), settings.preorderNote)}
+                      </span>
+                    )
+                  : qty >= product.stockQty && <span className="buy__low">{t.cart.maxReached(product.stockQty)}</span>}
               </div>
               <div className="line__controls">
                 {/* No separate «remove» button: minus at 1 takes the product out of the cart. */}
                 <QtyStepper
                   value={qty}
                   min={0}
-                  max={product.stockQty}
+                  max={orderableQty(product, settings)}
                   decreaseLabel={qty === 1 ? t.cart.removeItem(product.name) : undefined}
                   onChange={(next) => (next < 1 ? takeOut(product.id) : cart.setQty(product.id, next))}
                 />

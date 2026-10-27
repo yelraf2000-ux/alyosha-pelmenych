@@ -300,6 +300,9 @@ export default function CheckoutPage() {
               </li>
             ))}
           </ul>
+          {settings.preorderEnabled && cart.lines.some((line) => line.qty > line.product.stockQty) && (
+            <p className="buy__preorder">{t.checkout.preorderNote(settings.preorderNote)}</p>
+          )}
 
           <div className="promo">
             {promo ? (

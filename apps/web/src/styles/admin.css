@@ -671,6 +671,89 @@
   justify-self: start;
 }
 
+/* ---------- Labels, pre-orders, editing an order, recipe prices ---------- */
+
+.adm-tag--own {
+  background: #fff0cf;
+  color: var(--ink);
+}
+
+.adm-tag--preorder {
+  background: #e3f0f8;
+  color: var(--sky-700);
+}
+
+.adm-badges__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.adm-badges__list .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: none;
+}
+
+.adm-badges__list button {
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.adm-badges__add,
+.adm-order-edit__add,
+.adm-recipe__price {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.adm-badges__add .field__input,
+.adm-order-edit__add .field__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.adm-recipe__price .field__input {
+  width: 9em;
+}
+
+.adm-recipe__price .field__label {
+  margin: 0;
+}
+
+.adm-order-edit__lines {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.adm-order-edit__lines li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.adm-order-edit__qty {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
 /* ---------- Promo codes (admin/PromoCodes.tsx) ---------- */
 
 /* Each code is a row like an order's, and a button: pressing it opens the code in the form. */

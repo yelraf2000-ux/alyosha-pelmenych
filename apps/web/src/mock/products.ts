@@ -33,6 +33,7 @@ export const MOCK_PRODUCTS: Product[] = PRICE_LIST.map((product, index) => ({
   id: index + 1,
   description: '',
   isNew: false,
+  badges: [],
   isActive: true,
   sortOrder: (index + 1) * 10,
   imagePath: `/products/${product.slug}-1000.webp`, // built by scripts/product-art/build.mjs

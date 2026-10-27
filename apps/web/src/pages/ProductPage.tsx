@@ -1,5 +1,6 @@
 import { categoryName } from '@alyosha/shared';
 import { Link, useParams } from 'react-router-dom';
+import { ProductBadges } from '../components/ProductCard';
 import { ProductPhoto } from '../components/ProductPhoto';
 import { ProductVideo } from '../components/ProductVideo';
 import { PurchaseControls } from '../components/PurchaseControls';
@@ -10,7 +11,7 @@ import { useShop } from '../state/ShopContext';
 
 export default function ProductPage() {
   const { slug } = useParams();
-  const { products, categories } = useShop();
+  const { products, categories, settings } = useShop();
   const product = products.find((p) => p.slug === slug);
   useTitle(product?.name ?? t.product.notFoundTitle);
 
@@ -36,7 +37,7 @@ export default function ProductPage() {
       <div className="product">
         <div className="product__media">
           <ProductPhoto product={product} large />
-          {product.isNew && <span className="badge card__badge">{t.product.isNew}</span>}
+          <ProductBadges product={product} preorder={product.stockQty <= 0 && Boolean(settings?.preorderEnabled)} />
         </div>
         <div className="product__info">
           <h1>{product.name}</h1>

@@ -27,6 +27,8 @@ export interface Product {
   weightLabel: string;
   stockQty: number;
   isNew: boolean;
+  /** The owner's own labels on the product («Бест-селлер», «Острое»…), besides «Новинка». */
+  badges: string[];
   isActive: boolean;
   sortOrder: number;
   imagePath: string | null;
@@ -54,7 +56,64 @@ export interface Settings {
   customBases: string;
   customModifiers: string;
   customSpices: string;
+  /** A product that has run out can still be ordered, as a pre-order (see `PREORDER_MAX_QTY`). */
+  preorderEnabled: boolean;
+  /** How long a pre-order takes, as buyers read it: «Будет готово через 2–3 дня». */
+  preorderNote: string;
+  /**
+   * What the Telegram bot tells a buyer about their order and their «Свой рецепт» request, as the
+   * owner wrote it. Empty in the database means the shop's own wording (`DEFAULT_BOT_TEXTS`).
+   */
+  botOrderReceived: string;
+  botOrderConfirmed: string;
+  botOrderDone: string;
+  botOrderCancelled: string;
+  botRecipeReceived: string;
+  botRecipeConfirmed: string;
+  botRecipeDone: string;
+  botRecipeCancelled: string;
 }
+
+// ---------- Pre-orders ----------
+
+export const DEFAULT_PREORDER_NOTE = 'Будет готово через 2–3 дня';
+/** The most of one product a cart may hold once pre-orders are on: more than any stock. */
+export const PREORDER_MAX_QTY = 99;
+
+/** How many of a product a buyer may put in the cart: the stock, or more as a pre-order. */
+export function orderableQty(product: Pick<Product, 'stockQty'>, settings: Pick<Settings, 'preorderEnabled'> | null): number {
+  return settings?.preorderEnabled ? Math.max(product.stockQty, PREORDER_MAX_QTY) : Math.max(0, product.stockQty);
+}
+
+// ---------- Labels on products ----------
+
+export const PRODUCT_BADGES_MAX = 3;
+export const PRODUCT_BADGE_MAX_LENGTH = 24;
+
+// ---------- The bot's messages to buyers ----------
+
+/**
+ * The shop's own wording. In a text the first line is shown in bold when there is more than one,
+ * {номер} stands for the order's number and {рецепт} for the recipe's name.
+ */
+export const DEFAULT_BOT_TEXTS = {
+  botOrderReceived: 'Скоро подтвердим его. Здесь будем сообщать, как он продвигается.',
+  botOrderConfirmed: '✅ Заказ подтверждён.\nМы скоро напишем или позвоним вам, чтобы договориться о доставке и оплате.',
+  botOrderDone: '🎉 Заказ выполнен.\nСпасибо! Приятного аппетита.',
+  botOrderCancelled: 'Заказ отменён. Если это ошибка, напишите нам.',
+  botRecipeReceived: 'Мы свяжемся с вами, чтобы подтвердить заказ и назвать цену. Здесь будем сообщать, как он продвигается.',
+  botRecipeConfirmed: '✅ Рецепт «{рецепт}» подтверждён.\nМы скоро напишем или позвоним вам. Пельмени будут готовы через 2–4 дня.',
+  botRecipeDone: '🎉 Пельмени по рецепту «{рецепт}» готовы.\nСпасибо! Приятного аппетита.',
+  botRecipeCancelled: 'Заказ по рецепту «{рецепт}» отменён. Если это ошибка, напишите нам.',
+} as const satisfies Partial<Record<keyof Settings, string>>;
+
+export type BotTextKey = keyof typeof DEFAULT_BOT_TEXTS;
+
+/**
+ * The shop's own confirmation for an order that is collected. Used instead of
+ * `DEFAULT_BOT_TEXTS.botOrderConfirmed` for pickup orders, as long as the owner has not rewritten it.
+ */
+export const DEFAULT_BOT_PICKUP_CONFIRMED = '✅ Заказ подтверждён.\nМы скоро напишем или позвоним вам, чтобы договориться, когда вы его заберёте.';
 
 // ---------- «Свой рецепт»: пельмени made to the buyer's own recipe ----------
 
@@ -127,6 +186,8 @@ export interface OrderItemView {
   name: string;
   priceAmd: number;
   qty: number;
+  /** How many of `qty` were not in stock and are made to order. */
+  preorderQty: number;
 }
 
 export interface OrderView {
@@ -144,6 +205,8 @@ export interface OrderView {
   totalAmd: number;
   deliveryMethod: DeliveryMethod;
   deliveryAddress: string | null;
+  /** Some of it is made to order (see `OrderItemView.preorderQty`). */
+  isPreorder: boolean;
   /**
    * Opens the shop's Telegram bot for this order: after pressing Start there, the buyer gets a
    * message at every change of the order's status. null while the bot is not connected.

@@ -1,8 +1,10 @@
 import {
   categoryNameSchema,
+  customPriceSchema,
   daysInRange,
   isIsoDate,
   loginSchema,
+  orderEditSchema,
   ORDER_STATUSES,
   orderStatusSchema,
   passwordResetSchema,
@@ -33,11 +35,11 @@ import {
 } from './auth';
 import type { Db } from './db/client';
 import { PASSWORD_CHANGED_TEXT } from './services/admin-bot';
-import { deleteOrder, getOrder, getOrderStats, getToday, listOrders } from './services/admin-orders';
+import { deleteOrder, editOrder, getOrder, getOrderStats, getToday, listOrders } from './services/admin-orders';
 import { finishPasswordReset } from './services/admin-password';
 import { categoryExists, createCategory, deleteCategory, listAdminCategories, renameCategory } from './services/categories';
 import type { BuyerBot } from './services/buyer-bot';
-import { countNewCustomOrders, deleteCustomOrder, listCustomOrders } from './services/custom-orders';
+import { countNewCustomOrders, deleteCustomOrder, listCustomOrders, setCustomOrderPrice } from './services/custom-orders';
 import { deleteProductImage, InvalidImageError, MAX_UPLOAD_BYTES, saveProductImage } from './services/images';
 import {
   createProduct,
@@ -364,6 +366,20 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
         return result;
       });
 
+      // The owner rewrites an order: the buyer's details, the delivery, the goods. Stock follows.
+      admin.put('/orders/:id', async (request, reply) => {
+        const id = idParam(request);
+        if (!id) return fail(reply, 404, 'not_found');
+        const parsed = orderEditSchema.safeParse(request.body);
+        if (!parsed.success) return fail(reply, 400, 'invalid');
+        const result = await editOrder(db, id, parsed.data);
+        if (!result.ok) {
+          reply.code(result.error === 'not_found' ? 404 : 409);
+          return result;
+        }
+        return result;
+      });
+
       // For good, and without a word to the buyer: for test orders and mistakes.
       admin.delete('/orders/:id', async (request, reply) => {
         const id = idParam(request);
@@ -384,6 +400,14 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
         if (!parsed.success) return fail(reply, 400, 'invalid');
 
         return (await changeCustomStatusAndTell(db, buyerBot, id, parsed.data.status)) ?? fail(reply, 404, 'not_found');
+      });
+
+      admin.put('/custom-orders/:id/price', async (request, reply) => {
+        const id = idParam(request);
+        if (!id) return fail(reply, 404, 'not_found');
+        const parsed = customPriceSchema.safeParse(request.body);
+        if (!parsed.success) return fail(reply, 400, 'invalid');
+        return (await setCustomOrderPrice(db, id, parsed.data.priceAmd)) ?? fail(reply, 404, 'not_found');
       });
 
       admin.delete('/custom-orders/:id', async (request, reply) => {

@@ -1,4 +1,4 @@
-import { DEFAULT_CUSTOM_BASES, DEFAULT_CUSTOM_MODIFIERS, DEFAULT_CUSTOM_SPICES } from '@alyosha/shared';
+import { DEFAULT_BOT_TEXTS, DEFAULT_CUSTOM_BASES, DEFAULT_CUSTOM_MODIFIERS, DEFAULT_CUSTOM_SPICES, DEFAULT_PREORDER_NOTE } from '@alyosha/shared';
 import type { Settings } from '../types';
 
 // Settings for the static demo build. They mirror the real seed (apps/api/src/db/seed.ts).
@@ -25,4 +25,7 @@ export const MOCK_SETTINGS: Settings = {
   customBases: DEFAULT_CUSTOM_BASES,
   customModifiers: DEFAULT_CUSTOM_MODIFIERS,
   customSpices: DEFAULT_CUSTOM_SPICES,
+  preorderEnabled: true,
+  preorderNote: DEFAULT_PREORDER_NOTE,
+  ...DEFAULT_BOT_TEXTS,
 };

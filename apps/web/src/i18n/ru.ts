@@ -56,6 +56,10 @@ export const ru = {
     toCatalog: 'В каталог',
     description: 'Описание',
     video: 'Видео',
+    preorder: 'Предзаказать',
+    preorderBadge: 'Под заказ',
+    preorderNote: (note: string) => `Нет в наличии, можно заказать. ${note}.`,
+    moreAsPreorder: 'больше — под заказ',
   },
 
   notify: {
@@ -91,6 +95,7 @@ export const ru = {
     maxReached: (n: number) => `Больше нет: в наличии ${n} шт.`,
     count: (n: number) => `${n} ${plural(n, ['товар', 'товара', 'товаров'])}`,
     sticky: 'Корзина',
+    preorderLine: (n: number, note: string) => `Под заказ: ${n} шт. ${note}.`,
   },
 
   form: {
@@ -149,6 +154,7 @@ export const ru = {
       rate_limited: 'Слишком много попыток. Попробуйте через несколько минут.',
       failed: 'Не получилось проверить промокод. Попробуйте ещё раз.',
     },
+    preorderNote: (note: string) => `Часть заказа — под заказ. ${note}.`,
     promoStopped: 'Промокод перестал действовать, поэтому заказ не отправлен. Проверьте сумму и отправьте ещё раз.',
   },
 

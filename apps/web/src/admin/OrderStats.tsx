@@ -262,6 +262,35 @@ export function OrderStatsPage() {
             </>
           )}
 
+          {stats.recipes.count > 0 && (
+            <section className="adm-card">
+              <h2>Свой рецепт</h2>
+              <table className="adm-table">
+                <tbody>
+                  <tr>
+                    <td>Заявок (без отменённых)</td>
+                    <td className="adm-num">{stats.recipes.count}</td>
+                  </tr>
+                  <tr>
+                    <td>С ценой — на сумму</td>
+                    <td className="adm-num">
+                      {stats.recipes.pricedCount} · {formatAmd(stats.recipes.totalAmd)}
+                    </td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr className="adm-total">
+                    <td>Всего: заказы и рецепты</td>
+                    <td className="adm-num">{formatAmd(stats.kept.totalAmd + stats.recipes.totalAmd)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+              {stats.recipes.pricedCount < stats.recipes.count && (
+                <p className="adm-muted">Заявки без цены в сумму не входят. Цену указывают в «Рецептах».</p>
+              )}
+            </section>
+          )}
+
           <p className="adm-muted">
             Заказ считается за тот день, когда его оформили (по времени Еревана). В суммах — товары со скидкой по промокоду, если
             она была, и доставка с фиксированной ценой; доставка, которую покупатель оплачивает отдельно, сюда не входит.

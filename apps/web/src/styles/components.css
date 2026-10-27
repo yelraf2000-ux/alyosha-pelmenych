@@ -659,12 +659,38 @@
   opacity: 0.7;
 }
 
-.card__badge {
+.card__badge,
+.card__badges {
   position: absolute;
   top: 10px;
   left: 10px;
   z-index: 1;
   rotate: -4deg;
+}
+
+/* Several labels stack in the corner of the picture. */
+.card__badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+/* The owner's own labels, warm next to the blue «Новинка». */
+.badge--own {
+  background: rgba(255, 236, 196, 0.88);
+}
+
+.badge--preorder {
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--sky-700);
+}
+
+/* A pre-order: sold out, but it can be ordered and will be made. */
+.buy__preorder {
+  color: var(--sky-700);
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
 .card__body {

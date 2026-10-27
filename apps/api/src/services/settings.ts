@@ -1,4 +1,4 @@
-import type { Settings } from '@alyosha/shared';
+import { DEFAULT_BOT_TEXTS, DEFAULT_PREORDER_NOTE, type BotTextKey, type Settings } from '@alyosha/shared';
 import type { Db, Tx } from '../db/client';
 import { settings } from '../db/schema';
 
@@ -21,6 +21,16 @@ export const SETTING_KEYS = {
   customBases: 'custom_bases',
   customModifiers: 'custom_modifiers',
   customSpices: 'custom_spices',
+  preorderEnabled: 'preorder_enabled',
+  preorderNote: 'preorder_note',
+  botOrderReceived: 'bot_order_received',
+  botOrderConfirmed: 'bot_order_confirmed',
+  botOrderDone: 'bot_order_done',
+  botOrderCancelled: 'bot_order_cancelled',
+  botRecipeReceived: 'bot_recipe_received',
+  botRecipeConfirmed: 'bot_recipe_confirmed',
+  botRecipeDone: 'bot_recipe_done',
+  botRecipeCancelled: 'bot_recipe_cancelled',
 } as const satisfies Record<keyof Settings, string>;
 
 function toAmd(value: string | undefined): number {
@@ -32,6 +42,10 @@ export async function getSettings(db: Db | Tx): Promise<Settings> {
   const rows = await db.select().from(settings);
   const byKey = new Map(rows.map((row) => [row.key, row.value]));
   const text = (key: keyof Settings) => byKey.get(SETTING_KEYS[key]) ?? '';
+  // Empty means "the shop's own wording": clearing a field in the admin brings it back.
+  const botText = (key: BotTextKey) => text(key).trim() || DEFAULT_BOT_TEXTS[key];
+  // On unless the owner switched it off.
+  const preorder = byKey.get(SETTING_KEYS.preorderEnabled);
 
   return {
     aboutText: text('aboutText'),
@@ -51,6 +65,16 @@ export async function getSettings(db: Db | Tx): Promise<Settings> {
     customBases: text('customBases'),
     customModifiers: text('customModifiers'),
     customSpices: text('customSpices'),
+    preorderEnabled: preorder !== 'false' && preorder !== '0',
+    preorderNote: text('preorderNote').trim() || DEFAULT_PREORDER_NOTE,
+    botOrderReceived: botText('botOrderReceived'),
+    botOrderConfirmed: botText('botOrderConfirmed'),
+    botOrderDone: botText('botOrderDone'),
+    botOrderCancelled: botText('botOrderCancelled'),
+    botRecipeReceived: botText('botRecipeReceived'),
+    botRecipeConfirmed: botText('botRecipeConfirmed'),
+    botRecipeDone: botText('botRecipeDone'),
+    botRecipeCancelled: botText('botRecipeCancelled'),
   };
 }
 

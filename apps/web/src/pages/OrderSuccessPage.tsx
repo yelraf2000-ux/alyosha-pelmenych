@@ -5,6 +5,7 @@ import { TelegramFollow } from '../components/TelegramFollow';
 import { t } from '../i18n';
 import { formatAmd } from '../lib/format';
 import { useTitle } from '../lib/useTitle';
+import { useShop } from '../state/ShopContext';
 import type { OrderView } from '../types';
 
 const LAST_ORDER_KEY = 'ap_last_order_v1';
@@ -34,6 +35,7 @@ export default function OrderSuccessPage() {
   // The address does not name the order (the buyer is not shown its number): it is the one just
   // placed in this tab.
   const order = fromState ?? loadLastOrder();
+  const { settings } = useShop();
 
   return (
     <div className="section container narrow success">
@@ -62,6 +64,7 @@ export default function OrderSuccessPage() {
               </li>
             ))}
           </ul>
+          {order.isPreorder && settings && <p className="buy__preorder">{t.checkout.preorderNote(settings.preorderNote)}</p>}
           <dl className="totals">
             {order.discountAmd > 0 && (
               <div className="totals__discount">

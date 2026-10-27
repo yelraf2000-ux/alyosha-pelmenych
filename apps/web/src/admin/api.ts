@@ -55,6 +55,16 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return data as T;
 }
 
+export type OrderEditInput = {
+  customerName: string;
+  customerPhone: string;
+  customerTelegram: string | null;
+  comment: string | null;
+  deliveryMethod: 'pickup' | 'courier';
+  deliveryAddress: string | null;
+  items: { productId: number; qty: number }[];
+};
+
 export type ProductInput = {
   name: string;
   slug?: string;
@@ -65,6 +75,7 @@ export type ProductInput = {
   weightLabel: string;
   stockQty: number;
   isNew: boolean;
+  badges: string[];
   isActive: boolean;
 };
 
@@ -121,6 +132,7 @@ export const adminApi = {
   orderStats: (from: string, to: string) => request<OrderStats>('GET', `/orders/stats?from=${from}&to=${to}`),
   setOrderStatus: (id: number, status: OrderStatus) =>
     request<{ ok: true; order: AdminOrder }>('PATCH', `/orders/${id}`, { status }),
+  editOrder: (id: number, input: OrderEditInput) => request<{ ok: true; order: AdminOrder }>('PUT', `/orders/${id}`, input),
   /** For good: the order leaves the list and the statistics, and the buyer is told nothing. */
   deleteOrder: (id: number) => request<{ ok: true }>('DELETE', `/orders/${id}`),
 
@@ -128,6 +140,9 @@ export const adminApi = {
   setCustomOrderStatus: (id: number, status: OrderStatus) =>
     request<AdminCustomOrder>('PATCH', `/custom-orders/${id}`, { status }),
   deleteCustomOrder: (id: number) => request<{ ok: true }>('DELETE', `/custom-orders/${id}`),
+  /** null takes the price away again. */
+  setCustomOrderPrice: (id: number, priceAmd: number | null) =>
+    request<AdminCustomOrder>('PUT', `/custom-orders/${id}/price`, { priceAmd }),
 
   promoCodes: () => request<AdminPromoCode[]>('GET', '/promo-codes'),
   createPromoCode: (input: PromoCodeInput) => request<AdminPromoCode>('POST', '/promo-codes', input),

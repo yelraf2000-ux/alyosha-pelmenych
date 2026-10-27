@@ -26,7 +26,10 @@ export async function changeOrderStatusAndTell(
   const result = await changeOrderStatus(db, id, next);
   if (bot && result.ok && before && before.status !== result.order.status) {
     const chatId = await orderChatId(db, id);
-    if (chatId !== null) void bot.send(chatId, orderStatusText(result.order), contactButton(await getSettings(db)));
+    if (chatId !== null) {
+      const settings = await getSettings(db);
+      void bot.send(chatId, orderStatusText(result.order, settings), contactButton(settings));
+    }
   }
   return result;
 }
@@ -42,7 +45,10 @@ export async function changeCustomStatusAndTell(
   const order = await setCustomOrderStatus(db, id, next);
   if (bot && order && before && before.status !== order.status) {
     const chatId = await customOrderChatId(db, id);
-    if (chatId !== null) void bot.send(chatId, customStatusText(order), contactButton(await getSettings(db)));
+    if (chatId !== null) {
+      const settings = await getSettings(db);
+      void bot.send(chatId, customStatusText(order, settings), contactButton(settings));
+    }
   }
   return order;
 }

@@ -1,4 +1,4 @@
-import { formatKg, type AdminCustomOrder, type OrderStatus } from '@alyosha/shared';
+import { formatAmd, formatKg, type AdminCustomOrder, type OrderStatus } from '@alyosha/shared';
 import { useState } from 'react';
 import { adminApi } from './api';
 import { ContactLinks, errorText, formatDateTime, LoadState, PageHead, StatusBadge, useLoad } from './shared';
@@ -22,6 +22,20 @@ function RecipeCard({
   onError: (message: string | null) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [price, setPrice] = useState(order.priceAmd === null ? '' : String(order.priceAmd));
+  const priceChanged = price !== (order.priceAmd === null ? '' : String(order.priceAmd));
+
+  async function savePrice() {
+    setBusy(true);
+    onError(null);
+    try {
+      onChanged(await adminApi.setCustomOrderPrice(order.id, price.trim() ? Number(price) : null));
+    } catch (reason) {
+      onError(errorText(reason));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function setStatus(status: OrderStatus) {
     setBusy(true);
@@ -63,6 +77,7 @@ function RecipeCard({
       </div>
       <p className="adm-recipe__name">
         «{order.recipeName}» · {formatKg(order.weightGrams)}
+        {order.priceAmd !== null && ` · ${formatAmd(order.priceAmd)}`}
       </p>
       <dl className="adm-recipe__parts">
         <div>
@@ -88,6 +103,33 @@ function RecipeCard({
           : 'Бота покупатель не подключил: о заказе сообщите ему сами.'}
       </p>
       {order.comment && <p className="adm-recipe__comment">«{order.comment}»</p>}
+      <form
+        className="adm-recipe__price"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (priceChanged && !busy) void savePrice();
+        }}
+      >
+        <label className="field__label" htmlFor={`recipe-price-${order.id}`}>
+          Цена, ֏
+        </label>
+        <input
+          id={`recipe-price-${order.id}`}
+          className="field__input"
+          inputMode="numeric"
+          value={price}
+          placeholder="Не указана"
+          onChange={(event) => setPrice(event.target.value.replace(/[^\d]/g, ''))}
+        />
+        {priceChanged && (
+          <button type="submit" className="btn btn--primary" disabled={busy}>
+            Сохранить
+          </button>
+        )}
+        {!priceChanged && order.priceAmd !== null && (
+          <span className="adm-muted">Входит в статистику. Покупатель увидит её при подтверждении.</span>
+        )}
+      </form>
       <div className="adm-actions">
         {ACTIONS.filter((action) => action.status !== order.status).map((action) => (
           <button

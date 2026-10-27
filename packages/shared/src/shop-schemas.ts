@@ -11,7 +11,7 @@ import {
   normalizeTelegram,
 } from './shop';
 
-const phoneSchema = z
+export const phoneSchema = z
   .string()
   .max(40)
   .transform((value, ctx) => {
@@ -23,7 +23,7 @@ const phoneSchema = z
     return phone;
   });
 
-const telegramSchema = z
+export const telegramSchema = z
   .string()
   .max(40)
   .nullish()
@@ -37,14 +37,14 @@ const telegramSchema = z
     return username;
   });
 
-const optionalText = (max: number) =>
+export const optionalText = (max: number) =>
   z
     .string()
     .max(max)
     .nullish()
     .transform((value) => value?.trim() || null);
 
-const nameSchema = z.string().trim().min(2).max(80);
+export const nameSchema = z.string().trim().min(2).max(80);
 
 export const orderInputSchema = z
   .object({

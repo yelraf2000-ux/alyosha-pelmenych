@@ -1,4 +1,4 @@
-import type { AdminCategory, AdminProduct } from '@alyosha/shared';
+import { PRODUCT_BADGE_MAX_LENGTH, PRODUCT_BADGES_MAX, type AdminCategory, type AdminProduct } from '@alyosha/shared';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Field } from '../components/Field';
@@ -19,6 +19,7 @@ interface FormState {
   description: string;
   stockQty: string;
   isNew: boolean;
+  badges: string[];
   isActive: boolean;
   slug: string;
 }
@@ -31,6 +32,7 @@ const EMPTY: FormState = {
   description: '',
   stockQty: '0',
   isNew: false,
+  badges: [],
   isActive: true,
   slug: '',
 };
@@ -44,6 +46,7 @@ function fromProduct(product: AdminProduct): FormState {
     description: product.description,
     stockQty: String(product.stockQty),
     isNew: product.isNew,
+    badges: product.badges,
     isActive: product.isActive,
     slug: product.slug,
   };
@@ -169,6 +172,7 @@ export function ProductFormPage() {
       description: form.description.trim(),
       stockQty: Number(form.stockQty),
       isNew: form.isNew,
+      badges: form.badges,
       isActive: form.isActive,
       ...(form.slug.trim() ? { slug: form.slug.trim() } : {}),
     };
@@ -410,7 +414,7 @@ export function ProductFormPage() {
             onChange={(v) => set('stockQty', v)}
             required
             inputMode="numeric"
-            hint="0 — на сайте будет «Ожидается поставка»."
+            hint="0 — товар закончился. С включённым предзаказом его можно заказать «под заказ», без него на сайте будет «Ожидается поставка»."
             error={showErrors ? errors.stockQty : null}
           />
           <label className="adm-check">
@@ -421,6 +425,7 @@ export function ProductFormPage() {
             <input type="checkbox" checked={form.isNew} onChange={(event) => set('isNew', event.target.checked)} />
             Новинка
           </label>
+          <BadgesEditor value={form.badges} onChange={(badges) => set('badges', badges)} />
         </section>
 
         <details className="adm-card">
@@ -468,5 +473,73 @@ export function ProductFormPage() {
         </div>
       </form>
     </>
+  );
+}
+
+/**
+ * The owner's own labels on the product («Бест-селлер», «Острое»…): type one and press Enter or
+ * «Добавить»; × takes one off. Labels used on other products are offered as he types.
+ */
+function BadgesEditor({ value, onChange }: { value: string[]; onChange: (badges: string[]) => void }) {
+  const [draft, setDraft] = useState('');
+  const used = useLoad(() => adminApi.products(), []);
+  const suggestions = [...new Set((used.data ?? []).flatMap((product) => product.badges))].filter((badge) => !value.includes(badge));
+  const full = value.length >= PRODUCT_BADGES_MAX;
+
+  function add() {
+    const badge = draft.trim();
+    if (!badge || full || value.includes(badge)) return;
+    onChange([...value, badge]);
+    setDraft('');
+  }
+
+  return (
+    <div className="field adm-badges">
+      <label className="field__label" htmlFor="product-badge">
+        Свои плашки
+      </label>
+      {value.length > 0 && (
+        <ul className="adm-badges__list">
+          {value.map((badge) => (
+            <li key={badge} className="badge badge--own">
+              {badge}
+              <button type="button" aria-label={`Убрать плашку «${badge}»`} onClick={() => onChange(value.filter((item) => item !== badge))}>
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {!full && (
+        <div className="adm-badges__add">
+          <input
+            id="product-badge"
+            className="field__input"
+            value={draft}
+            maxLength={PRODUCT_BADGE_MAX_LENGTH}
+            placeholder="Например: Бест-селлер"
+            list="product-badge-suggestions"
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                add();
+              }
+            }}
+          />
+          <button type="button" className="btn" disabled={!draft.trim()} onClick={add}>
+            Добавить
+          </button>
+          <datalist id="product-badge-suggestions">
+            {suggestions.map((badge) => (
+              <option key={badge} value={badge} />
+            ))}
+          </datalist>
+        </div>
+      )}
+      <p className="field__hint">
+        Показываются на карточке товара рядом с «Новинкой». До {PRODUCT_BADGES_MAX} штук, по {PRODUCT_BADGE_MAX_LENGTH} знаков.
+      </p>
+    </div>
   );
 }

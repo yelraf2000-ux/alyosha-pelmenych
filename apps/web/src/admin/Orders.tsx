@@ -2,6 +2,7 @@ import { formatAmd, ORDER_STATUSES, type AdminOrderSummary, type OrderStatus, ty
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { adminApi, ApiError } from './api';
+import { OrderEditor } from './OrderEditor';
 import { ContactLinks, errorText, formatDateTime, LoadState, PageHead, StatusBadge, useLoad } from './shared';
 
 const FILTERS: { value: OrderStatus | ''; label: string }[] = [
@@ -84,6 +85,7 @@ export function OrdersPage() {
                 <span className="adm-row__main">
                   <strong>{order.publicNumber}</strong>
                   <StatusBadge status={order.status} />
+                  {order.isPreorder && <span className="adm-tag adm-tag--preorder">предзаказ</span>}
                 </span>
                 <span className="adm-row__sub">
                   {order.customerName} · {order.deliveryMethod === 'pickup' ? 'самовывоз' : 'курьер'} · {order.itemsCount}{' '}
@@ -127,6 +129,7 @@ export function OrderPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [shortages, setShortages] = useState<StockShortage[]>([]);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
   const navigate = useNavigate();
 
   if (!order) {
@@ -186,6 +189,12 @@ export function OrderPage() {
       </Link>
       <PageHead title={`Заказ ${order.publicNumber}`}>
         <StatusBadge status={order.status} />
+        {order.isPreorder && <span className="adm-tag adm-tag--preorder">предзаказ</span>}
+        {!editing && (
+          <button type="button" className="btn" onClick={() => setEditing(true)}>
+            Изменить заказ
+          </button>
+        )}
       </PageHead>
       <p className="adm-muted">Оформлен {formatDateTime(order.createdAt)}</p>
 
@@ -220,6 +229,17 @@ export function OrderPage() {
         )}
       </section>
 
+      {editing ? (
+        <OrderEditor
+          order={order}
+          onCancel={() => setEditing(false)}
+          onSaved={(saved) => {
+            setData(saved);
+            setEditing(false);
+          }}
+        />
+      ) : (
+      <>
       <section className="adm-card">
         <h2>Покупатель</h2>
         <p className="adm-big">{order.customerName}</p>
@@ -249,6 +269,11 @@ export function OrderPage() {
                     {' '}
                     × {item.qty} по {formatAmd(item.priceAmd)}
                   </span>
+                  {item.preorderQty > 0 && (
+                    <span className="adm-tag adm-tag--preorder">
+                      {item.preorderQty === item.qty ? 'под заказ' : `под заказ: ${item.preorderQty}`}
+                    </span>
+                  )}
                 </td>
                 <td className="adm-num">{formatAmd(item.priceAmd * item.qty)}</td>
               </tr>
@@ -285,6 +310,8 @@ export function OrderPage() {
           </tfoot>
         </table>
       </section>
+      </>
+      )}
 
       <section className="adm-card">
         <h2>Удаление</h2>

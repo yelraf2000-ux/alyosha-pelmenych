@@ -261,13 +261,14 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     // Everything else is for buyers, and only in a private chat.
     if (message?.chat?.type !== 'private') return { ok: true };
 
-    const button = contactButton(await getSettings(db));
+    const settings = await getSettings(db);
+    const button = contactButton(settings);
     const start = /^[/]start(?:@[A-Za-z0-9_]+)?(?:[ ]+([^ ]+))?[ ]*$/.exec(text);
     if (start?.[1]) {
       const linked = await linkChat(db, start[1], chatId);
       if (!linked) void buyerBot.send(chatId, UNKNOWN_ORDER_TEXT, button);
-      else if (linked.kind === 'order') void buyerBot.send(chatId, orderLinkedText(linked.order), button);
-      else void buyerBot.send(chatId, customLinkedText(linked.order), button);
+      else if (linked.kind === 'order') void buyerBot.send(chatId, orderLinkedText(linked.order, settings), button);
+      else void buyerBot.send(chatId, customLinkedText(linked.order, settings), button);
     } else {
       void buyerBot.send(chatId, WELCOME_TEXT, button);
     }

@@ -375,6 +375,34 @@ Locally, `npm run admin:password` writes the new hash straight into `apps/api/.e
 
 To sign everyone out without changing the password, put a new `SESSION_SECRET` into the settings.
 
+## Pre-orders
+
+With «Настройки → Предзаказ» on (the default), a product that has run out can still be ordered.
+What is in stock is taken from it; the rest of the line is made to order (`order_items.preorder_qty`)
+and stock never goes below zero. The shop shows «Под заказ» and «Предзаказать» with the owner's
+note («Будет готово через 2–3 дня»); the order, the owner's Telegram message and the buyer's
+messages mark what is made to order. Cancelling or deleting an order puts back only what came out
+of the stock; reopening a cancelled one takes it again and makes the rest to order. Switched off,
+a sold-out product shows «Ожидается поставка» and «Сообщить о поступлении», as before.
+
+## Editing an order
+
+On an order's page, «Изменить заказ»: the buyer's details, the delivery and, while the order is new
+or confirmed, the goods. Stock moves by the difference (the order's own goods count as available to
+it), lines that were there keep the price they were bought at, and the promo code's discount and the
+delivery are worked out again. A completed or cancelled order keeps its goods. Neither the buyer nor
+the owner's Telegram message hears about the change.
+
+## Labels on products and the bot's messages
+
+- A product can carry up to three of the owner's own labels («Бест-селлер», «Острое»…), set in its
+  form under «Свои плашки» and shown next to «Новинка».
+- «Настройки → Сообщения бота покупателям» holds the eight messages the bot sends buyers about an
+  order or a «Свой рецепт» request. The first line is bold when there are several, `{номер}` and
+  `{рецепт}` are filled in, and an emptied field brings back the shop's own wording.
+- «Свой рецепт» requests take a price in «Рецепты»; the bot adds it to the confirmation, and the
+  statistics count priced requests that were not cancelled.
+
 ## Promo codes
 
 The owner makes them in the admin under «Промокоды»: the code (letters of any alphabet, digits,

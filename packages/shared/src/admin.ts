@@ -50,6 +50,8 @@ export interface AdminOrderSummary {
   deliveryMethod: DeliveryMethod;
   totalAmd: number;
   itemsCount: number;
+  /** Some of it is made to order. */
+  isPreorder: boolean;
   createdAt: string;
 }
 
@@ -64,7 +66,8 @@ export interface AdminOrder extends AdminOrderSummary {
   deliveryFeeAmd: number;
   /** Delivery is not in the total: the buyer pays the courier separately. */
   deliveryExtra: boolean;
-  items: { productId: number; name: string; priceAmd: number; qty: number }[];
+  /** `preorderQty`: how many of `qty` were not in stock and are made to order. */
+  items: { productId: number; name: string; priceAmd: number; qty: number; preorderQty: number }[];
   /** The buyer pressed Start in the shop's bot: status changes reach them in Telegram. */
   telegramLinked: boolean;
   updatedAt: string;
@@ -87,6 +90,8 @@ export interface AdminCustomOrder {
   /** The buyer pressed Start in the shop's bot: status changes reach them in Telegram. */
   telegramLinked: boolean;
   createdAt: string;
+  /** What the owner charges for it, once he has named a price; null until then. */
+  priceAmd: number | null;
 }
 
 export type ChangeOrderStatusResult =
@@ -135,6 +140,11 @@ export interface OrderStats {
   products: { productId: number; name: string; qty: number; totalAmd: number }[];
   /** One line per day that had orders, oldest first. */
   days: { date: string; count: number; cancelledCount: number; totalAmd: number }[];
+  /**
+   * «Свой рецепт» requests in the period, cancelled ones left out. Only those the owner has put a
+   * price on (`pricedCount`) are in `totalAmd`.
+   */
+  recipes: { count: number; pricedCount: number; totalAmd: number };
   /**
    * Orders placed with a promo code, cancelled ones left out: one line per code, most used first.
    * `totalAmd` is what those orders came to after their discount.

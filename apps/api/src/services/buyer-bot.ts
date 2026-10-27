@@ -3,7 +3,9 @@ import {
   formatKg,
   type AdminCustomOrder,
   type AdminOrder,
-  type OrderStatus,
+  DEFAULT_BOT_PICKUP_CONFIRMED,
+  DEFAULT_BOT_TEXTS,
+  type BotTextKey,
   type Settings,
 } from '@alyosha/shared';
 import { randomBytes } from 'node:crypto';
@@ -109,38 +111,67 @@ export function contactButton(settings: Pick<Settings, 'telegramContact' | 'tele
   return username ? [[{ text: 'Написать Алёше', url: `https://t.me/${username}` }]] : undefined;
 }
 
-function orderLines(order: AdminOrder): string[] {
+/**
+ * One of the owner's texts (`Settings.bot…`), ready to send: escaped, {номер} and {рецепт} filled
+ * in, and the first line in bold when there are several.
+ */
+export function botText(template: string, values: { номер?: string; рецепт?: string } = {}): string {
+  const filled = escapeHtml(template.trim()).replace(/\{(номер|рецепт)\}/g, (_, key: 'номер' | 'рецепт') => escapeHtml(values[key] ?? ''));
+  const lines = filled.split('\n');
+  if (lines.length > 1 && lines[0]!.trim()) lines[0] = `<b>${lines[0]}</b>`;
+  return lines.join('\n');
+}
+
+function preorderMark(item: { qty: number; preorderQty: number }): string {
+  if (item.preorderQty === 0) return '';
+  return item.preorderQty === item.qty ? ' (под заказ)' : ` (из них под заказ: ${item.preorderQty})`;
+}
+
+function orderLines(order: AdminOrder, settings: Pick<Settings, 'preorderNote'>): string[] {
   return [
-    ...order.items.map((item) => `• ${escapeHtml(item.name)} × ${item.qty} — ${formatAmd(item.priceAmd * item.qty)}`),
+    ...order.items.map(
+      (item) => `• ${escapeHtml(item.name)} × ${item.qty} — ${formatAmd(item.priceAmd * item.qty)}${preorderMark(item)}`,
+    ),
+    ...(order.isPreorder ? [`⏳ Под заказ: ${escapeHtml(settings.preorderNote)}`] : []),
     '',
     ...(order.discountAmd > 0 ? [`Скидка по промокоду ${escapeHtml(order.promoCode ?? '')}: −${formatAmd(order.discountAmd)}`] : []),
     `<b>Итого: ${formatAmd(order.totalAmd)}${order.deliveryExtra ? ' + доставка' : ''}</b>`,
   ];
 }
 
+type BotSettings = Pick<Settings, 'preorderNote' | BotTextKey>;
+
 /** Sent when the buyer presses Start from the thank-you page. */
-export function orderLinkedText(order: AdminOrder): string {
+export function orderLinkedText(order: AdminOrder, settings: BotSettings): string {
   return [
     '🥟 <b>Мы получили ваш заказ</b>',
     '',
-    ...orderLines(order),
+    ...orderLines(order, settings),
     '',
-    order.status === 'new' ? 'Скоро подтвердим его. Здесь будем сообщать, как он продвигается.' : orderStatusText(order),
+    order.status === 'new' ? botText(settings.botOrderReceived, { номер: order.publicNumber }) : orderStatusText(order, settings),
   ].join('\n');
 }
 
-/** Sent whenever the owner moves the order to another status. */
-export function orderStatusText(order: Pick<AdminOrder, 'status' | 'deliveryMethod'>): string {
-  const texts: Record<OrderStatus, string> = {
-    new: 'Заказ снова в обработке. Мы свяжемся с вами.',
-    confirmed:
-      order.deliveryMethod === 'courier'
-        ? '✅ <b>Заказ подтверждён.</b>\nМы скоро напишем или позвоним вам, чтобы договориться о доставке и оплате.'
-        : '✅ <b>Заказ подтверждён.</b>\nМы скоро напишем или позвоним вам, чтобы договориться, когда вы его заберёте.',
-    done: '🎉 <b>Заказ выполнен.</b>\nСпасибо! Приятного аппетита.',
-    cancelled: 'Заказ отменён. Если это ошибка, напишите нам.',
-  };
-  return texts[order.status];
+/** Sent whenever the owner moves the order to another status; the words are his (`Settings.botOrder…`). */
+export function orderStatusText(
+  order: Pick<AdminOrder, 'status' | 'publicNumber' | 'deliveryMethod'>,
+  settings: BotSettings,
+): string {
+  const values = { номер: order.publicNumber };
+  switch (order.status) {
+    case 'new':
+      return 'Заказ снова в обработке. Мы свяжемся с вами.';
+    case 'confirmed': {
+      // The shop's own wording speaks of collecting or of delivery; the owner's own is used as he wrote it.
+      const own = settings.botOrderConfirmed.trim() !== DEFAULT_BOT_TEXTS.botOrderConfirmed;
+      const text = own || order.deliveryMethod === 'courier' ? settings.botOrderConfirmed : DEFAULT_BOT_PICKUP_CONFIRMED;
+      return botText(text, values);
+    }
+    case 'done':
+      return botText(settings.botOrderDone, values);
+    case 'cancelled':
+      return botText(settings.botOrderCancelled, values);
+  }
 }
 
 function recipeLines(order: AdminCustomOrder): string[] {
@@ -153,27 +184,31 @@ function recipeLines(order: AdminCustomOrder): string[] {
   ];
 }
 
-export function customLinkedText(order: AdminCustomOrder): string {
+export function customLinkedText(order: AdminCustomOrder, settings: BotSettings): string {
   return [
     '👩‍🍳 <b>Мы получили ваш рецепт</b>',
     '',
     ...recipeLines(order),
     '',
-    order.status === 'new'
-      ? 'Мы свяжемся с вами, чтобы подтвердить заказ и назвать цену. Здесь будем сообщать, как он продвигается.'
-      : customStatusText(order),
+    order.status === 'new' ? botText(settings.botRecipeReceived, { рецепт: order.recipeName }) : customStatusText(order, settings),
   ].join('\n');
 }
 
-export function customStatusText(order: Pick<AdminCustomOrder, 'status' | 'recipeName'>): string {
-  const name = `«${escapeHtml(order.recipeName)}»`;
-  const texts: Record<OrderStatus, string> = {
-    new: `Рецепт ${name} снова в обработке. Мы свяжемся с вами.`,
-    confirmed: `✅ <b>Рецепт ${name} подтверждён.</b>\nМы скоро напишем или позвоним вам. Пельмени будут готовы через 2–4 дня.`,
-    done: `🎉 <b>Пельмени по рецепту ${name} готовы.</b>\nСпасибо! Приятного аппетита.`,
-    cancelled: `Заказ по рецепту ${name} отменён. Если это ошибка, напишите нам.`,
-  };
-  return texts[order.status];
+/** Once the owner has named a price, the confirmation carries it. */
+export function customStatusText(order: Pick<AdminCustomOrder, 'status' | 'recipeName' | 'priceAmd'>, settings: BotSettings): string {
+  const values = { рецепт: order.recipeName };
+  switch (order.status) {
+    case 'new':
+      return `Рецепт «${escapeHtml(order.recipeName)}» снова в обработке. Мы свяжемся с вами.`;
+    case 'confirmed': {
+      const text = botText(settings.botRecipeConfirmed, values);
+      return order.priceAmd !== null ? `${text}\nЦена: <b>${formatAmd(order.priceAmd)}</b>` : text;
+    }
+    case 'done':
+      return botText(settings.botRecipeDone, values);
+    case 'cancelled':
+      return botText(settings.botRecipeCancelled, values);
+  }
 }
 
 /** For someone who opened the bot without coming from an order. */

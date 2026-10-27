@@ -120,7 +120,7 @@ export async function submitOrder(input: OrderInput): Promise<SubmitOrderResult>
     if (line.qty > available) {
       shortages.push({ productId: product.id, name: product.name, available });
     }
-    items.push({ productId: product.id, name: product.name, priceAmd: product.priceAmd, qty: line.qty });
+    items.push({ productId: product.id, name: product.name, priceAmd: product.priceAmd, qty: line.qty, preorderQty: 0 });
   }
 
   if (shortages.length > 0) {
@@ -149,6 +149,7 @@ export async function submitOrder(input: OrderInput): Promise<SubmitOrderResult>
       totalAmd: itemsTotalAmd + deliveryFeeAmd,
       deliveryMethod: input.deliveryMethod,
       deliveryAddress: input.deliveryMethod === 'courier' ? (input.deliveryAddress?.trim() ?? null) : null,
+      isPreorder: false,
       telegramLink: null, // the demo has no bot
     },
   };

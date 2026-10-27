@@ -34,9 +34,13 @@ function contactLines(contact: { name: string; phone: string; telegram: string |
  */
 export function formatOrderMessage(order: AdminOrder): string {
   const lines = [
-    `🥟 <b>${order.status === 'new' ? 'Новый заказ' : 'Заказ'} ${escapeHtml(order.publicNumber)}</b>`,
+    `🥟 <b>${order.status === 'new' ? 'Новый заказ' : 'Заказ'} ${escapeHtml(order.publicNumber)}</b>${order.isPreorder ? ' · ⏳ предзаказ' : ''}`,
     '',
-    ...order.items.map((item) => `• ${escapeHtml(item.name)} × ${item.qty} — ${formatAmd(item.priceAmd * item.qty)}`),
+    ...order.items.map(
+      (item) =>
+        `• ${escapeHtml(item.name)} × ${item.qty} — ${formatAmd(item.priceAmd * item.qty)}` +
+        (item.preorderQty === 0 ? '' : item.preorderQty === item.qty ? ' ⏳ под заказ' : ` ⏳ под заказ: ${item.preorderQty}`),
+    ),
     '',
     `Товары: ${formatAmd(order.itemsTotalAmd)}`,
     ...(order.discountAmd > 0 ? [`Промокод ${escapeHtml(order.promoCode ?? '')}: −${formatAmd(order.discountAmd)}`] : []),
@@ -79,7 +83,8 @@ export function formatCustomOrderMessage(order: AdminCustomOrder): string {
   ];
   if (order.comment) lines.push(`💬 ${escapeHtml(order.comment)}`);
   lines.push('', `Статус: <b>${STATUS_LABELS[order.status]}</b>`);
-  if (order.status === 'new') lines.push('Цены нет: назовите её покупателю при подтверждении.');
+  if (order.priceAmd !== null) lines.push(`Цена: <b>${formatAmd(order.priceAmd)}</b>`);
+  else if (order.status === 'new') lines.push('Цены нет: назовите её покупателю при подтверждении.');
   if (order.telegramLinked) lines.push('Покупатель подключил бота: о смене статуса он узнает сам.');
   return lines.join('\n');
 }

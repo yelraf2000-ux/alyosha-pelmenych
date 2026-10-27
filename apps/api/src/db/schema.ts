@@ -62,6 +62,8 @@ export const products = pgTable(
     weightLabel: text('weight_label').notNull().default(''),
     stockQty: integer('stock_qty').notNull().default(0),
     isNew: boolean('is_new').notNull().default(false),
+    /** The owner's own labels («Бест-селлер»…), shown on the product next to «Новинка». */
+    badges: text('badges').array().notNull().default(sql`'{}'::text[]`),
     isActive: boolean('is_active').notNull().default(true),
     sortOrder: integer('sort_order').notNull().default(0),
     imagePath: text('image_path'),
@@ -101,6 +103,8 @@ export const orders = pgTable(
     promoCodeId: integer('promo_code_id').references(() => promoCodes.id, { onDelete: 'set null' }),
     promoCode: text('promo_code'),
     discountAmd: integer('discount_amd').notNull().default(0),
+    /** Some of it is made to order: see `order_items.preorder_qty`. */
+    isPreorder: boolean('is_preorder').notNull().default(false),
     status: orderStatus('status').notNull().default('new'),
     ...buyerChat('orders'),
     ...timestamps,
@@ -127,8 +131,17 @@ export const orderItems = pgTable(
     productNameSnapshot: text('product_name_snapshot').notNull(),
     priceAmdSnapshot: integer('price_amd_snapshot').notNull(),
     qty: integer('qty').notNull(),
+    /**
+     * How many of `qty` were not in stock when the order took them: they are made to order, and
+     * only `qty − preorder_qty` came out of the stock (and goes back into it on cancelling).
+     */
+    preorderQty: integer('preorder_qty').notNull().default(0),
   },
-  (t) => [check('order_items_qty_positive', sql`${t.qty} > 0`), index('order_items_order_idx').on(t.orderId)],
+  (t) => [
+    check('order_items_qty_positive', sql`${t.qty} > 0`),
+    check('order_items_preorder_within_qty', sql`${t.preorderQty} >= 0 AND ${t.preorderQty} <= ${t.qty}`),
+    index('order_items_order_idx').on(t.orderId),
+  ],
 );
 
 export const stockRequests = pgTable(
@@ -175,11 +188,16 @@ export const customOrders = pgTable(
     customerPhone: text('customer_phone').notNull(),
     customerTelegram: text('customer_telegram'),
     comment: text('comment'),
+    /** The price the owner named, once he has; it counts in the statistics. */
+    priceAmd: integer('price_amd'),
     status: orderStatus('status').notNull().default('new'),
     ...buyerChat('custom_orders'),
     ...timestamps,
   },
-  (t) => [index('custom_orders_status_created_idx').on(t.status, t.createdAt)],
+  (t) => [
+    index('custom_orders_status_created_idx').on(t.status, t.createdAt),
+    check('custom_orders_price_non_negative', sql`${t.priceAmd} IS NULL OR ${t.priceAmd} >= 0`),
+  ],
 );
 
 /**
