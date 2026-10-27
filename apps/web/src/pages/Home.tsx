@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Catalog } from '../components/Catalog';
 import { Hero } from '../components/Hero';
 import { AboutPhoto, DeliveryInfo } from '../components/InfoBlocks';
-import { LatestNews } from '../components/News';
+import { NewsTeaser } from '../components/News';
 import { ProductCard } from '../components/ProductCard';
 import { Reveal } from '../components/Reveal';
 import { t } from '../i18n';
@@ -40,6 +40,9 @@ export default function Home() {
         </section>
       )}
 
+      {/* A line leading to the news, between the new products and the full catalog; not there while there is none. */}
+      <NewsTeaser />
+
       <section className="section container" id="catalog" aria-labelledby="catalog-title">
         <Reveal>
           <h2 id="catalog-title" className="section__title">
@@ -65,8 +68,6 @@ export default function Home() {
           </Reveal>
         </section>
       )}
-
-      <LatestNews />
 
       <section className="section section--tinted" aria-labelledby="about-title">
         <div className="container narrow">

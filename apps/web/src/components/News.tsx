@@ -68,33 +68,38 @@ export function NewsGrid({ posts }: { posts: NewsPost[] }) {
   );
 }
 
-/** The home page's block: the three latest posts. Not there at all while there is no news (or it fails to load). */
-export function LatestNews() {
-  const [posts, setPosts] = useState<NewsPost[]>([]);
+/**
+ * The home page's line: «Новости →» with a hook under it, leading to the news page. Not there
+ * while there is no news (or it fails to load), so it never leads to an empty page.
+ */
+export function NewsTeaser() {
+  const [hasNews, setHasNews] = useState(false);
 
   useEffect(() => {
     let alive = true;
-    getNews(3)
-      .then((loaded) => alive && setPosts(loaded))
+    getNews(1)
+      .then((loaded) => alive && setHasNews(loaded.length > 0))
       .catch(() => undefined);
     return () => {
       alive = false;
     };
   }, []);
 
-  if (posts.length === 0) return null;
+  if (!hasNews) return null;
 
   return (
-    <section className="section container" aria-labelledby="news-title">
+    <section className="container news-teaser-wrap" aria-label={t.news.title}>
       <Reveal>
-        <h2 id="news-title" className="section__title">
-          {t.news.title}
-        </h2>
+        <Link to="/news" className="news-teaser">
+          <span className="news-teaser__text">
+            <span className="news-teaser__title">{t.news.title}</span>
+            <span className="news-teaser__hook">{t.news.hook}</span>
+          </span>
+          <span className="news-teaser__arrow" aria-hidden="true">
+            →
+          </span>
+        </Link>
       </Reveal>
-      <NewsGrid posts={posts} />
-      <Link to="/news" className="more-link">
-        {t.news.all} →
-      </Link>
     </section>
   );
 }

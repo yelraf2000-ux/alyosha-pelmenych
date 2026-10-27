@@ -381,9 +381,9 @@ The owner writes news in the admin («Новости»): a title, the text, a da
 another), a photo and a video, each optional, and «Показывать на сайте» for drafts. On the site
 `/news` lists the published posts, newest first by their date: the photo (or the video's poster),
 the date, the title and the beginning of the first paragraph. A post opens on a page of its own,
-`/news/<id>`, with all of the text, the photo and the video. The home page shows the three latest
-posts between «Свой рецепт» and «О нас», and the footer links to `/news`; with no posts the block
-is not there.
+`/news/<id>`, with all of the text, the photo and the video. The home page has one line leading to
+`/news` («Новости», a hook under it, →) between «Новинки» and «Каталог», and the footer links to
+`/news` too; with no published posts the line is not there.
 
 News photos are kept under `uploads/news`, the videos with the products' ones. Unlike a product's
 clip, a news video keeps its sound (the owner may be the one speaking) and plays with it.

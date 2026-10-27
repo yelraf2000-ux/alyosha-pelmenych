@@ -137,7 +137,7 @@ Render account.
   chosen categories and products, with an optional number of uses and a last day. Asked for by
   Алексей in October 2026; the spec had no discounts.
 - «Новости»: posts with a title, text, photo and video, written in the admin; a news page on the
-  site, a page for each post, and the three latest on the home page. Asked for in October 2026.
+  site, a page for each post, and a line leading to them on the home page. Asked for in October 2026.
 - Orders and «Свой рецепт» requests can be deleted in the admin (for test orders and mistakes).
   The spec only had statuses; a cancelled order stays in the history, a deleted one does not.
 - A forgotten admin password is replaced by the owner himself: `/password` in his admin chat, a
