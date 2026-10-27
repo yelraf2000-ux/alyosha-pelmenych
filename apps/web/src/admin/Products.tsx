@@ -1,71 +1,8 @@
-import {
-  categoryName,
-  formatAmd,
-  smallImagePath,
-  type AdminProduct,
-  type AdminStockRequest,
-  type Category,
-} from '@alyosha/shared';
+import { categoryName, formatAmd, smallImagePath, type AdminProduct, type Category } from '@alyosha/shared';
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { plural } from '../lib/format';
+import { Link } from 'react-router-dom';
 import { adminApi } from './api';
-import { ContactLinks, errorText, LoadState, PageHead, useLoad } from './shared';
-
-/** People waiting for a product, keyed by product id. Shown right after its stock is raised from zero. */
-type WaitingMap = Record<number, AdminStockRequest[]>;
-
-export interface ProductsLocationState {
-  waiting?: { productId: number; requests: AdminStockRequest[] };
-}
-
-/** SPEC §7: «N человек ждут этот товар» with their contacts, and a way to mark them as notified. */
-function WaitingHint({
-  requests,
-  onNotified,
-  onHide,
-}: {
-  requests: AdminStockRequest[];
-  onNotified: () => Promise<void>;
-  onHide: () => void;
-}) {
-  const [busy, setBusy] = useState(false);
-  const n = requests.length;
-  return (
-    <div className="adm-waiting" role="status">
-      <p>
-        <strong>
-          {n} {plural(n, ['человек ждёт', 'человека ждут', 'человек ждут'])} этот товар.
-        </strong>{' '}
-        Сообщите им, что он снова в наличии:
-      </p>
-      <ul>
-        {requests.map((request) => (
-          <li key={request.id}>
-            <span>{request.name}</span>
-            <ContactLinks phone={request.phone} telegram={request.telegram} />
-          </li>
-        ))}
-      </ul>
-      <div className="adm-actions">
-        <button
-          type="button"
-          className="btn btn--primary"
-          disabled={busy}
-          onClick={async () => {
-            setBusy(true);
-            await onNotified().finally(() => setBusy(false));
-          }}
-        >
-          Отметить, что сообщили
-        </button>
-        <button type="button" className="btn" onClick={onHide}>
-          Позже
-        </button>
-      </div>
-    </div>
-  );
-}
+import { errorText, LoadState, PageHead, useLoad } from './shared';
 
 /** Parts of a row that do something of their own when pressed, so a press there never starts a drag. */
 const INTERACTIVE = 'a, button, input, select, textarea, label';
@@ -76,24 +13,16 @@ function ProductRow({
   position,
   total,
   dragging,
-  waiting,
-  onSaved,
   onMove,
   onDragStart,
-  onError,
-  onWaiting,
 }: {
   product: AdminProduct;
   categories: Category[];
   position: number;
   total: number;
   dragging: boolean;
-  waiting: AdminStockRequest[] | undefined;
-  onSaved: (product: AdminProduct) => void;
   onMove: (direction: -1 | 1) => void;
   onDragStart: (event: ReactPointerEvent) => void;
-  onError: (message: string) => void;
-  onWaiting: (requests: AdminStockRequest[] | null) => void;
 }) {
   return (
     <li
@@ -126,11 +55,6 @@ function ProductRow({
               </span>
             ))}
             {product.stockQty === 0 && <span className="adm-tag adm-tag--out">нет в наличии</span>}
-            {product.waitingCount > 0 && (
-              <Link to="/admin/requests" className="adm-tag adm-tag--wait">
-                ждут: {product.waitingCount}
-              </Link>
-            )}
           </span>
         </div>
         {/* The grip: the place to take the row by on a touch screen (a finger anywhere else scrolls
@@ -164,38 +88,17 @@ function ProductRow({
         </button>
       </div>
 
-      {waiting && waiting.length > 0 && (
-        <WaitingHint
-          requests={waiting}
-          onHide={() => onWaiting(null)}
-          onNotified={async () => {
-            try {
-              await adminApi.markNotified(product.id);
-              onSaved({ ...product, waitingCount: 0 });
-              onWaiting(null);
-            } catch (reason) {
-              onError(errorText(reason));
-            }
-          }}
-        />
-      )}
     </li>
   );
 }
 
 export function ProductsPage() {
-  const location = useLocation();
   const { data: products, setData, error, loading, reload } = useLoad(() => adminApi.products(), [], {
     refreshOnFocus: true,
   });
   // Only for the names shown in the rows; while they load, a row shows the category's slug.
   const { data: categories } = useLoad(() => adminApi.categories(), []);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [waiting, setWaiting] = useState<WaitingMap>(() => {
-    // The product form hands over who is waiting when it raised the stock from zero.
-    const passed = (location.state as ProductsLocationState | null)?.waiting;
-    return passed ? { [passed.productId]: passed.requests } : {};
-  });
 
   const list = useRef<HTMLUListElement>(null);
   const [draggingId, setDraggingId] = useState<number | null>(null);
@@ -308,22 +211,8 @@ export function ProductsPage() {
               position={index}
               total={products.length}
               dragging={draggingId === product.id}
-              waiting={waiting[product.id]}
               onMove={(direction) => move(index, direction)}
               onDragStart={(event) => startDrag(event, product.id)}
-              onError={setActionError}
-              onSaved={(saved) => {
-                setActionError(null);
-                setData(products.map((item) => (item.id === saved.id ? saved : item)));
-              }}
-              onWaiting={(requests) =>
-                setWaiting((current) => {
-                  const next = { ...current };
-                  if (requests) next[product.id] = requests;
-                  else delete next[product.id];
-                  return next;
-                })
-              }
             />
           ))}
         </ul>

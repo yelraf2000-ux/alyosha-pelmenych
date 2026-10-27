@@ -1719,66 +1719,6 @@ textarea.field__input {
   gap: 10px;
 }
 
-/* ---------- Modals ---------- */
-
-.modal {
-  width: min(100% - 24px, 440px);
-  max-height: calc(100dvh - 24px);
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-l);
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--shadow-m);
-  overflow-y: auto;
-}
-
-.modal[open] {
-  animation: modal-in 0.4s var(--ease-out);
-}
-
-.modal::backdrop {
-  background: rgba(43, 37, 32, 0.45);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
-}
-
-@keyframes modal-in {
-  from {
-    opacity: 0;
-    transform: translateY(24px) scale(0.96);
-  }
-}
-
-.modal__body {
-  position: relative;
-  padding: 22px;
-}
-
-.modal__body h2 {
-  padding-right: 36px;
-  font-size: 1.25rem;
-}
-
-.modal__text {
-  color: var(--text-muted);
-}
-
-.modal__close {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 1;
-  width: 44px;
-  height: 44px;
-  border: 0;
-  border-radius: 50%;
-  background: none;
-  font-size: 1.6rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
 /* ---------- Footer and sticky cart ---------- */
 
 .footer {
@@ -2070,7 +2010,6 @@ textarea.field__input {
   .sticky-cart,
   .sticky-cart__label,
   .cart-link__count,
-  .modal[open],
   .alert {
     animation: none;
   }

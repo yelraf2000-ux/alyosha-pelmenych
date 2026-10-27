@@ -1,10 +1,9 @@
 import { formatAmd, formatKg, type AdminCustomOrder, type AdminOrder, type OrderStatus } from '@alyosha/shared';
 import type { Keyboard } from './services/buyer-bot';
 
-/** Messages to the shop owner (SPEC §6: every new order and every "notify me" request). */
+/** Messages to the shop owner (SPEC §6): every new order and every «Свой рецепт» request. */
 export interface Notifier {
   orderPlaced(order: AdminOrder): Promise<void>;
-  stockRequested(request: { productName: string; name: string; phone: string; telegram: string | null }): Promise<void>;
   customOrderPlaced(order: AdminCustomOrder): Promise<void>;
 }
 
@@ -58,15 +57,6 @@ export function formatOrderMessage(order: AdminOrder): string {
   lines.push('', `Статус: <b>${STATUS_LABELS[order.status]}</b>`);
   if (order.telegramLinked) lines.push('Покупатель подключил бота: о смене статуса он узнает сам.');
   return lines.join('\n');
-}
-
-export function formatStockRequestMessage(request: Parameters<Notifier['stockRequested']>[0]): string {
-  return [
-    '🔔 <b>Сообщить о поступлении</b>',
-    `Товар: ${escapeHtml(request.productName)}`,
-    '',
-    ...contactLines(request),
-  ].join('\n');
 }
 
 export function formatCustomOrderMessage(order: AdminCustomOrder): string {
@@ -139,7 +129,6 @@ export function telegramNotifier(
   };
   return {
     orderPlaced: (order) => toAll(formatOrderMessage(order), orderKeyboard(order, options.adminUrl)),
-    stockRequested: (request) => toAll(formatStockRequestMessage(request)),
     customOrderPlaced: (order) => toAll(formatCustomOrderMessage(order), customKeyboard(order, options.adminUrl)),
   };
 }
@@ -149,7 +138,6 @@ export function consoleNotifier(log: Log): Notifier {
   const print = async (text: string) => log.info(`[Telegram is not configured] message would be:\n${text}`);
   return {
     orderPlaced: (order) => print(formatOrderMessage(order)),
-    stockRequested: (request) => print(formatStockRequestMessage(request)),
     customOrderPlaced: (order) => print(formatCustomOrderMessage(order)),
   };
 }

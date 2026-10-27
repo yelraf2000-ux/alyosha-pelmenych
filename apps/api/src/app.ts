@@ -2,7 +2,6 @@ import {
   customOrderSchema,
   orderInputSchema,
   promoCheckSchema,
-  stockRequestSchema,
   type Product,
   type PromoCheckResult,
   type SubmitCustomOrderResult,
@@ -20,7 +19,7 @@ import { mkdirSync } from 'node:fs';
 import { registerAdminRoutes } from './admin-routes';
 import type { AdminAuth } from './auth';
 import type { Db } from './db/client';
-import { products, stockRequests } from './db/schema';
+import { products } from './db/schema';
 import type { Notifier } from './notify';
 import { ADMIN_HELP_TEXT, handleAdminCallback, isAdminChat, sendOpenOrders, sendPasswordReset } from './services/admin-bot';
 import { getOrder } from './services/admin-orders';
@@ -273,40 +272,6 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
       void buyerBot.send(chatId, WELCOME_TEXT, button);
     }
     // Always 200: anything else makes Telegram send the same update again and again.
-    return { ok: true };
-  });
-
-  app.post('/api/stock-requests', { config: limit(20) }, async (request, reply) => {
-    const parsed = stockRequestSchema.safeParse(request.body);
-    if (!parsed.success) {
-      reply.code(400);
-      return { ok: false, error: 'invalid' };
-    }
-
-    const [product] = await db
-      .select({ id: products.id, name: products.name })
-      .from(products)
-      .where(eq(products.id, parsed.data.productId));
-    if (!product) {
-      reply.code(404);
-      return { ok: false, error: 'not_found' };
-    }
-
-    await db.insert(stockRequests).values({
-      productId: product.id,
-      name: parsed.data.name,
-      phone: parsed.data.phone,
-      telegram: parsed.data.telegram,
-    });
-
-    void notifier.stockRequested({
-      productName: product.name,
-      name: parsed.data.name,
-      phone: parsed.data.phone,
-      telegram: parsed.data.telegram,
-    });
-
-    reply.code(201);
     return { ok: true };
   });
 

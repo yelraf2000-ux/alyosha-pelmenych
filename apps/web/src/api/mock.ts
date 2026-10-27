@@ -1,7 +1,7 @@
 // In-browser stand-in for the API, used only by the static demo build (`npm run build:demo`),
 // which can be put on any static host to show the client without a server.
 //
-// Stock, the order counter and "notify me" requests are kept in localStorage,
+// Stock and the order counter are kept in localStorage,
 // which makes the demo behave like the real thing: an order lowers stock,
 // and a second tab with a stale cart is refused on submit.
 
@@ -16,7 +16,6 @@ import type {
   OrderItemView,
   Product,
   Settings,
-  StockRequestInput,
   StockShortage,
   PromoCheckResult,
   SubmitCustomOrderResult,
@@ -28,7 +27,6 @@ const DB_KEY = 'ap_demo_db_v1';
 interface DemoDb {
   stock: Record<string, number>;
   orderSeq: number;
-  stockRequests: StockRequestInput[];
 }
 
 // Used when localStorage is unavailable (private mode, blocked storage).
@@ -38,7 +36,6 @@ function freshDb(): DemoDb {
   return {
     stock: Object.fromEntries(MOCK_PRODUCTS.map((p) => [p.id, p.stockQty])),
     orderSeq: 41,
-    stockRequests: [],
   };
 }
 
@@ -48,7 +45,7 @@ function readDb(): DemoDb {
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<DemoDb> | null;
       if (parsed && typeof parsed.stock === 'object' && parsed.stock && typeof parsed.orderSeq === 'number') {
-        return { stock: parsed.stock, orderSeq: parsed.orderSeq, stockRequests: parsed.stockRequests ?? [] };
+        return { stock: parsed.stock, orderSeq: parsed.orderSeq };
       }
     }
   } catch {
@@ -166,13 +163,6 @@ export async function submitCustomOrder(input: CustomOrderInput): Promise<Submit
   await delay(500);
   const valid = !input.website && input.recipeName.trim() && input.base && normalizePhone(input.customerPhone);
   return valid ? { ok: true, telegramLink: null } : { ok: false, error: 'invalid' };
-}
-
-export async function createStockRequest(input: StockRequestInput): Promise<void> {
-  await delay(400);
-  const db = readDb();
-  db.stockRequests.push(input);
-  writeDb(db);
 }
 
 /** Demo only: puts stock and the order counter back to the starting values. */

@@ -48,7 +48,6 @@ export interface TestContext {
   /** Everything the app tried to send to the owner. */
   sent: {
     orders: string[];
-    stockRequests: string[];
     customOrders: string[];
     /** What the Telegram bot wrote, to buyers and to the admin chat. `button` is the first link button, if any. */
     buyer: { chatId: number; text: string; button?: { text: string; url: string }; keyboard?: Keyboard }[];
@@ -72,10 +71,9 @@ export async function createTestContext(): Promise<TestContext> {
   await runMigrations(url);
   const { db, pool } = createDb(url);
 
-  const sent: TestContext['sent'] = { orders: [], stockRequests: [], customOrders: [], buyer: [], edits: [], answers: [] };
+  const sent: TestContext['sent'] = { orders: [], customOrders: [], buyer: [], edits: [], answers: [] };
   const notifier: Notifier = {
     orderPlaced: async (order) => void sent.orders.push(order.publicNumber),
-    stockRequested: async (request) => void sent.stockRequests.push(request.productName),
     customOrderPlaced: async (order) => void sent.customOrders.push(order.recipeName),
   };
 
@@ -106,7 +104,7 @@ export async function createTestContext(): Promise<TestContext> {
 
   async function reset() {
     await db.execute(
-      sql`TRUNCATE order_items, orders, custom_orders, stock_requests, products, settings, admin_password, promo_codes RESTART IDENTITY CASCADE`,
+      sql`TRUNCATE order_items, orders, custom_orders, products, settings, admin_password, promo_codes RESTART IDENTITY CASCADE`,
     );
     await db.execute(sql`ALTER SEQUENCE order_number_seq RESTART WITH 1`);
     await db.execute(sql`ALTER SEQUENCE custom_order_number_seq RESTART WITH 1`);
@@ -123,7 +121,6 @@ export async function createTestContext(): Promise<TestContext> {
       { key: SETTING_KEYS.preorderEnabled, value: 'false' },
     ]);
     sent.orders.length = 0;
-    sent.stockRequests.length = 0;
     sent.customOrders.length = 0;
     sent.buyer.length = 0;
     sent.edits.length = 0;
@@ -173,7 +170,7 @@ export async function stockOf(db: Db, productId: number): Promise<number> {
   return result.rows[0]!.stock_qty;
 }
 
-export async function countRows(db: Db, table: 'orders' | 'order_items' | 'stock_requests'): Promise<number> {
+export async function countRows(db: Db, table: 'orders' | 'order_items'): Promise<number> {
   const result = await db.execute<{ n: number }>(sql`SELECT count(*)::int AS n FROM ${sql.identifier(table)}`);
   return result.rows[0]!.n;
 }

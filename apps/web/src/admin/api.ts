@@ -13,8 +13,6 @@ import type {
   PromoCodeInput,
   SaveProductResult,
   Settings,
-  StockRequestGroup,
-  StockRequestStatus,
   StockShortage,
   TodayView,
 } from '@alyosha/shared';
@@ -114,13 +112,6 @@ export const adminApi = {
   renameCategory: (slug: string, name: string) =>
     request<AdminCategory>('PATCH', `/categories/${encodeURIComponent(slug)}`, { name }),
   deleteCategory: (slug: string) => request<{ ok: true }>('DELETE', `/categories/${encodeURIComponent(slug)}`),
-
-  stockRequests: (includeHandled: boolean) =>
-    request<StockRequestGroup[]>('GET', `/stock-requests${includeHandled ? '?all=1' : ''}`),
-  setRequestStatus: (id: number, status: StockRequestStatus) =>
-    request<{ ok: true }>('PATCH', `/stock-requests/${id}`, { status }),
-  markNotified: (productId: number) =>
-    request<{ ok: true; updated: number }>('POST', `/products/${productId}/stock-requests/notified`),
 
   orders: (status: OrderStatus | undefined, offset: number) =>
     request<{ orders: AdminOrderSummary[]; hasMore: boolean }>(

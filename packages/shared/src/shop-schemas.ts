@@ -74,15 +74,6 @@ export const orderInputSchema = z
 
 export type ValidOrder = z.output<typeof orderInputSchema>;
 
-export const stockRequestSchema = z.object({
-  productId: z.number().int().positive(),
-  name: nameSchema,
-  phone: phoneSchema,
-  telegram: telegramSchema,
-});
-
-export type ValidStockRequest = z.output<typeof stockRequestSchema>;
-
 const optionSchema = z.string().trim().min(1).max(80);
 
 /**

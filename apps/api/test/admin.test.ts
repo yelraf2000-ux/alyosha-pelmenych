@@ -78,9 +78,6 @@ describe('admin access', () => {
     { method: 'PATCH', url: '/api/admin/orders/1', payload: { status: 'cancelled' } },
     { method: 'DELETE', url: '/api/admin/orders/1' },
     { method: 'DELETE', url: '/api/admin/custom-orders/1' },
-    { method: 'GET', url: '/api/admin/stock-requests' },
-    { method: 'PATCH', url: '/api/admin/stock-requests/1', payload: { status: 'notified' } },
-    { method: 'POST', url: '/api/admin/products/1/stock-requests/notified' },
     { method: 'GET', url: '/api/admin/settings' },
     { method: 'PUT', url: '/api/admin/settings', payload: {} },
     { method: 'POST', url: '/api/admin/logout' },
@@ -189,7 +186,6 @@ describe('admin products', () => {
       isActive: true,
       isNew: false,
       sortOrder: 40,
-      waitingCount: 0,
     });
     expect(second.json().product.slug).toBe('pelmeni-s-govyadinoy-2');
   });
@@ -230,28 +226,6 @@ describe('admin products', () => {
     const response = await asAdmin({ method: 'PATCH', url: `/api/admin/products/${id}`, payload: { slug: 'manty' } });
     expect(response.statusCode).toBe(409);
     expect(response.json().error).toBe('slug_taken');
-  });
-
-  it('lists who is waiting when stock is raised from zero, and only then', async () => {
-    const id = await addProduct(ctx.db, { stockQty: 0 });
-    const request = (name: string) =>
-      ctx.app.inject({ method: 'POST', url: '/api/stock-requests', payload: { productId: id, name, phone: '+37491123456' } });
-    await request('Анна');
-    await request('Борис');
-    const setStock = async (stockQty: number) =>
-      (await asAdmin({ method: 'PATCH', url: `/api/admin/products/${id}`, payload: { stockQty } })).json();
-
-    const raised = await setStock(8);
-    expect(raised.product).toMatchObject({ stockQty: 8, waitingCount: 2 });
-    expect(raised.waiting.map((r: { name: string }) => r.name)).toEqual(['Анна', 'Борис']);
-
-    // Already in stock: no reminder.
-    expect((await setStock(10)).waiting).toEqual([]);
-
-    const marked = await asAdmin({ method: 'POST', url: `/api/admin/products/${id}/stock-requests/notified` });
-    expect(marked.json()).toEqual({ ok: true, updated: 2 });
-    await setStock(0);
-    expect((await setStock(5)).waiting).toEqual([]);
   });
 
   it('reorders the catalog', async () => {
@@ -1089,37 +1063,7 @@ describe('order statistics', () => {
   });
 });
 
-describe('stock requests and settings', () => {
-  it('groups open requests by product and lets each be marked', async () => {
-    const a = await addProduct(ctx.db, { name: 'Манты', stockQty: 0, sortOrder: 10 });
-    const b = await addProduct(ctx.db, { name: 'Вареники', stockQty: 0, sortOrder: 20 });
-    const request = (productId: number, name: string) =>
-      ctx.app.inject({
-        method: 'POST',
-        url: '/api/stock-requests',
-        payload: { productId, name, phone: '091 123456', telegram: '@some_user' },
-      });
-    await request(a, 'Анна');
-    await request(b, 'Борис');
-    await request(a, 'Вера');
-
-    const groups = (await asAdmin({ url: '/api/admin/stock-requests' })).json();
-    expect(groups.map((g: { product: { name: string }; requests: { name: string }[] }) => [g.product.name, g.requests.map((r) => r.name)])).toEqual([
-      ['Манты', ['Анна', 'Вера']],
-      ['Вареники', ['Борис']],
-    ]);
-    expect(groups[0].requests[0]).toMatchObject({ phone: '+37491123456', telegram: 'some_user', status: 'open' });
-
-    const anna = groups[0].requests[0].id;
-    await asAdmin({ method: 'PATCH', url: `/api/admin/stock-requests/${anna}`, payload: { status: 'notified' } });
-
-    const open = (await asAdmin({ url: '/api/admin/stock-requests' })).json();
-    expect(open[0].requests.map((r: { name: string }) => r.name)).toEqual(['Вера']);
-    const all = (await asAdmin({ url: '/api/admin/stock-requests?all=1' })).json();
-    expect(all[0].requests).toHaveLength(2);
-    expect(await countRows(ctx.db, 'stock_requests')).toBe(3);
-  });
-
+describe('settings', () => {
   const validSettings = {
     aboutText: 'О нас',
     deliveryText: 'Доставка',

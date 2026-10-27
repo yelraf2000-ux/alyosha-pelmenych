@@ -3,7 +3,6 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Field } from '../components/Field';
 import { adminApi, type ProductInput } from './api';
-import type { ProductsLocationState } from './Products';
 import { errorText, LoadState, PageHead, useLoad } from './shared';
 
 const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
@@ -193,9 +192,7 @@ export function ProductFormPage() {
         setProduct((await adminApi.uploadVideo(saved.product.id, video)).product);
         setVideo(null);
       }
-      const state: ProductsLocationState =
-        saved.waiting.length > 0 ? { waiting: { productId: saved.product.id, requests: saved.waiting } } : {};
-      navigate('/admin/products', { state });
+      navigate('/admin/products');
     } catch (reason) {
       setError(errorText(reason));
     } finally {

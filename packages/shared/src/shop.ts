@@ -228,13 +228,6 @@ export type SubmitOrderResult =
   | { ok: false; error: 'invalid' }
   | { ok: false; error: 'rate_limited' };
 
-export interface StockRequestInput {
-  productId: number;
-  name: string;
-  phone: string;
-  telegram: string | null;
-}
-
 // ---------- Rules ----------
 
 /**

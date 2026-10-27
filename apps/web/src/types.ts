@@ -10,7 +10,6 @@ export type {
   PromoCheckResult,
   PromoProblem,
   Settings,
-  StockRequestInput,
   StockShortage,
   SubmitCustomOrderResult,
   SubmitOrderResult,

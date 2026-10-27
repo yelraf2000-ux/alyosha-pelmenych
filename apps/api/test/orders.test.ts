@@ -263,7 +263,7 @@ describe('validation', () => {
   });
 });
 
-describe('catalog and stock requests', () => {
+describe('catalog', () => {
   it('lists active products in sort order and the settings', async () => {
     await addProduct(ctx.db, { name: 'Вторые', sortOrder: 20 });
     await addProduct(ctx.db, { name: 'Скрытые', sortOrder: 5, isActive: false });
@@ -274,29 +274,5 @@ describe('catalog and stock requests', () => {
 
     const settings = (await ctx.app.inject({ url: '/api/settings' })).json();
     expect(settings).toMatchObject({ courierFeeAmd: 1000, freeDeliveryFromAmd: 10000, aboutText: '' });
-  });
-
-  it('saves a "notify me" request and tells the owner', async () => {
-    const id = await addProduct(ctx.db, { stockQty: 0, name: 'Манты' });
-
-    const response = await ctx.app.inject({
-      method: 'POST',
-      url: '/api/stock-requests',
-      payload: { productId: id, name: 'Анна', phone: '+37491123456', telegram: '' },
-    });
-
-    expect(response.statusCode).toBe(201);
-    const stored = await ctx.db.execute(sql`SELECT product_id, name, phone, telegram, status FROM stock_requests`);
-    expect(stored.rows).toEqual([{ product_id: id, name: 'Анна', phone: '+37491123456', telegram: null, status: 'open' }]);
-    expect(ctx.sent.stockRequests).toEqual(['Манты']);
-  });
-
-  it('rejects a request for an unknown product or with a bad phone', async () => {
-    const id = await addProduct(ctx.db);
-    const post = (payload: object) => ctx.app.inject({ method: 'POST', url: '/api/stock-requests', payload });
-
-    expect((await post({ productId: 99999, name: 'Анна', phone: '+37491123456' })).statusCode).toBe(404);
-    expect((await post({ productId: id, name: 'Анна', phone: 'nope' })).statusCode).toBe(400);
-    expect(await countRows(ctx.db, 'stock_requests')).toBe(0);
   });
 });

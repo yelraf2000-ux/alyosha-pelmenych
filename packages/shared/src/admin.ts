@@ -5,40 +5,18 @@ import type { Category, DeliveryMethod, Product, StockShortage } from './shop';
 export const ORDER_STATUSES = ['new', 'confirmed', 'done', 'cancelled'] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
-export const STOCK_REQUEST_STATUSES = ['open', 'notified', 'closed'] as const;
-export type StockRequestStatus = (typeof STOCK_REQUEST_STATUSES)[number];
-
 // ---------- Views returned by the admin API ----------
 
-export interface AdminProduct extends Product {
-  /** Open "notify me" requests for this product. */
-  waitingCount: number;
-}
+export type AdminProduct = Product;
 
 export interface AdminCategory extends Category {
   /** Products in it, hidden ones included. Only an empty category can be deleted. */
   productCount: number;
 }
 
-export interface AdminStockRequest {
-  id: number;
-  productId: number;
-  name: string;
-  phone: string;
-  telegram: string | null;
-  status: StockRequestStatus;
-  createdAt: string;
-}
-
-export interface StockRequestGroup {
-  product: { id: number; name: string; stockQty: number };
-  requests: AdminStockRequest[];
-}
-
-/** Returned after saving a product. `waiting` is filled when stock was just raised from zero. */
+/** Returned after saving a product. */
 export interface SaveProductResult {
   product: AdminProduct;
-  waiting: AdminStockRequest[];
 }
 
 export interface AdminOrderSummary {

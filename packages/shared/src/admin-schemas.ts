@@ -1,7 +1,7 @@
 // Validation of what the admin panel sends (SPEC §7).
 
 import { z } from 'zod';
-import { ORDER_STATUSES, STOCK_REQUEST_STATUSES } from './admin';
+import { ORDER_STATUSES } from './admin';
 import { DELIVERY_METHODS, normalizeTelegram, PRODUCT_BADGE_MAX_LENGTH, PRODUCT_BADGES_MAX } from './shop';
 import { nameSchema, optionalText, phoneSchema, telegramSchema } from './shop-schemas';
 
@@ -52,7 +52,6 @@ export const reorderSchema = z.object({
 });
 
 export const orderStatusSchema = z.object({ status: z.enum(ORDER_STATUSES) });
-export const stockRequestStatusSchema = z.object({ status: z.enum(STOCK_REQUEST_STATUSES) });
 export const loginSchema = z.object({ password: z.string().min(1).max(200) });
 
 /** The shortest admin password the shop accepts. */

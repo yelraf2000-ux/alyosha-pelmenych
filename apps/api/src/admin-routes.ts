@@ -14,7 +14,6 @@ import {
   reorderSchema,
   settingsSchema,
   STATS_MAX_DAYS,
-  stockRequestStatusSchema,
   type OrderStatus,
 } from '@alyosha/shared';
 import multipart from '@fastify/multipart';
@@ -46,12 +45,9 @@ import {
   deleteProduct,
   getAdminProduct,
   listAdminProducts,
-  listStockRequestGroups,
-  markProductRequestsNotified,
   reorderProducts,
   setProductImage,
   setProductVideo,
-  setStockRequestStatus,
   updateProduct,
 } from './services/products';
 import { changeCustomStatusAndTell, changeOrderStatusAndTell } from './services/order-status';
@@ -173,7 +169,7 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
         const parsed = productCreateSchema.safeParse(request.body);
         if (!parsed.success || !(await categoryExists(db, parsed.data.category))) return fail(reply, 400, 'invalid');
         reply.code(201);
-        return { product: await createProduct(db, parsed.data), waiting: [] };
+        return { product: await createProduct(db, parsed.data) };
       });
 
       admin.patch('/products/:id', async (request, reply) => {
@@ -185,7 +181,7 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
 
         const result = await updateProduct(db, id, parsed.data);
         if (!result.ok) return fail(reply, result.error === 'not_found' ? 404 : 409, result.error);
-        return { product: result.product, waiting: result.waiting };
+        return { product: result.product };
       });
 
       admin.delete('/products/:id', async (request, reply) => {
@@ -228,7 +224,7 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
           return fail(reply, 404, 'not_found');
         }
         await deleteProductImage(uploadsDir, saved.previous);
-        return { product: await getAdminProduct(db, id), waiting: [] };
+        return { product: await getAdminProduct(db, id) };
       });
 
       admin.delete('/products/:id/image', async (request, reply) => {
@@ -236,7 +232,7 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
         const saved = id ? await setProductImage(db, id, null) : null;
         if (!id || !saved) return fail(reply, 404, 'not_found');
         await deleteProductImage(uploadsDir, saved.previous);
-        return { product: await getAdminProduct(db, id), waiting: [] };
+        return { product: await getAdminProduct(db, id) };
       });
 
       // A clip from the owner's phone. It is converted before this answers, which can take a minute
@@ -271,7 +267,7 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
           return fail(reply, 404, 'not_found');
         }
         await deleteProductVideo(uploadsDir, saved.previous);
-        return { product: await getAdminProduct(db, id), waiting: [] };
+        return { product: await getAdminProduct(db, id) };
       });
 
       admin.delete('/products/:id/video', async (request, reply) => {
@@ -279,10 +275,8 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
         const saved = id ? await setProductVideo(db, id, null) : null;
         if (!id || !saved) return fail(reply, 404, 'not_found');
         await deleteProductVideo(uploadsDir, saved.previous);
-        return { product: await getAdminProduct(db, id), waiting: [] };
+        return { product: await getAdminProduct(db, id) };
       });
-
-      // ---------- "Notify me" requests ----------
 
       // ----- Categories: the owner's own groups of the catalog -----
 
@@ -307,25 +301,6 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
         const result = await deleteCategory(db, slug);
         if (!result.ok) return fail(reply, result.error === 'not_found' ? 404 : 409, result.error);
         return { ok: true };
-      });
-
-      admin.get('/stock-requests', async (request) => {
-        const all = (request.query as { all?: string }).all === '1';
-        return listStockRequestGroups(db, all);
-      });
-
-      admin.patch('/stock-requests/:id', async (request, reply) => {
-        const id = idParam(request);
-        const parsed = stockRequestStatusSchema.safeParse(request.body);
-        if (!parsed.success) return fail(reply, 400, 'invalid');
-        if (!id || !(await setStockRequestStatus(db, id, parsed.data.status))) return fail(reply, 404, 'not_found');
-        return { ok: true };
-      });
-
-      admin.post('/products/:id/stock-requests/notified', async (request, reply) => {
-        const id = idParam(request);
-        if (!id) return fail(reply, 404, 'not_found');
-        return { ok: true, updated: await markProductRequestsNotified(db, id) };
       });
 
       // ---------- Orders ----------

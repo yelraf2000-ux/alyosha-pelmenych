@@ -4,14 +4,13 @@ import { t } from '../i18n';
 import { useCart } from '../state/CartContext';
 import { useShop } from '../state/ShopContext';
 import type { Product } from '../types';
-import { NotifyModal } from './NotifyModal';
 import { QtyStepper } from './QtyStepper';
 
 const LOW_STOCK = 3;
 
 /**
  * Stock note, quantity stepper and the buy button. A product that has run out can still be bought
- * as a pre-order when the shop allows it; otherwise it shows the out-of-stock state with "notify me".
+ * as a pre-order when the shop allows it; otherwise it shows «Ожидается поставка».
  */
 export function PurchaseControls({ product }: { product: Product }) {
   const cart = useCart();
@@ -19,7 +18,6 @@ export function PurchaseControls({ product }: { product: Product }) {
   const preorder = Boolean(settings?.preorderEnabled);
   const [qty, setQty] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
-  const [notifyOpen, setNotifyOpen] = useState(false);
 
   useEffect(() => {
     if (!justAdded) return;
@@ -33,10 +31,6 @@ export function PurchaseControls({ product }: { product: Product }) {
         <button type="button" className="btn btn--block" disabled>
           {t.product.awaiting}
         </button>
-        <button type="button" className="link-btn" onClick={() => setNotifyOpen(true)}>
-          {t.product.notify}
-        </button>
-        {notifyOpen && <NotifyModal product={product} onClose={() => setNotifyOpen(false)} />}
       </div>
     );
   }

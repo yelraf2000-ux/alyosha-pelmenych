@@ -18,7 +18,6 @@ import {
 
 export const deliveryMethod = pgEnum('delivery_method', ['pickup', 'courier']);
 export const orderStatus = pgEnum('order_status', ['new', 'confirmed', 'done', 'cancelled']);
-export const stockRequestStatus = pgEnum('stock_request_status', ['open', 'notified', 'closed']);
 export const promoKind = pgEnum('promo_kind', ['percent', 'amount']);
 
 /** Feeds the human-friendly order number: A-0001, A-0002, … */
@@ -142,22 +141,6 @@ export const orderItems = pgTable(
     check('order_items_preorder_within_qty', sql`${t.preorderQty} >= 0 AND ${t.preorderQty} <= ${t.qty}`),
     index('order_items_order_idx').on(t.orderId),
   ],
-);
-
-export const stockRequests = pgTable(
-  'stock_requests',
-  {
-    id: serial('id').primaryKey(),
-    productId: integer('product_id')
-      .notNull()
-      .references(() => products.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    phone: text('phone').notNull(),
-    telegram: text('telegram'),
-    status: stockRequestStatus('status').notNull().default('open'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [index('stock_requests_product_status_idx').on(t.productId, t.status)],
 );
 
 /** Key/value site settings, edited in the admin (Phase 2). Keys are listed in services/settings.ts. */

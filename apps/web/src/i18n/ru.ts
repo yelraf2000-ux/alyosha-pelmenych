@@ -41,7 +41,6 @@ export const ru = {
     addToCart: 'В корзину',
     added: 'Добавлено',
     awaiting: 'Ожидается поставка',
-    notify: 'Сообщить о поступлении',
     isNew: 'Новинка',
     inStock: 'В наличии',
     left: (n: number) => `Осталось ${n} шт.`,
@@ -60,16 +59,6 @@ export const ru = {
     preorderBadge: 'Под заказ',
     preorderNote: (note: string) => `Нет в наличии, можно заказать. ${note}.`,
     moreAsPreorder: 'больше — под заказ',
-  },
-
-  notify: {
-    title: 'Сообщить о поступлении',
-    text: (name: string) => `Оставьте контакты — мы напишем или позвоним, когда «${name}» снова появится.`,
-    submit: 'Отправить',
-    sending: 'Отправляем…',
-    doneTitle: 'Спасибо!',
-    doneText: 'Мы сообщим вам, когда товар появится.',
-    error: 'Не получилось отправить. Попробуйте ещё раз.',
   },
 
   cart: {

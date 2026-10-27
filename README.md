@@ -290,8 +290,8 @@ docker compose run --rm --no-deps --user root -v "$PWD/backups:/backups:ro" api 
 
 One bot does two jobs:
 
-- **For the owner (the admin chats):** a message for every new order, every «Свой рецепт» request
-  and every «Сообщить о поступлении» request. Orders and requests come with buttons under them —
+- **For the owner (the admin chats):** a message for every new order and every «Свой рецепт»
+  request. Both come with buttons under them —
   «Подтвердить», «Выполнен», «Отменить», «Вернуть в новые» — which do exactly what the same
   buttons in the admin panel do (stock included) and rewrite the message to show the new status.
   `/orders` lists everything still open, and `/password` sends a link for setting a new admin
@@ -383,7 +383,8 @@ and stock never goes below zero. The shop shows «Под заказ» and «Пр
 note («Будет готово через 2–3 дня»); the order, the owner's Telegram message and the buyer's
 messages mark what is made to order. Cancelling or deleting an order puts back only what came out
 of the stock; reopening a cancelled one takes it again and makes the rest to order. Switched off,
-a sold-out product shows «Ожидается поставка» and «Сообщить о поступлении», as before.
+a sold-out product shows «Ожидается поставка» and cannot be bought. (The old «Сообщить о
+поступлении» requests and the «Заявки» page were removed once pre-orders came in.)
 
 ## Editing an order
 
@@ -433,8 +434,8 @@ to the stock when it is deleted; a completed or cancelled one leaves the stock a
 order that fell through should be cancelled instead, so that it stays in the history.
 
 All at once, before the shop opens: one command removes everything
-buyers have sent: orders, «Свой рецепт» requests and «Сообщить о поступлении» requests, with the
-names, phones and addresses in them. The next order is `A-0001` again. Products, photos, texts,
+buyers have sent: orders and «Свой рецепт» requests, with the names, phones and addresses in
+them. The next order is `A-0001` again. Products, photos, texts,
 settings and the admin password stay; stock is not put back, so check it under «Товары» afterwards.
 
 On Render, in the service's **Shell** tab:

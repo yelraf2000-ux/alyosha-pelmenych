@@ -66,7 +66,6 @@ const app = await buildApp({
   trustProxy: env.TRUST_PROXY,
   notifier: {
     orderPlaced: (order) => notifier.orderPlaced(order),
-    stockRequested: (request) => notifier.stockRequested(request),
     customOrderPlaced: (order) => notifier.customOrderPlaced(order),
   },
 });

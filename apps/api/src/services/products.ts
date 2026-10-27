@@ -1,20 +1,16 @@
 import {
   slugify,
   type AdminProduct,
-  type AdminStockRequest,
   type Product,
   type ProductCreate,
   type ProductPatch,
   type SaveProductResult,
-  type StockRequestGroup,
-  type StockRequestStatus,
 } from '@alyosha/shared';
-import { and, asc, count, eq, max, ne, sql } from 'drizzle-orm';
+import { and, asc, eq, max, ne } from 'drizzle-orm';
 import type { Db, Tx } from '../db/client';
-import { orderItems, products, stockRequests } from '../db/schema';
+import { orderItems, products } from '../db/schema';
 
 type ProductRow = typeof products.$inferSelect;
-type StockRequestRow = typeof stockRequests.$inferSelect;
 
 export function toProduct(row: ProductRow): Product {
   return {
@@ -35,43 +31,16 @@ export function toProduct(row: ProductRow): Product {
   };
 }
 
-function toStockRequest(row: StockRequestRow): AdminStockRequest {
-  return {
-    id: row.id,
-    productId: row.productId,
-    name: row.name,
-    phone: row.phone,
-    telegram: row.telegram,
-    status: row.status,
-    createdAt: row.createdAt.toISOString(),
-  };
-}
-
-function openRequests(db: Db | Tx, productId: number): Promise<StockRequestRow[]> {
-  return db
-    .select()
-    .from(stockRequests)
-    .where(and(eq(stockRequests.productId, productId), eq(stockRequests.status, 'open')))
-    .orderBy(asc(stockRequests.createdAt));
-}
-
 // ---------- Products ----------
 
 export async function listAdminProducts(db: Db): Promise<AdminProduct[]> {
   const rows = await db.select().from(products).orderBy(asc(products.sortOrder), asc(products.id));
-  const waiting = await db
-    .select({ productId: stockRequests.productId, n: count() })
-    .from(stockRequests)
-    .where(eq(stockRequests.status, 'open'))
-    .groupBy(stockRequests.productId);
-  const waitingBy = new Map(waiting.map((row) => [row.productId, row.n]));
-  return rows.map((row) => ({ ...toProduct(row), waitingCount: waitingBy.get(row.id) ?? 0 }));
+  return rows.map(toProduct);
 }
 
 export async function getAdminProduct(db: Db | Tx, id: number): Promise<AdminProduct | null> {
   const [row] = await db.select().from(products).where(eq(products.id, id));
-  if (!row) return null;
-  return { ...toProduct(row), waitingCount: (await openRequests(db, id)).length };
+  return row ? toProduct(row) : null;
 }
 
 /** Appends -2, -3… until the slug is free. */
@@ -104,7 +73,7 @@ export async function createProduct(db: Db, input: ProductCreate): Promise<Admin
         sortOrder: (last?.value ?? 0) + 10,
       })
       .returning();
-    return { ...toProduct(row!), waitingCount: 0 };
+    return toProduct(row!);
   });
 }
 
@@ -131,15 +100,7 @@ export async function updateProduct(db: Db, id: number, patch: ProductPatch): Pr
       .set({ ...patch, updatedAt: new Date() })
       .where(eq(products.id, id))
       .returning();
-
-    const open = await openRequests(tx, id);
-    // SPEC §7: when stock is raised from zero, show who is waiting for this product.
-    const backInStock = current.stockQty === 0 && row!.stockQty > 0;
-    return {
-      ok: true,
-      product: { ...toProduct(row!), waitingCount: open.length },
-      waiting: backInStock ? open.map(toStockRequest) : [],
-    };
+    return { ok: true, product: toProduct(row!) };
   });
 }
 
@@ -188,41 +149,4 @@ export async function deleteProduct(db: Db, id: number): Promise<DeleteProductRe
     await tx.delete(products).where(eq(products.id, id));
     return { ok: true, imagePath: current.imagePath, videoPath: current.videoPath };
   });
-}
-
-// ---------- "Notify me" requests ----------
-
-export async function listStockRequestGroups(db: Db, includeHandled: boolean): Promise<StockRequestGroup[]> {
-  const rows = await db
-    .select({ request: stockRequests, productName: products.name, stockQty: products.stockQty })
-    .from(stockRequests)
-    .innerJoin(products, eq(products.id, stockRequests.productId))
-    .where(includeHandled ? sql`true` : eq(stockRequests.status, 'open'))
-    .orderBy(asc(products.sortOrder), asc(products.id), asc(stockRequests.createdAt));
-
-  const groups = new Map<number, StockRequestGroup>();
-  for (const row of rows) {
-    let group = groups.get(row.request.productId);
-    if (!group) {
-      group = { product: { id: row.request.productId, name: row.productName, stockQty: row.stockQty }, requests: [] };
-      groups.set(row.request.productId, group);
-    }
-    group.requests.push(toStockRequest(row.request));
-  }
-  return [...groups.values()];
-}
-
-export async function setStockRequestStatus(db: Db, id: number, status: StockRequestStatus): Promise<boolean> {
-  const updated = await db.update(stockRequests).set({ status }).where(eq(stockRequests.id, id)).returning({ id: stockRequests.id });
-  return updated.length > 0;
-}
-
-/** Marks every open request for the product as notified. Returns how many there were. */
-export async function markProductRequestsNotified(db: Db, productId: number): Promise<number> {
-  const updated = await db
-    .update(stockRequests)
-    .set({ status: 'notified' })
-    .where(and(eq(stockRequests.productId, productId), eq(stockRequests.status, 'open')))
-    .returning({ id: stockRequests.id });
-  return updated.length;
 }

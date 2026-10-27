@@ -15,7 +15,7 @@ Read this whole file before writing code. If something here is unclear or contra
 - A catalog with **current stock, prices, descriptions**.
 - Buyers build a **cart** and leave an **order request**; the client **contacts the buyer himself** (no online payment).
 - **Cannot order more than is in stock.** When an order is placed, stock decreases.
-- Out of stock: show «ожидается поставка», cannot add to cart, but the buyer can leave a **"notify me when available"** request.
+- Out of stock: show «ожидается поставка», cannot add to cart. *(v1 also had a "notify me when available" request; it was removed once pre-orders replaced it.)*
 - Checkout: **name, phone, Telegram username, comment**. No e-mail required. No customer accounts.
 - Delivery: **pickup** (show pickup address) **or courier delivery**. Texts like the free-delivery threshold must be editable by the client in the admin.
 - After ordering: a clear confirmation «Заказ принят! Мы свяжемся с вами в ближайшее время».
@@ -27,7 +27,7 @@ Read this whole file before writing code. If something here is unclear or contra
 ### In v1
 - Public storefront (sections 5–6)
 - Admin panel (section 7)
-- Telegram notification to the owner for every new order and every "notify me" request
+- Telegram notification to the owner for every new order
 - Russian UI, i18n-ready structure for Armenian later
 - Mobile-first responsive design, deploy on a small VPS
 
@@ -72,9 +72,6 @@ Order
 OrderItem
   id, order_id, product_id, product_name_snapshot, price_amd_snapshot, qty
 
-StockRequest   ("notify me when available")
-  id, product_id, name, phone, telegram (nullable), status (open | notified | closed), created_at
-
 Setting  (key/value, editable in admin)
   about_text, delivery_text, contacts_text, pickup_address,
   courier_fee_amd, free_delivery_from_amd, delivery_note (e.g. "Заказы после 15:00 — на следующий день"),
@@ -99,7 +96,7 @@ Rules:
 ### Product card states
 - In stock: price, qty stepper (max = stock), «В корзину».
 - Low stock (≤ 3): small «Осталось N шт.» note.
-- Out of stock: greyed button «Ожидается поставка» + link «Сообщить о поступлении» → small modal (name, phone, Telegram) → creates StockRequest.
+- Out of stock: greyed button «Ожидается поставка» (or «Предзаказать» when pre-orders are on).
 - `is_new`: badge «Новинка».
 
 ### Checkout form
@@ -120,7 +117,6 @@ Rules:
 - **Auth:** single admin. Password hash (argon2/bcrypt) from env, httpOnly secure session cookie, login rate limit. No sign-up.
 - **Products:** list with inline stock edit; create/edit form (all fields + image upload); toggle active / new; drag or number sort.
 - **Orders:** list newest first with status filter; detail view; change status. **Cancelling an order returns its items to stock** (in a transaction). Show customer contacts with one-tap links.
-- **«Сообщить о поступлении» requests:** grouped by product; when stock is raised from 0, show a hint «N человек ждут этот товар» with their contacts; mark as notified.
 - **Settings:** edit all `Setting` keys (texts, fees, threshold, addresses, contacts).
 - **Today view (simple):** count of new orders and total quantities per product for orders with status `new`/`confirmed` — a plain table, no charts. (Helps the owner know how much to prepare. Keep it this simple.)
 - Admin UI can be plain and functional; mobile-usable (the owner will use his phone).
@@ -157,10 +153,10 @@ Rules:
 - Stop and wait for client feedback before Phase 1.
 
 **Phase 1 — backend and real orders**
-- DB schema + migrations, products API, order submission with stock transaction, Telegram notification, stock requests.
+- DB schema + migrations, products API, order submission with stock transaction, Telegram notification.
 
 **Phase 2 — admin panel**
-- Auth, products, orders with status and stock return on cancel, stock requests, settings, today view.
+- Auth, products, orders with status and stock return on cancel, settings, today view.
 
 **Phase 3 — deploy**
 - VPS, Docker Compose, HTTPS, domain, backups, README.
@@ -170,8 +166,8 @@ Rules:
 - A buyer on a phone can browse, add items, check out with pickup or courier, and sees the confirmation.
 - Ordering more than stock is impossible, even with two buyers ordering the last item at the same time (test it).
 - Stock decreases on order and returns on cancel.
-- Out-of-stock items show «Ожидается поставка» and accept "notify me" requests.
-- The owner receives a Telegram message for each order and request.
+- Out-of-stock items show «Ожидается поставка».
+- The owner receives a Telegram message for each order.
 - The owner can, from his phone: add a product with a photo, change stock and prices, change order status, edit texts and the free-delivery threshold.
 - Lighthouse mobile performance ≥ 85 on the homepage.
 - All placeholders are listed in `TODO_CLIENT.md` (photos, texts, prices, pickup address, contacts, delivery fees).

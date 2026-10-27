@@ -7,7 +7,6 @@ import type {
   Product,
   PromoCheckResult,
   Settings,
-  StockRequestInput,
   SubmitCustomOrderResult,
   SubmitOrderResult,
 } from '../types';
@@ -68,9 +67,4 @@ export async function submitCustomOrder(input: CustomOrderInput): Promise<Submit
   if (response.status === 409) return { ok: false, error: 'unavailable' };
   if (response.status === 400) return { ok: false, error: 'invalid' };
   throw new Error(`POST /api/custom-orders failed: ${response.status}`);
-}
-
-export async function createStockRequest(input: StockRequestInput): Promise<void> {
-  const response = await post('/api/stock-requests', input);
-  if (!response.ok) throw new Error(`POST /api/stock-requests failed: ${response.status}`);
 }
