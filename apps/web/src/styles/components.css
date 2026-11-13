@@ -1959,6 +1959,47 @@ textarea.field__input {
   font-weight: 600;
 }
 
+/* The developer's credit, the footer's last line. The wordmark is near-black on the light footer
+   and the dot keeps its own yellow; on hover the whole line takes the footer links' terracotta. */
+.footer a.credit {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0 6px;
+  margin-top: 6px;
+  color: var(--ink-muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.credit__label {
+  font-size: 13px;
+}
+
+.credit__mark {
+  color: #1a1a1a;
+  font-size: 16px;
+  font-weight: 400;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+
+.credit__mark b {
+  font-weight: 700;
+}
+
+.credit__dot {
+  color: #ffc700;
+  transition: color 0.2s;
+}
+
+.footer a.credit:hover,
+.footer a.credit:hover .credit__mark,
+.footer a.credit:hover .credit__dot {
+  color: var(--terracotta);
+}
+
 .sticky-cart {
   position: fixed;
   inset: auto 0 0 0;

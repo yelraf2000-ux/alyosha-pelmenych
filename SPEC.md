@@ -135,7 +135,7 @@ Rules:
 - All UI text in Russian, short and warm. Use `вы`.
 - No invented reviews, ratings, "1000+ клиентов" claims, or fake badges.
 - Seed data: 3 sample products (пельмени, вареники, манты) with `PLACEHOLDER` descriptions and prices marked `TODO_CLIENT`, so the owner replaces them.
-- Footer: brand, contacts from settings, «Сайт сделан: Rafayel» with link (configurable).
+- Footer: brand, contacts from settings, «Сайт создан компанией Rafayel Digital.» linking to https://rafayel.pro/ (`SITE_CREDIT` in `apps/web/src/config.ts`).
 
 ## 10. Security & ops
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { IS_DEMO, resetDemo } from '../api';
+import { SITE_CREDIT } from '../config';
 import { t } from '../i18n';
 import { formatAmd, paragraphs } from '../lib/format';
 import { useCart } from '../state/CartContext';
@@ -110,6 +111,12 @@ function Footer() {
           <Link to="/about">{t.nav.about}</Link>
         </nav>
         {settings && <SocialLinks settings={settings} />}
+        <a className="credit" href={SITE_CREDIT.url} target="_blank" rel="noopener">
+          <span className="credit__label">{t.footer.madeBy}</span>{' '}
+          <span className="credit__mark">
+            <b>Rafayel</b> Digital<b className="credit__dot">.</b>
+          </span>
+        </a>
       </div>
     </footer>
   );

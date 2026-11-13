@@ -231,7 +231,8 @@ export const ru = {
   },
 
   footer: {
-    madeBy: 'Разработка сайта —',
+    // Before the «Rafayel Digital» wordmark. In English it is «Website by», in Armenian «Կայքը ստեղծել է».
+    madeBy: 'Сайт создан компанией',
   },
 
   notFound: {
