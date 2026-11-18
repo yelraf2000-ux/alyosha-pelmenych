@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { IS_DEMO, resetDemo } from '../api';
+import { getSoldCount, IS_DEMO, resetDemo } from '../api';
 import { SITE_CREDIT } from '../config';
 import { t } from '../i18n';
 import { formatAmd, paragraphs } from '../lib/format';
@@ -29,6 +29,55 @@ function DemoBanner() {
         {t.demo.reset}
       </button>
     </div>
+  );
+}
+
+const number = new Intl.NumberFormat('ru-RU');
+
+/**
+ * «Уже продано 12 480 пельменей»: a strip at the top of every page, counted from the orders of the
+ * products the owner ticked in the admin. Hidden until there is something to show, and when the
+ * count cannot be loaded. The number counts up once when it appears, unless motion is reduced.
+ */
+function SoldCounter() {
+  const [target, setTarget] = useState(0);
+  const [shown, setShown] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    getSoldCount()
+      .then((sold) => alive && setTarget(sold.pieces))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (target <= 0) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return setShown(target);
+    const start = performance.now();
+    const duration = 1200;
+    let frame = 0;
+    const step = (now: number) => {
+      const progress = Math.min(1, (now - start) / duration);
+      // Fast at first, settling on the number.
+      setShown(Math.round(target * (1 - (1 - progress) ** 3)));
+      if (progress < 1) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [target]);
+
+  if (target <= 0) return null;
+  return (
+    <p className="sold">
+      {/* Screen readers get the final number once; the counting-up digits are for the eye. */}
+      <span className="sold__text">{`${t.sold.before} ${number.format(target)} ${t.sold.after(target)}`}</span>
+      <span aria-hidden="true">
+        {t.sold.before} <strong className="sold__count">{number.format(shown)}</strong> {t.sold.after(target)}
+      </span>
+    </p>
   );
 }
 
@@ -160,6 +209,7 @@ export function Layout() {
       <ScrollToTop />
       {intro && <Intro target={logoRef} onDone={endIntro} />}
       {IS_DEMO && <DemoBanner />}
+      <SoldCounter />
       <Header logoRef={logoRef} logoWaiting={intro} />
       <main className={loading ? 'main main--loading' : 'main'}>
         {loading ? (

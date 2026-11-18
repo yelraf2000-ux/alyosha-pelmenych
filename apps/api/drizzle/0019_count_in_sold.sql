@@ -1,0 +1,1 @@
+ALTER TABLE "products" ADD COLUMN "count_in_sold" boolean DEFAULT false NOT NULL;

@@ -3,6 +3,7 @@ import {
   orderInputSchema,
   promoCheckSchema,
   type Product,
+  type SoldCount,
   type PromoCheckResult,
   type SubmitCustomOrderResult,
   type SubmitOrderResult,
@@ -24,7 +25,7 @@ import type { Notifier } from './notify';
 import { ADMIN_HELP_TEXT, handleAdminCallback, isAdminChat, sendOpenOrders, sendPasswordReset } from './services/admin-bot';
 import { getOrder } from './services/admin-orders';
 import { placeOrder } from './services/orders';
-import { toProduct } from './services/products';
+import { soldPieces, toProduct } from './services/products';
 import { listCategories } from './services/categories';
 import { getNewsPost, listNews } from './services/news';
 import {
@@ -147,6 +148,9 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   });
 
   app.get('/api/categories', async () => listCategories(db));
+
+  // «Продано пельменей» at the top of the site.
+  app.get('/api/sold', async (): Promise<SoldCount> => ({ pieces: await soldPieces(db) }));
 
   // «Новости»: `?limit=3` for the home page's block.
   app.get('/api/news', async (request) => {

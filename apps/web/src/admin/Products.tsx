@@ -50,6 +50,7 @@ function ProductRow({
           <span className="adm-tags">
             {!product.isActive && <span className="adm-tag">скрыт</span>}
             {product.isNew && <span className="adm-tag adm-tag--new">новинка</span>}
+            {product.countInSold && <span className="adm-tag">в счётчике</span>}
             {product.badges.map((badge) => (
               <span key={badge} className="adm-tag adm-tag--own">
                 {badge}

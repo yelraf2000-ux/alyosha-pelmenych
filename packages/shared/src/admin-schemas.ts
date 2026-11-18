@@ -21,6 +21,8 @@ const productFields = {
   weightLabel: z.string().trim().max(40),
   /** Pieces in one pack, for the owner; null when not filled in. */
   piecesPerPack: z.number().int().min(1).max(10_000).nullable(),
+  /** Count its sales in «Продано пельменей» on the site. */
+  countInSold: z.boolean(),
   stockQty: z.number().int().min(0).max(100_000),
   isNew: z.boolean(),
   /** The owner's own labels; repeats and empty ones are dropped. */
@@ -38,6 +40,7 @@ export const productCreateSchema = z.object({
   description: productFields.description.optional(),
   weightLabel: productFields.weightLabel.optional(),
   piecesPerPack: productFields.piecesPerPack.optional(),
+  countInSold: productFields.countInSold.optional(),
   stockQty: productFields.stockQty.optional(),
   isNew: productFields.isNew.optional(),
   badges: productFields.badges.optional(),

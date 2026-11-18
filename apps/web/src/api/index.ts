@@ -11,6 +11,7 @@ const api = IS_DEMO ? mock : http;
 export const getProducts = api.getProducts;
 export const getCategories = api.getCategories;
 export const getSettings = api.getSettings;
+export const getSoldCount = api.getSoldCount;
 export const getNews = api.getNews;
 export const getNewsPost = api.getNewsPost;
 export const submitOrder = api.submitOrder;

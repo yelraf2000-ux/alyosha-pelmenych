@@ -79,6 +79,8 @@ export type ProductInput = {
   weightLabel: string;
   /** Pieces in one pack; null when not filled in. Only the admin shows it. */
   piecesPerPack: number | null;
+  /** Count its sales in «Продано пельменей» at the top of the site. */
+  countInSold: boolean;
   stockQty: number;
   isNew: boolean;
   badges: string[];

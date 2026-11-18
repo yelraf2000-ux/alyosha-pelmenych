@@ -8,6 +8,7 @@ import type {
   Product,
   PromoCheckResult,
   Settings,
+  SoldCount,
   SubmitCustomOrderResult,
   SubmitOrderResult,
 } from '../types';
@@ -35,6 +36,11 @@ export function getProducts(): Promise<Product[]> {
 
 export function getCategories(): Promise<Category[]> {
   return get<Category[]>('/api/categories');
+}
+
+/** «Продано пельменей» at the top of the site. */
+export function getSoldCount(): Promise<SoldCount> {
+  return get<SoldCount>('/api/sold');
 }
 
 export function getSettings(): Promise<Settings> {

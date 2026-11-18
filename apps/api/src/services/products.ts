@@ -6,9 +6,9 @@ import {
   type ProductPatch,
   type SaveProductResult,
 } from '@alyosha/shared';
-import { and, asc, eq, max, ne } from 'drizzle-orm';
+import { and, asc, eq, isNotNull, max, ne, sql } from 'drizzle-orm';
 import type { Db, Tx } from '../db/client';
-import { orderItems, products } from '../db/schema';
+import { orderItems, orders, products } from '../db/schema';
 
 type ProductRow = typeof products.$inferSelect;
 
@@ -33,7 +33,7 @@ export function toProduct(row: ProductRow): Product {
 
 /** The storefront's fields plus what only the owner sees. */
 function toAdminProduct(row: ProductRow): AdminProduct {
-  return { ...toProduct(row), piecesPerPack: row.piecesPerPack };
+  return { ...toProduct(row), piecesPerPack: row.piecesPerPack, countInSold: row.countInSold };
 }
 
 // ---------- Products ----------
@@ -72,6 +72,7 @@ export async function createProduct(db: Db, input: ProductCreate): Promise<Admin
         description: input.description ?? '',
         weightLabel: input.weightLabel ?? '',
         piecesPerPack: input.piecesPerPack ?? null,
+        countInSold: input.countInSold ?? false,
         stockQty: input.stockQty ?? 0,
         isNew: input.isNew ?? false,
         badges: input.badges ?? [],
@@ -155,4 +156,20 @@ export async function deleteProduct(db: Db, id: number): Promise<DeleteProductRe
     await tx.delete(products).where(eq(products.id, id));
     return { ok: true, imagePath: current.imagePath, videoPath: current.videoPath };
   });
+}
+
+/**
+ * «Продано пельменей» at the top of the site: the pieces in every pack sold of the products the
+ * owner ticked, from the orders that were not cancelled. Counted with today's «Штук в пачке».
+ */
+export async function soldPieces(db: Db): Promise<number> {
+  const [row] = await db
+    .select({
+      pieces: sql<number>`coalesce(sum(${orderItems.qty} * ${products.piecesPerPack}), 0)::int`,
+    })
+    .from(orderItems)
+    .innerJoin(orders, eq(orders.id, orderItems.orderId))
+    .innerJoin(products, eq(products.id, orderItems.productId))
+    .where(and(ne(orders.status, 'cancelled'), eq(products.countInSold, true), isNotNull(products.piecesPerPack)));
+  return row?.pieces ?? 0;
 }

@@ -64,6 +64,8 @@ export const products = pgTable(
     weightLabel: text('weight_label').notNull().default(''),
     /** How many pieces one pack holds (15 пельменей in 500 g). For the owner only: the site never shows it. */
     piecesPerPack: integer('pieces_per_pack'),
+    /** Its sales (packs × `piecesPerPack`) add to «Продано пельменей» at the top of the site. */
+    countInSold: boolean('count_in_sold').notNull().default(false),
     stockQty: integer('stock_qty').notNull().default(0),
     isNew: boolean('is_new').notNull().default(false),
     /** The owner's own labels («Бест-селлер»…), shown on the product next to «Новинка». */

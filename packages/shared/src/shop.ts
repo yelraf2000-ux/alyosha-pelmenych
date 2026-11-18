@@ -293,3 +293,8 @@ export function videoInfo(videoPath: string): { poster: string; width: number; h
 export function formatAmd(amount: number): string {
   return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, NBSP) + NBSP + '֏';
 }
+
+/** «Продано пельменей» at the top of the site: how many pieces have been sold. */
+export interface SoldCount {
+  pieces: number;
+}

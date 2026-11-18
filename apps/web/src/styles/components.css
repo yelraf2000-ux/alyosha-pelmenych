@@ -16,6 +16,32 @@
   flex: 1;
 }
 
+/* «Уже продано 12 480 пельменей»: a strip above the header, in the dough of the logo. */
+.sold {
+  margin: 0;
+  padding: 6px var(--gutter);
+  background: var(--dough-100);
+  color: var(--ink);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* Read by screen readers only. */
+.sold__text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.sold__count {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
 /* While the catalog is loading, keep the footer below the fold: otherwise it is painted right
    under the header and jumps down when the page arrives. */
 .main--loading {

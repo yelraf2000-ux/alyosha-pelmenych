@@ -11,6 +11,7 @@ export type {
   PromoCheckResult,
   PromoProblem,
   Settings,
+  SoldCount,
   StockShortage,
   SubmitCustomOrderResult,
   SubmitOrderResult,

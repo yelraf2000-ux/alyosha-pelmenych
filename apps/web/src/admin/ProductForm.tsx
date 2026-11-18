@@ -16,6 +16,7 @@ interface FormState {
   priceAmd: string;
   weightLabel: string;
   piecesPerPack: string;
+  countInSold: boolean;
   description: string;
   stockQty: string;
   isNew: boolean;
@@ -30,6 +31,7 @@ const EMPTY: FormState = {
   priceAmd: '',
   weightLabel: '',
   piecesPerPack: '',
+  countInSold: false,
   description: '',
   stockQty: '0',
   isNew: false,
@@ -45,6 +47,7 @@ function fromProduct(product: AdminProduct): FormState {
     priceAmd: String(product.priceAmd),
     weightLabel: product.weightLabel,
     piecesPerPack: product.piecesPerPack === null ? '' : String(product.piecesPerPack),
+    countInSold: product.countInSold,
     description: product.description,
     stockQty: String(product.stockQty),
     isNew: product.isNew,
@@ -173,6 +176,7 @@ export function ProductFormPage() {
       priceAmd: Number(form.priceAmd),
       weightLabel: form.weightLabel.trim(),
       piecesPerPack: form.piecesPerPack.trim() ? Number(form.piecesPerPack) : null,
+      countInSold: form.countInSold,
       description: form.description.trim(),
       stockQty: Number(form.stockQty),
       isNew: form.isNew,
@@ -331,9 +335,16 @@ export function ProductFormPage() {
             onChange={(v) => set('piecesPerPack', v.replace(/[^\d]/g, ''))}
             inputMode="numeric"
             placeholder="15"
-            hint="Сколько пельменей (мант, хинкали) в одной пачке. Видно только вам, в админке; на сайте не показывается."
+            hint="Сколько пельменей (мант, хинкали) в одной пачке. Само число видно только вам; с галочкой ниже проданные штуки попадают в общий счётчик на сайте."
             error={showErrors ? errors.piecesPerPack : null}
           />
+          <label className="adm-check">
+            <input type="checkbox" checked={form.countInSold} onChange={(event) => set('countInSold', event.target.checked)} />
+            Считать в счётчике «Продано пельменей» на сайте
+          </label>
+          {form.countInSold && !form.piecesPerPack.trim() && (
+            <p className="field__hint">Укажите «Штук в пачке»: без него продажи этого товара в счётчик не попадут.</p>
+          )}
 
           <Field
             label="Описание"

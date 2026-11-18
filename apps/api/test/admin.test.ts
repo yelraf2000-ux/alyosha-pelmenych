@@ -196,6 +196,32 @@ describe('admin products', () => {
     expect(storefront[0]).not.toHaveProperty('piecesPerPack');
   });
 
+  it('counts the pieces sold of the ticked products for «Продано пельменей», without cancelled orders', async () => {
+    const sold = async () => (await ctx.app.inject({ url: '/api/sold' })).json().pieces as number;
+    const pelmeni = await addProduct(ctx.db, { piecesPerPack: 15, countInSold: true, stockQty: 50 });
+    const khinkali = await addProduct(ctx.db, { piecesPerPack: 5, countInSold: true, stockQty: 50 });
+    // Not ticked, or ticked without a count of pieces: never counted.
+    const manty = await addProduct(ctx.db, { piecesPerPack: 6, countInSold: false, stockQty: 50 });
+    const noCount = await addProduct(ctx.db, { piecesPerPack: null, countInSold: true, stockQty: 50 });
+    expect(await sold()).toBe(0);
+
+    await placeOrderFor(pelmeni, 2);
+    await placeOrderFor(khinkali, 3);
+    await placeOrderFor(manty, 4);
+    await placeOrderFor(noCount, 1);
+    expect(await sold()).toBe(2 * 15 + 3 * 5);
+
+    const cancelled = await placeOrderFor(pelmeni, 10);
+    await setStatus(cancelled, 'cancelled');
+    expect(await sold()).toBe(45);
+
+    // The tick is set in the admin.
+    const ticked = await asAdmin({ method: 'PATCH', url: `/api/admin/products/${manty}`, payload: { countInSold: true } });
+    expect(ticked.json().product).toMatchObject({ countInSold: true, piecesPerPack: 6 });
+    expect(await sold()).toBe(45 + 24);
+    expect((await ctx.app.inject({ url: '/api/products' })).json()[0]).not.toHaveProperty('countInSold');
+  });
+
   it('creates a product with a slug made from the name, at the end of the catalog', async () => {
     await addProduct(ctx.db, { sortOrder: 30 });
 

@@ -17,6 +17,7 @@ import type {
   OrderItemView,
   Product,
   Settings,
+  SoldCount,
   StockShortage,
   PromoCheckResult,
   SubmitCustomOrderResult,
@@ -83,6 +84,12 @@ export async function getProducts(): Promise<Product[]> {
 export async function getCategories(): Promise<Category[]> {
   await delay(60);
   return [...MOCK_CATEGORIES];
+}
+
+/** The demo shows an example number. */
+export async function getSoldCount(): Promise<SoldCount> {
+  await delay(60);
+  return { pieces: 12480 };
 }
 
 export async function getSettings(): Promise<Settings> {
