@@ -1,19 +1,9 @@
-import {
-  compositionCost,
-  formatAmd,
-  PRODUCT_BADGE_MAX_LENGTH,
-  PRODUCT_BADGES_MAX,
-  type AdminCategory,
-  type AdminIngredient,
-  type AdminProduct,
-  type CompositionLine,
-} from '@alyosha/shared';
+import { PRODUCT_BADGE_MAX_LENGTH, PRODUCT_BADGES_MAX, type AdminCategory, type AdminProduct } from '@alyosha/shared';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Field } from '../components/Field';
 import { adminApi, type ProductInput } from './api';
 import { errorText, LoadState, PageHead, useLoad } from './shared';
-import { decimalInput, marginText, parseDecimal, UNITS } from './units';
 
 const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
 const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -84,19 +74,6 @@ export function ProductFormPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // «Себестоимость»: the warehouse's ingredients, and the composition as it is being typed. `savedComposition`
-  // is what the server has, so an unchanged composition is not sent again; null until it has loaded.
-  const warehouse = useLoad(() => adminApi.warehouse(), []);
-  const compositionLoad = useLoad(() => (id === null ? Promise.resolve({ lines: [] }) : adminApi.composition(id)), [id]);
-  const [composition, setComposition] = useState<CompositionDraft[]>([]);
-  const [savedComposition, setSavedComposition] = useState<string | null>(id === null ? '[]' : null);
-
-  useEffect(() => {
-    if (!compositionLoad.data || savedComposition !== null) return;
-    setComposition(compositionLoad.data.lines.map((line) => ({ ingredientId: String(line.ingredientId), qty: decimalInput(line.qty) })));
-    setSavedComposition(JSON.stringify(compositionLoad.data.lines));
-  }, [compositionLoad.data, savedComposition]);
-
   const categoryList = useLoad(() => adminApi.categories(), []);
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   /** The name being typed for a new category, or null when the picker shows the list. */
@@ -162,7 +139,6 @@ export function ProductFormPage() {
     priceAmd: wholeNumber(form.priceAmd) ? null : 'Цена — целое число в драмах',
     stockQty: wholeNumber(form.stockQty) ? null : 'Количество — целое число',
     slug: !form.slug.trim() || /^[a-z0-9]+(-[a-z0-9]+)*$/.test(form.slug.trim()) ? null : 'Только латинские буквы, цифры и дефис',
-    composition: parseComposition(composition) ? null : 'Заполните состав',
   };
   const hasErrors = Object.values(errors).some(Boolean);
 
@@ -207,12 +183,6 @@ export function ProductFormPage() {
       const saved = product ? await adminApi.updateProduct(product.id, input) : await adminApi.createProduct(input);
       // From here the product exists: a failed photo or video upload must not create it a second time.
       setProduct(saved.product);
-      const lines = parseComposition(composition)!;
-      // Only once the old composition has loaded: otherwise an empty form would wipe it.
-      if (savedComposition !== null && JSON.stringify(lines) !== savedComposition) {
-        const stored = await adminApi.setComposition(saved.product.id, lines);
-        setSavedComposition(JSON.stringify(stored.lines));
-      }
       if (photo) {
         setProduct((await adminApi.uploadImage(saved.product.id, photo)).product);
         setPhoto(null);
@@ -434,21 +404,6 @@ export function ProductFormPage() {
         </section>
 
         <section className="adm-card">
-          <h2>Себестоимость</h2>
-          {savedComposition === null ? (
-            <LoadState error={compositionLoad.error} onRetry={compositionLoad.reload} />
-          ) : (
-            <CompositionEditor
-              lines={composition}
-              onChange={setComposition}
-              ingredients={warehouse.data?.ingredients ?? null}
-              priceAmd={wholeNumber(form.priceAmd) ? Number(form.priceAmd) : null}
-              showErrors={showErrors}
-            />
-          )}
-        </section>
-
-        <section className="adm-card">
           <h2>Наличие и показ</h2>
           <Field
             label="На складе, шт."
@@ -583,143 +538,5 @@ function BadgesEditor({ value, onChange }: { value: string[]; onChange: (badges:
         Показываются на карточке товара рядом с «Новинкой». До {PRODUCT_BADGES_MAX} штук, по {PRODUCT_BADGE_MAX_LENGTH} знаков.
       </p>
     </div>
-  );
-}
-
-/** One line of a composition as typed: an ingredient's id and a quantity, both as text. */
-export interface CompositionDraft {
-  ingredientId: string;
-  qty: string;
-}
-
-/** The typed composition as the API takes it; null while a line is not filled in properly. */
-export function parseComposition(lines: CompositionDraft[]): CompositionLine[] | null {
-  const parsed = lines.map((line) => ({ ingredientId: Number(line.ingredientId), qty: parseDecimal(line.qty) }));
-  if (parsed.some((line) => !line.ingredientId || line.qty === null || line.qty <= 0)) return null;
-  return parsed as CompositionLine[];
-}
-
-/**
- * «Себестоимость»: how much of which ingredient one of the product takes, in grams (millilitres,
- * pieces). The cost and the profit are worked out as he types, at the warehouse's prices today.
- */
-function CompositionEditor({
-  lines,
-  onChange,
-  ingredients,
-  priceAmd,
-  showErrors,
-}: {
-  lines: CompositionDraft[];
-  onChange: (lines: CompositionDraft[]) => void;
-  ingredients: AdminIngredient[] | null;
-  priceAmd: number | null;
-  showErrors: boolean;
-}) {
-  if (!ingredients) return <p className="adm-muted">Загружаем склад…</p>;
-  if (ingredients.length === 0) {
-    return (
-      <p className="adm-muted">
-        На складе пока нет ингредиентов. Добавьте их на «<Link to="/admin/warehouse">Складе</Link>» — мясо, муку, пакеты, — и
-        здесь можно будет указать, сколько чего уходит на одну штуку товара.
-      </p>
-    );
-  }
-
-  const byId = new Map(ingredients.map((ingredient) => [String(ingredient.id), ingredient]));
-  const update = (index: number, patch: Partial<CompositionDraft>) =>
-    onChange(lines.map((line, i) => (i === index ? { ...line, ...patch } : line)));
-  const unused = ingredients.filter((ingredient) => !lines.some((line) => line.ingredientId === String(ingredient.id)));
-  const parsed = parseComposition(lines);
-  const cost = parsed ? compositionCost(parsed, ingredients) : null;
-  const unpriced = lines
-    .map((line) => byId.get(line.ingredientId))
-    .filter((ingredient): ingredient is AdminIngredient => Boolean(ingredient && ingredient.unitCostAmd === 0));
-
-  return (
-    <>
-      <p className="adm-muted">Сколько каких ингредиентов со склада уходит на одну штуку (одну пачку) этого товара.</p>
-      {lines.length > 0 && (
-        <ul className="adm-composition">
-          {lines.map((line, index) => {
-            const ingredient = byId.get(line.ingredientId);
-            const qty = parseDecimal(line.qty);
-            const bad = showErrors && (!ingredient || qty === null || qty <= 0);
-            return (
-              <li key={index} className={bad ? 'adm-composition__line adm-composition__line--error' : 'adm-composition__line'}>
-                <select
-                  className="field__input"
-                  value={line.ingredientId}
-                  aria-label="Ингредиент"
-                  onChange={(event) => update(index, { ingredientId: event.target.value })}
-                >
-                  {!ingredient && <option value="">Выберите…</option>}
-                  {ingredients
-                    .filter((item) => String(item.id) === line.ingredientId || unused.includes(item))
-                    .map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name}
-                      </option>
-                    ))}
-                </select>
-                <span className="adm-composition__qty">
-                  <input
-                    className="field__input"
-                    inputMode="decimal"
-                    value={line.qty}
-                    aria-label={`Сколько, ${ingredient ? UNITS[ingredient.unit].small : ''}`}
-                    placeholder="0"
-                    onChange={(event) => update(index, { qty: event.target.value })}
-                  />
-                  <span>{ingredient ? UNITS[ingredient.unit].small : ''}</span>
-                </span>
-                <span className="adm-composition__cost adm-num">
-                  {ingredient && qty !== null && qty > 0 ? formatAmd(Math.round(qty * ingredient.unitCostAmd)) : '—'}
-                </span>
-                <button
-                  type="button"
-                  className="link-btn adm-composition__remove"
-                  aria-label={`Убрать ${ingredient?.name ?? 'строку'}`}
-                  onClick={() => onChange(lines.filter((_, i) => i !== index))}
-                >
-                  ×
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-      {unused.length > 0 && (
-        <div>
-          <button type="button" className="btn" onClick={() => onChange([...lines, { ingredientId: String(unused[0]!.id), qty: '' }])}>
-            + Ингредиент
-          </button>
-        </div>
-      )}
-      {showErrors && !parsed && <p className="field__error">У каждой строки укажите ингредиент и количество больше нуля.</p>}
-      {cost !== null && lines.length > 0 && (
-        <p className="adm-composition__total">
-          Себестоимость одной штуки: <strong>{formatAmd(cost)}</strong>
-          {priceAmd !== null && (
-            <>
-              {' '}
-              · прибыль с продажи по {formatAmd(priceAmd)}:{' '}
-              <strong className={priceAmd - cost < 0 ? 'adm-minus' : undefined}>
-                {formatAmd(priceAmd - cost)} ({marginText(priceAmd - cost, priceAmd)})
-              </strong>
-            </>
-          )}
-        </p>
-      )}
-      {unpriced.length > 0 && (
-        <p className="adm-muted">
-          У {unpriced.map((ingredient) => `«${ingredient.name}»`).join(', ')} ещё нет цены: запишите закупку на «
-          <Link to="/admin/warehouse">Складе</Link>», иначе себестоимость будет меньше настоящей.
-        </p>
-      )}
-      <p className="adm-muted">
-        Заказы, оформленные раньше, сохраняют свою себестоимость: изменения здесь и цены закупок их не переписывают.
-      </p>
-    </>
   );
 }

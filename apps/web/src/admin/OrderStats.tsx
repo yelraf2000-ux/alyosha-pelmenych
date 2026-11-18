@@ -129,7 +129,7 @@ export function OrderStatsPage() {
             </Link>
           </div>
 
-          {(stats.kept.count > 0 || stats.recipes.costedCount > 0 || stats.purchasesAmd > 0) && <ProfitCard stats={stats} />}
+          <ProfitCard stats={stats} />
 
           {stats.placed.count === 0 ? (
             <p className="adm-muted">За этот период заказов не было.</p>
@@ -180,7 +180,6 @@ export function OrderStatsPage() {
                         <th>Товар</th>
                         <th className="adm-num">Штук</th>
                         <th className="adm-num">Сумма</th>
-                        <th className="adm-num">Прибыль</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -189,22 +188,10 @@ export function OrderStatsPage() {
                           <td>{row.name}</td>
                           <td className="adm-num">{row.qty}</td>
                           <td className="adm-num">{formatAmd(row.totalAmd)}</td>
-                          <td className={`adm-num${row.profitAmd !== null && row.profitAmd < 0 ? ' adm-minus' : ''}`}>
-                            {row.profitAmd === null ? '—' : formatAmd(row.profitAmd)}
-                            {row.profitAmd !== null && row.costedQty < row.qty && '*'}
-                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                )}
-                {stats.products.some((row) => row.costedQty < row.qty) && (
-                  <p className="adm-muted">
-                    «—» — у товара не было состава, когда его заказали, и себестоимость не известна.
-                    {stats.products.some((row) => row.profitAmd !== null && row.costedQty < row.qty) &&
-                      ' * — прибыль только с тех штук, у которых состав был.'}{' '}
-                    Состав задаётся в карточке товара.
-                  </p>
                 )}
                 {stats.promoCodes.length > 0 && (
                   <p className="adm-muted">Суммы по товарам — по их ценам, до скидок по промокодам.</p>
@@ -256,7 +243,6 @@ export function OrderStatsPage() {
                         <th className="adm-num">Заказов</th>
                         <th className="adm-num">Отменено</th>
                         <th className="adm-num">Сумма</th>
-                        <th className="adm-num">Прибыль</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -268,7 +254,6 @@ export function OrderStatsPage() {
                           <td className="adm-num">{row.count}</td>
                           <td className="adm-num">{row.cancelledCount}</td>
                           <td className="adm-num">{formatAmd(row.totalAmd)}</td>
-                          <td className={`adm-num${row.profitAmd < 0 ? ' adm-minus' : ''}`}>{formatAmd(row.profitAmd)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -294,14 +279,6 @@ export function OrderStatsPage() {
                       {stats.recipes.pricedCount} · {formatAmd(stats.recipes.totalAmd)}
                     </td>
                   </tr>
-                  {stats.recipes.costedCount > 0 && (
-                    <tr>
-                      <td>С себестоимостью — прибыль</td>
-                      <td className="adm-num">
-                        {stats.recipes.costedCount} · {formatAmd(stats.recipes.profitAmd)}
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
                 <tfoot>
                   <tr className="adm-total">
@@ -327,55 +304,55 @@ export function OrderStatsPage() {
 }
 
 /**
- * The profit of the period: what the goods brought after promo discounts, minus what they cost to
- * make (each order keeps the cost it had when placed), plus the «Свой рецепт» requests that have a
- * price and a cost. Delivery is left out: it pays the courier.
+ * Revenue, expenses and profit for the period. The revenue is what the kept orders came to (with
+ * a fixed delivery fee, as above) plus the priced «Свой рецепт» requests; the expenses are what
+ * was written down on «Склад» for the same days.
  */
 function ProfitCard({ stats }: { stats: OrderStats }) {
-  const { goodsAmd, costAmd, profitAmd, uncostedQty } = stats.profit;
-  const recipes = stats.recipes;
-  const total = profitAmd + recipes.profitAmd;
+  const revenue = stats.kept.totalAmd + stats.recipes.totalAmd;
+  const { expenses } = stats;
+  const profit = revenue - expenses.totalAmd;
   return (
     <section className="adm-card">
       <h2>Прибыль</h2>
       <table className="adm-table">
         <tbody>
           <tr>
-            <td>Товары (со скидками, без доставки)</td>
-            <td className="adm-num">{formatAmd(goodsAmd)}</td>
+            <td>Выручка{stats.recipes.totalAmd > 0 && ' (заказы и свои рецепты)'}</td>
+            <td className="adm-num">{formatAmd(revenue)}</td>
           </tr>
           <tr>
-            <td>Себестоимость — ингредиенты по составу</td>
-            <td className="adm-num">−{formatAmd(costAmd)}</td>
+            <td>
+              Расходы на «<Link to="/admin/warehouse">Складе</Link>»
+            </td>
+            <td className="adm-num">−{formatAmd(expenses.totalAmd)}</td>
           </tr>
-          {recipes.costedCount > 0 && (
-            <tr>
-              <td>
-                Свой рецепт: {recipes.costedCount} {plural(recipes.costedCount, ['заявка', 'заявки', 'заявок'])} с ценой и
-                себестоимостью
-              </td>
-              <td className="adm-num">{formatAmd(recipes.profitAmd)}</td>
-            </tr>
-          )}
         </tbody>
         <tfoot>
-          <tr className={`adm-total${total < 0 ? ' adm-minus' : ''}`}>
+          <tr className={`adm-total${profit < 0 ? ' adm-minus' : ''}`}>
             <td>Прибыль</td>
-            <td className="adm-num">{formatAmd(total)}</td>
+            <td className="adm-num">{formatAmd(profit)}</td>
           </tr>
         </tfoot>
       </table>
-      {uncostedQty > 0 && (
-        <p className="alert">
-          {uncostedQty} {plural(uncostedQty, ['штука продана', 'штуки проданы', 'штук продано'])} без состава («—» в таблице «Что
-          продано»): себестоимость не известна и не вычтена, поэтому настоящая прибыль меньше. Укажите состав в карточке товара —
-          он будет учитываться в следующих заказах.
-        </p>
-      )}
-      {stats.purchasesAmd > 0 && (
+      {expenses.byName.length > 0 ? (
+        <details className="adm-expense-split">
+          <summary>На что потрачено</summary>
+          <table className="adm-table">
+            <tbody>
+              {expenses.byName.map((row) => (
+                <tr key={row.name}>
+                  <td>{row.name}</td>
+                  <td className="adm-num">{formatAmd(row.totalAmd)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+      ) : (
         <p className="adm-muted">
-          Закупки на «<Link to="/admin/warehouse">Складе</Link>» за этот период: {formatAmd(stats.purchasesAmd)}. Это деньги, отданные за
-          ингредиенты; в себестоимость заказов они входят по мере того, как ингредиенты уходят в товары.
+          За эти дни расходов не записано. Добавьте их на «<Link to="/admin/warehouse">Складе</Link>» — тогда здесь будет видна
+          прибыль.
         </p>
       )}
     </section>

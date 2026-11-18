@@ -12,7 +12,6 @@ import { orderItems, orders, products } from '../db/schema';
 import { newNotifyToken } from './buyer-bot';
 import { evaluatePromo } from './promo-codes';
 import { getSettings } from './settings';
-import { makingOf, moveIngredients } from './warehouse';
 
 export type PlaceOrderResult =
   /** `notifyToken`: the secret for the order's link to the Telegram bot (the route builds the link). */
@@ -92,14 +91,6 @@ export async function placeOrder(db: Db, order: ValidOrder): Promise<PlaceOrderR
         .where(eq(products.id, item.productId));
     }
 
-    // The warehouse: every line takes its composition off the shelf, the made-to-order part too
-    // (it is made all the same), and remembers what one cost to make at today's prices.
-    const making = await makingOf(tx, ids);
-    await moveIngredients(
-      tx,
-      items.map((item) => ({ uses: making.get(item.productId)!.ingredients, times: -item.qty })),
-    );
-
     // Prices and the delivery fee are taken from the database, never from the request.
     const itemsTotalAmd = items.reduce((sum, item) => sum + item.priceAmd * item.qty, 0);
     const discountAmd = promo?.discountAmd ?? 0;
@@ -139,8 +130,6 @@ export async function placeOrder(db: Db, order: ValidOrder): Promise<PlaceOrderR
         priceAmdSnapshot: item.priceAmd,
         qty: item.qty,
         preorderQty: item.preorderQty,
-        unitCostAmd: making.get(item.productId)!.unitCostAmd,
-        ingredients: making.get(item.productId)!.ingredients,
       })),
     );
 

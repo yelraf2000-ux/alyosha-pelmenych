@@ -8,8 +8,8 @@ import type {
   AdminOrder,
   AdminOrderSummary,
   AdminProduct,
-  CompositionLine,
-  IngredientUnit,
+  Expense,
+  ExpenseInput,
   AdminPromoCode,
   NewsPostInput,
   OrderStats,
@@ -19,7 +19,6 @@ import type {
   Settings,
   StockShortage,
   TodayView,
-  WarehouseView,
 } from '@alyosha/shared';
 
 const BASE = (import.meta.env.VITE_API_URL ?? '') + '/api/admin';
@@ -161,23 +160,10 @@ export const adminApi = {
   setCustomOrderPrice: (id: number, priceAmd: number | null) =>
     request<AdminCustomOrder>('PUT', `/custom-orders/${id}/price`, { priceAmd }),
 
-  /** What making it cost; null takes it away again. */
-  setCustomOrderCost: (id: number, costAmd: number | null) =>
-    request<AdminCustomOrder>('PUT', `/custom-orders/${id}/cost`, { costAmd }),
-
-  warehouse: () => request<WarehouseView>('GET', '/warehouse'),
-  createIngredient: (name: string, unit: IngredientUnit) => request<WarehouseView>('POST', '/ingredients', { name, unit }),
-  /** A new name, or what a count of the shelf found (`stockQty`) and the price of one unit. */
-  updateIngredient: (id: number, patch: { name?: string; stockQty?: number; unitCostAmd?: number }) =>
-    request<WarehouseView>('PATCH', `/ingredients/${id}`, patch),
-  deleteIngredient: (id: number) => request<WarehouseView>('DELETE', `/ingredients/${id}`),
-  /** `qty` in the ingredient's own unit (grams, millilitres, pieces); `purchasedOn` YYYY-MM-DD. */
-  addPurchase: (ingredientId: number, purchase: { qty: number; paidAmd: number; purchasedOn: string }) =>
-    request<WarehouseView>('POST', `/ingredients/${ingredientId}/purchases`, purchase),
-  deletePurchase: (id: number) => request<WarehouseView>('DELETE', `/purchases/${id}`),
-  composition: (productId: number) => request<{ lines: CompositionLine[] }>('GET', `/products/${productId}/composition`),
-  setComposition: (productId: number, lines: CompositionLine[]) =>
-    request<{ lines: CompositionLine[] }>('PUT', `/products/${productId}/composition`, { lines }),
+  expenses: () => request<Expense[]>('GET', '/expenses'),
+  createExpense: (input: ExpenseInput) => request<Expense>('POST', '/expenses', input),
+  updateExpense: (id: number, input: ExpenseInput) => request<Expense>('PUT', `/expenses/${id}`, input),
+  deleteExpense: (id: number) => request<{ ok: true }>('DELETE', `/expenses/${id}`),
 
   promoCodes: () => request<AdminPromoCode[]>('GET', '/promo-codes'),
   createPromoCode: (input: PromoCodeInput) => request<AdminPromoCode>('POST', '/promo-codes', input),

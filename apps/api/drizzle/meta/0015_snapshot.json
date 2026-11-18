@@ -1,5 +1,5 @@
 {
-  "id": "89aa2db4-c22b-4781-90c2-d7506a015afe",
+  "id": "6328b0b1-f692-482c-9223-3f7dfe567c72",
   "prevId": "11f888f6-3651-4a65-9b77-99f98a60527c",
   "version": "7",
   "dialect": "postgresql",
@@ -169,12 +169,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "cost_amd": {
-          "name": "cost_amd",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
         "status": {
           "name": "status",
           "type": "order_status",
@@ -256,16 +250,12 @@
         "custom_orders_price_non_negative": {
           "name": "custom_orders_price_non_negative",
           "value": "\"custom_orders\".\"price_amd\" IS NULL OR \"custom_orders\".\"price_amd\" >= 0"
-        },
-        "custom_orders_cost_non_negative": {
-          "name": "custom_orders_cost_non_negative",
-          "value": "\"custom_orders\".\"cost_amd\" IS NULL OR \"custom_orders\".\"cost_amd\" >= 0"
         }
       },
       "isRLSEnabled": false
     },
-    "public.ingredient_purchases": {
-      "name": "ingredient_purchases",
+    "public.expenses": {
+      "name": "expenses",
       "schema": "",
       "columns": {
         "id": {
@@ -274,9 +264,9 @@
           "primaryKey": true,
           "notNull": true
         },
-        "ingredient_id": {
-          "name": "ingredient_id",
-          "type": "integer",
+        "name": {
+          "name": "name",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -286,14 +276,21 @@
           "primaryKey": false,
           "notNull": true
         },
-        "paid_amd": {
-          "name": "paid_amd",
+        "unit": {
+          "name": "unit",
+          "type": "expense_unit",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount_amd": {
+          "name": "amount_amd",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
-        "purchased_on": {
-          "name": "purchased_on",
+        "spent_on": {
+          "name": "spent_on",
           "type": "date",
           "primaryKey": false,
           "notNull": true,
@@ -305,14 +302,21 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {
-        "ingredient_purchases_date_idx": {
-          "name": "ingredient_purchases_date_idx",
+        "expenses_spent_on_idx": {
+          "name": "expenses_spent_on_idx",
           "columns": [
             {
-              "expression": "purchased_on",
+              "expression": "spent_on",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -330,102 +334,20 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "ingredient_purchases_ingredient_id_ingredients_id_fk": {
-          "name": "ingredient_purchases_ingredient_id_ingredients_id_fk",
-          "tableFrom": "ingredient_purchases",
-          "tableTo": "ingredients",
-          "columnsFrom": [
-            "ingredient_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
-        "ingredient_purchases_qty_positive": {
-          "name": "ingredient_purchases_qty_positive",
-          "value": "\"ingredient_purchases\".\"qty\" > 0"
+        "expenses_qty_positive": {
+          "name": "expenses_qty_positive",
+          "value": "\"expenses\".\"qty\" > 0"
         },
-        "ingredient_purchases_paid_non_negative": {
-          "name": "ingredient_purchases_paid_non_negative",
-          "value": "\"ingredient_purchases\".\"paid_amd\" >= 0"
+        "expenses_amount_non_negative": {
+          "name": "expenses_amount_non_negative",
+          "value": "\"expenses\".\"amount_amd\" >= 0"
         }
       },
-      "isRLSEnabled": false
-    },
-    "public.ingredients": {
-      "name": "ingredients",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "unit": {
-          "name": "unit",
-          "type": "ingredient_unit",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "stock_qty": {
-          "name": "stock_qty",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "unit_cost_amd": {
-          "name": "unit_cost_amd",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "ingredients_name_unique": {
-          "name": "ingredients_name_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.news_posts": {
@@ -568,18 +490,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": 0
-        },
-        "unit_cost_amd": {
-          "name": "unit_cost_amd",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ingredients": {
-          "name": "ingredients",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {
@@ -861,77 +771,6 @@
         "orders_discount_non_negative": {
           "name": "orders_discount_non_negative",
           "value": "\"orders\".\"discount_amd\" >= 0"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.product_ingredients": {
-      "name": "product_ingredients",
-      "schema": "",
-      "columns": {
-        "product_id": {
-          "name": "product_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "ingredient_id": {
-          "name": "ingredient_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "qty": {
-          "name": "qty",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "product_ingredients_product_id_products_id_fk": {
-          "name": "product_ingredients_product_id_products_id_fk",
-          "tableFrom": "product_ingredients",
-          "tableTo": "products",
-          "columnsFrom": [
-            "product_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "product_ingredients_ingredient_id_ingredients_id_fk": {
-          "name": "product_ingredients_ingredient_id_ingredients_id_fk",
-          "tableFrom": "product_ingredients",
-          "tableTo": "ingredients",
-          "columnsFrom": [
-            "ingredient_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "product_ingredients_product_id_ingredient_id_pk": {
-          "name": "product_ingredients_product_id_ingredient_id_pk",
-          "columns": [
-            "product_id",
-            "ingredient_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "product_ingredients_qty_positive": {
-          "name": "product_ingredients_qty_positive",
-          "value": "\"product_ingredients\".\"qty\" > 0"
         }
       },
       "isRLSEnabled": false
@@ -1226,11 +1065,13 @@
         "courier"
       ]
     },
-    "public.ingredient_unit": {
-      "name": "ingredient_unit",
+    "public.expense_unit": {
+      "name": "expense_unit",
       "schema": "public",
       "values": [
+        "kg",
         "g",
+        "l",
         "ml",
         "pcs"
       ]

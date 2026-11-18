@@ -264,7 +264,7 @@ describe('a price for «Свой рецепт»', () => {
 
     const today = shopToday();
     const stats = (await asAdmin({ url: `/api/admin/orders/stats?from=${today}&to=${today}` })).json();
-    expect(stats.recipes).toEqual({ count: 2, pricedCount: 1, totalAmd: 15000, costedCount: 0, profitAmd: 0 });
+    expect(stats.recipes).toEqual({ count: 2, pricedCount: 1, totalAmd: 15000 });
   });
 
   it('is told to the buyer with the confirmation', () => {

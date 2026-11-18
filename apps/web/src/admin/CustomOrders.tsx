@@ -22,12 +22,14 @@ function RecipeCard({
   onError: (message: string | null) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [price, setPrice] = useState(order.priceAmd === null ? '' : String(order.priceAmd));
+  const priceChanged = price !== (order.priceAmd === null ? '' : String(order.priceAmd));
 
-  async function save(run: () => Promise<AdminCustomOrder>) {
+  async function savePrice() {
     setBusy(true);
     onError(null);
     try {
-      onChanged(await run());
+      onChanged(await adminApi.setCustomOrderPrice(order.id, price.trim() ? Number(price) : null));
     } catch (reason) {
       onError(errorText(reason));
     } finally {
@@ -101,26 +103,33 @@ function RecipeCard({
           : 'Бота покупатель не подключил: о заказе сообщите ему сами.'}
       </p>
       {order.comment && <p className="adm-recipe__comment">«{order.comment}»</p>}
-      <AmountForm
-        id={`recipe-price-${order.id}`}
-        label="Цена, ֏"
-        value={order.priceAmd}
-        busy={busy}
-        note="Входит в статистику. Покупатель увидит её при подтверждении."
-        onSave={(priceAmd) => save(() => adminApi.setCustomOrderPrice(order.id, priceAmd))}
-      />
-      <AmountForm
-        id={`recipe-cost-${order.id}`}
-        label="Себестоимость, ֏"
-        value={order.costAmd}
-        busy={busy}
-        note={
-          order.priceAmd !== null && order.costAmd !== null
-            ? `Прибыль ${formatAmd(order.priceAmd - order.costAmd)}. Покупатель её не видит.`
-            : 'Во что обошлись ингредиенты. Покупатель её не видит.'
-        }
-        onSave={(costAmd) => save(() => adminApi.setCustomOrderCost(order.id, costAmd))}
-      />
+      <form
+        className="adm-recipe__price"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (priceChanged && !busy) void savePrice();
+        }}
+      >
+        <label className="field__label" htmlFor={`recipe-price-${order.id}`}>
+          Цена, ֏
+        </label>
+        <input
+          id={`recipe-price-${order.id}`}
+          className="field__input"
+          inputMode="numeric"
+          value={price}
+          placeholder="Не указана"
+          onChange={(event) => setPrice(event.target.value.replace(/[^\d]/g, ''))}
+        />
+        {priceChanged && (
+          <button type="submit" className="btn btn--primary" disabled={busy}>
+            Сохранить
+          </button>
+        )}
+        {!priceChanged && order.priceAmd !== null && (
+          <span className="adm-muted">Входит в статистику. Покупатель увидит её при подтверждении.</span>
+        )}
+      </form>
       <div className="adm-actions">
         {ACTIONS.filter((action) => action.status !== order.status).map((action) => (
           <button
@@ -179,55 +188,5 @@ export function CustomOrdersPage() {
         </ul>
       )}
     </>
-  );
-}
-
-/** A sum of money in whole drams that is saved on its own; empty takes it away. */
-function AmountForm({
-  id,
-  label,
-  value,
-  busy,
-  note,
-  onSave,
-}: {
-  id: string;
-  label: string;
-  value: number | null;
-  busy: boolean;
-  /** Shown while a saved sum is in the field. */
-  note: string;
-  onSave: (value: number | null) => void;
-}) {
-  const saved = value === null ? '' : String(value);
-  const [text, setText] = useState(saved);
-  const changed = text !== saved;
-
-  return (
-    <form
-      className="adm-recipe__price"
-      onSubmit={(event) => {
-        event.preventDefault();
-        if (changed && !busy) onSave(text.trim() ? Number(text) : null);
-      }}
-    >
-      <label className="field__label" htmlFor={id}>
-        {label}
-      </label>
-      <input
-        id={id}
-        className="field__input"
-        inputMode="numeric"
-        value={text}
-        placeholder="Не указана"
-        onChange={(event) => setText(event.target.value.replace(/[^\d]/g, ''))}
-      />
-      {changed && (
-        <button type="submit" className="btn btn--primary" disabled={busy}>
-          Сохранить
-        </button>
-      )}
-      {!changed && value !== null && <span className="adm-muted">{note}</span>}
-    </form>
   );
 }

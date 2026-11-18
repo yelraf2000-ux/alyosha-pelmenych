@@ -22,7 +22,6 @@ function toView(row: Row): AdminCustomOrder {
     customerTelegram: row.customerTelegram,
     comment: row.comment,
     priceAmd: row.priceAmd,
-    costAmd: row.costAmd,
     telegramLinked: row.telegramChatId !== null,
     createdAt: row.createdAt.toISOString(),
   };
@@ -110,14 +109,4 @@ export async function setCustomOrderPrice(db: Db, id: number, priceAmd: number |
 export async function countNewCustomOrders(db: Db): Promise<number> {
   const [row] = await db.select({ n: count() }).from(customOrders).where(eq(customOrders.status, 'new'));
   return row?.n ?? 0;
-}
-
-/** What making a request cost the owner (null takes it away); null when there is no such request. */
-export async function setCustomOrderCost(db: Db, id: number, costAmd: number | null): Promise<AdminCustomOrder | null> {
-  const [row] = await db
-    .update(customOrders)
-    .set({ costAmd, updatedAt: new Date() })
-    .where(eq(customOrders.id, id))
-    .returning();
-  return row ? toView(row) : null;
 }

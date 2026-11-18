@@ -1,48 +1,74 @@
 import {
-  compositionCost,
+  EXPENSE_UNIT_LABELS,
+  EXPENSE_UNITS,
   formatAmd,
-  INGREDIENT_UNITS,
   shopToday,
-  type AdminIngredient,
-  type IngredientUnit,
-  type WarehouseView,
+  type Expense,
+  type ExpenseInput,
+  type ExpenseUnit,
 } from '@alyosha/shared';
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Field } from '../components/Field';
 import { adminApi } from './api';
 import { errorText, LoadState, PageHead, useLoad } from './shared';
-import {
-  decimalInput,
-  enoughFor,
-  formatSmall,
-  formatStock,
-  formatUnitPrice,
-  marginText,
-  parseDecimal,
-  UNITS,
-} from './units';
 
+const quantity = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 3 });
 const dayLabel = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', timeZone: 'UTC' });
-const formatDate = (date: string) => dayLabel.format(new Date(`${date}T00:00:00Z`));
+const monthLabel = new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+const formatDay = (date: string) => dayLabel.format(new Date(`${date}T00:00:00Z`));
+/** "2026-11" → «Ноябрь 2026». */
+function formatMonth(month: string): string {
+  const text = monthLabel.format(new Date(`${month}-01T00:00:00Z`)).replace(/\s*г\.$/, '');
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** «10 кг». */
+export function formatQty(expense: Pick<Expense, 'qty' | 'unit'>): string {
+  return `${quantity.format(expense.qty)} ${EXPENSE_UNIT_LABELS[expense.unit]}`;
+}
+
+/** «4,5» or «4.5» → 4.5; null for anything that is not a positive number. */
+function parseQty(value: string): number | null {
+  const text = value.trim().replace(/\s/g, '').replace(',', '.');
+  if (!/^\d+(\.\d+)?$/.test(text) || Number(text) <= 0) return null;
+  return Number(text);
+}
+
+/** The first and the last day of the month a date is in: for the link to the statistics. */
+function monthPeriod(date: string): { from: string; to: string } {
+  const from = `${date.slice(0, 7)}-01`;
+  const end = new Date(`${from}T00:00:00Z`);
+  end.setUTCMonth(end.getUTCMonth() + 1, 0);
+  const last = end.toISOString().slice(0, 10);
+  const today = shopToday();
+  return { from, to: last > today ? today : last };
+}
 
 /**
- * «Склад»: the ingredients with what is left and their average price, a form for a purchase, what
- * each product costs to make, and the latest purchases. Every change answers the whole warehouse.
+ * «Склад»: what the owner spent money on — meat, flour, bags. Each expense is a name, how much of
+ * it and what was paid. The order statistics take them away from the revenue, so he sees profit.
  */
 export function WarehousePage() {
-  const { data, setData, error, reload } = useLoad(() => adminApi.warehouse(), [], { refreshOnFocus: true });
+  const { data: expenses, setData, error, reload } = useLoad(() => adminApi.expenses(), [], { refreshOnFocus: true });
+  const [editing, setEditing] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  /** Runs a change and shows the warehouse it answers; false when it failed. */
-  async function change(run: () => Promise<WarehouseView>): Promise<boolean> {
+  // Names used before, for the name field to offer them.
+  const names = [...new Set((expenses ?? []).map((expense) => expense.name))];
+  const months = groupByMonth(expenses ?? []);
+  const thisMonth = monthPeriod(shopToday());
+
+  async function remove(expense: Expense) {
+    if (!window.confirm(`Удалить расход «${expense.name}, ${formatQty(expense)}, ${formatAmd(expense.amountAmd)}»?`)) return;
     setActionError(null);
     try {
-      setData(await run());
-      return true;
+      await adminApi.deleteExpense(expense.id);
+      setData((expenses ?? []).filter((item) => item.id !== expense.id));
+      setEditing(null);
     } catch (reason) {
       setActionError(errorText(reason));
-      return false;
     }
   }
 
@@ -50,9 +76,15 @@ export function WarehousePage() {
     <>
       <PageHead title="Склад" />
       <p className="adm-muted">
-        Из чего вы делаете товары. Записывайте закупки — склад сам посчитает среднюю цену. Каждый заказ списывает ингредиенты по
-        составу товара, а в «Статистике» заказов видна прибыль. Состав задаётся в карточке товара.
+        Записывайте, на что потратили деньги: мясо, муку, пакеты. В «
+        <Link to={`/admin/orders/stats?from=${thisMonth.from}&to=${thisMonth.to}`}>Статистике</Link>» заказов эти расходы
+        вычитаются из выручки — так видна прибыль.
       </p>
+
+      <ExpenseForm
+        names={names}
+        onSaved={(created) => setData(sortExpenses([created, ...(expenses ?? [])]))}
+      />
 
       {actionError && (
         <p className="alert alert--error" role="alert">
@@ -60,105 +92,207 @@ export function WarehousePage() {
         </p>
       )}
 
-      {!data ? (
+      {!expenses ? (
         <LoadState error={error} onRetry={reload} />
+      ) : expenses.length === 0 ? (
+        <p className="adm-muted">Расходов пока нет.</p>
       ) : (
-        <>
-          {data.ingredients.length > 0 && <PurchaseForm ingredients={data.ingredients} onSave={change} />}
-          <Ingredients ingredients={data.ingredients} onChange={change} />
-          <ProductCosts warehouse={data} />
-          <Purchases warehouse={data} onChange={change} />
-        </>
+        months.map(({ month, items, totalAmd }) => {
+          const period = monthPeriod(`${month}-01`);
+          return (
+            <section key={month} className="adm-card">
+              <div className="adm-expenses__head">
+                <h2>{formatMonth(month)}</h2>
+                <strong>{formatAmd(totalAmd)}</strong>
+              </div>
+              <ul className="adm-expenses">
+                {items.map((expense) =>
+                  editing === expense.id ? (
+                    <li key={expense.id}>
+                      <ExpenseForm
+                        expense={expense}
+                        names={names}
+                        onSaved={(saved) => {
+                          setData(sortExpenses((expenses ?? []).map((item) => (item.id === saved.id ? saved : item))));
+                          setEditing(null);
+                        }}
+                        onCancel={() => setEditing(null)}
+                        onDelete={() => remove(expense)}
+                      />
+                    </li>
+                  ) : (
+                    <li key={expense.id}>
+                      <button type="button" className="adm-expense" onClick={() => setEditing(expense.id)}>
+                        <span className="adm-expense__name">{expense.name}</span>
+                        <span className="adm-expense__amount">{formatAmd(expense.amountAmd)}</span>
+                        <span className="adm-muted">
+                          {formatDay(expense.spentOn)} · {formatQty(expense)}
+                          {perUnit(expense) && ` · ${perUnit(expense)}`}
+                        </span>
+                      </button>
+                    </li>
+                  ),
+                )}
+              </ul>
+              <Link className="adm-muted" to={`/admin/orders/stats?from=${period.from}&to=${period.to}`}>
+                Прибыль за этот месяц →
+              </Link>
+            </section>
+          );
+        })
       )}
     </>
   );
 }
 
-type Change = (run: () => Promise<WarehouseView>) => Promise<boolean>;
+/** «1 000 ֏ за кг», when there is more than one of the thing. */
+function perUnit(expense: Expense): string | null {
+  if (expense.qty === 1) return null;
+  return `${formatAmd(Math.round(expense.amountAmd / expense.qty))} за ${EXPENSE_UNIT_LABELS[expense.unit]}`;
+}
 
-function PurchaseForm({ ingredients, onSave }: { ingredients: AdminIngredient[]; onSave: Change }) {
-  const [ingredientId, setIngredientId] = useState(String(ingredients[0]!.id));
-  const [qty, setQty] = useState('');
-  const [paid, setPaid] = useState('');
-  const [date, setDate] = useState(shopToday());
+function sortExpenses(expenses: Expense[]): Expense[] {
+  return [...expenses].sort((a, b) => (a.spentOn === b.spentOn ? b.id - a.id : a.spentOn < b.spentOn ? 1 : -1));
+}
+
+function groupByMonth(expenses: Expense[]) {
+  const months: { month: string; items: Expense[]; totalAmd: number }[] = [];
+  for (const expense of expenses) {
+    const month = expense.spentOn.slice(0, 7);
+    let group = months.find((item) => item.month === month);
+    if (!group) {
+      group = { month, items: [], totalAmd: 0 };
+      months.push(group);
+    }
+    group.items.push(expense);
+    group.totalAmd += expense.amountAmd;
+  }
+  return months;
+}
+
+/** A new expense, or an existing one opened for changing (then with «Отмена» and «Удалить»). */
+function ExpenseForm({
+  expense,
+  names,
+  onSaved,
+  onCancel,
+  onDelete,
+}: {
+  expense?: Expense;
+  names: string[];
+  onSaved: (expense: Expense) => void;
+  onCancel?: () => void;
+  onDelete?: () => void;
+}) {
+  const [name, setName] = useState(expense?.name ?? '');
+  const [qty, setQty] = useState(expense ? String(expense.qty).replace('.', ',') : '');
+  const [unit, setUnit] = useState<ExpenseUnit>(expense?.unit ?? 'kg');
+  const [amount, setAmount] = useState(expense ? String(expense.amountAmd) : '');
+  const [date, setDate] = useState(expense?.spentOn ?? shopToday());
   const [showErrors, setShowErrors] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
 
-  const ingredient = ingredients.find((item) => String(item.id) === ingredientId) ?? ingredients[0]!;
-  const unit = UNITS[ingredient.unit];
-  const amount = parseDecimal(qty);
-  const paidAmd = /^\d+$/.test(paid.trim()) ? Number(paid.trim()) : null;
+  const qtyValue = parseQty(qty);
+  const amountValue = /^\d+$/.test(amount.trim()) ? Number(amount.trim()) : null;
   const errors = {
-    qty: amount !== null && amount > 0 ? null : `Сколько купили, в ${unit.big === 'шт.' ? 'штуках' : unit.big}`,
-    paid: paidAmd !== null ? null : 'Сколько заплатили, целым числом в драмах',
+    name: name.trim() ? null : 'Что купили',
+    qty: qtyValue !== null ? null : 'Число больше нуля',
+    amount: amountValue !== null ? null : 'Целое число в драмах',
   };
-  const valid = !errors.qty && !errors.paid;
+  const valid = !errors.name && !errors.qty && !errors.amount;
+  const listId = `expense-names-${expense?.id ?? 'new'}`;
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setShowErrors(true);
     if (!valid || busy) return;
+    const input: ExpenseInput = { name: name.trim(), qty: qtyValue!, unit, amountAmd: amountValue!, spentOn: date };
     setBusy(true);
+    setError(null);
     setSaved(null);
-    const ok = await onSave(() =>
-      adminApi.addPurchase(ingredient.id, { qty: amount! * unit.factor, paidAmd: paidAmd!, purchasedOn: date }),
-    );
-    setBusy(false);
-    if (ok) {
-      setSaved(`Записано: ${ingredient.name}, ${formatStock(amount! * unit.factor, ingredient.unit)} за ${formatAmd(paidAmd!)}.`);
-      setQty('');
-      setPaid('');
-      setShowErrors(false);
+    try {
+      const result = expense ? await adminApi.updateExpense(expense.id, input) : await adminApi.createExpense(input);
+      onSaved(result);
+      if (!expense) {
+        setSaved(`Записано: ${result.name}, ${formatQty(result)}, ${formatAmd(result.amountAmd)}.`);
+        setName('');
+        setQty('');
+        setAmount('');
+        setShowErrors(false);
+      }
+    } catch (reason) {
+      setError(errorText(reason));
+    } finally {
+      setBusy(false);
     }
   }
 
   return (
-    <form className="adm-card adm-form adm-purchase" onSubmit={submit} noValidate>
-      <h2>Записать закупку</h2>
-      <div className="field">
-        <label className="field__label" htmlFor="purchase-ingredient">
-          Что купили
-        </label>
-        <select
-          id="purchase-ingredient"
-          className="field__input"
-          value={ingredientId}
-          onChange={(event) => setIngredientId(event.target.value)}
-        >
-          {ingredients.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="adm-form__pair">
+    <form className={expense ? 'adm-expense-form adm-expense-form--edit' : 'adm-card adm-expense-form'} onSubmit={submit} noValidate>
+      {!expense && <h2>Добавить расход</h2>}
+      <Field
+        label="Что купили"
+        value={name}
+        onChange={setName}
+        maxLength={80}
+        placeholder="Говядина"
+        list={listId}
+        error={showErrors ? errors.name : null}
+      />
+      <datalist id={listId}>
+        {names.map((item) => (
+          <option key={item} value={item} />
+        ))}
+      </datalist>
+      <div className="adm-expense-form__row">
         <Field
-          label={`Сколько, ${unit.big}`}
+          label="Сколько"
           value={qty}
           onChange={setQty}
           inputMode="decimal"
-          placeholder={unit.factor > 1 ? '5' : '100'}
+          placeholder="10"
           error={showErrors ? errors.qty : null}
         />
+        <div className="field">
+          <label className="field__label" htmlFor={`${listId}-unit`}>
+            Единица
+          </label>
+          <select
+            id={`${listId}-unit`}
+            className="field__input"
+            value={unit}
+            onChange={(event) => setUnit(event.target.value as ExpenseUnit)}
+          >
+            {EXPENSE_UNITS.map((value) => (
+              <option key={value} value={value}>
+                {EXPENSE_UNIT_LABELS[value]}
+              </option>
+            ))}
+          </select>
+        </div>
         <Field
           label="Заплатили, ֏"
-          value={paid}
-          onChange={(value) => setPaid(value.replace(/[^\d]/g, ''))}
+          value={amount}
+          onChange={(value) => setAmount(value.replace(/[^\d]/g, ''))}
           inputMode="numeric"
-          placeholder="25000"
-          error={showErrors ? errors.paid : null}
+          placeholder="10000"
+          error={showErrors ? errors.amount : null}
         />
       </div>
-      <label className="adm-purchase__date">
+      <label className="adm-expense-form__date">
         <span>Дата</span>
         <input type="date" value={date} max={shopToday()} onChange={(event) => event.target.value && setDate(event.target.value)} />
       </label>
-      {valid && (
+      {valid && qtyValue !== 1 && (
         <p className="adm-muted">
-          Это {formatUnitPrice(paidAmd! / (amount! * unit.factor), ingredient.unit)}. Сейчас на складе {formatStock(ingredient.stockQty, ingredient.unit)}{' '}
-          по {formatUnitPrice(ingredient.unitCostAmd, ingredient.unit)}.
+          Это {formatAmd(Math.round(amountValue! / qtyValue!))} за {EXPENSE_UNIT_LABELS[unit]}.
+        </p>
+      )}
+      {error && (
+        <p className="alert alert--error" role="alert">
+          {error}
         </p>
       )}
       {saved && (
@@ -166,268 +300,21 @@ function PurchaseForm({ ingredients, onSave }: { ingredients: AdminIngredient[];
           {saved}
         </p>
       )}
-      <div>
+      <div className="adm-actions">
         <button type="submit" className="btn btn--primary" disabled={busy}>
-          {busy ? 'Записываем…' : 'Записать закупку'}
+          {busy ? 'Сохраняем…' : expense ? 'Сохранить' : 'Добавить'}
         </button>
-      </div>
-    </form>
-  );
-}
-
-function Ingredients({ ingredients, onChange }: { ingredients: AdminIngredient[]; onChange: Change }) {
-  const [editing, setEditing] = useState<number | null>(null);
-  const [name, setName] = useState('');
-  const [unit, setUnit] = useState<IngredientUnit>('g');
-  const [busy, setBusy] = useState(false);
-
-  async function add(event: FormEvent) {
-    event.preventDefault();
-    if (!name.trim() || busy) return;
-    setBusy(true);
-    if (await onChange(() => adminApi.createIngredient(name.trim(), unit))) setName('');
-    setBusy(false);
-  }
-
-  return (
-    <section className="adm-card">
-      <h2>Ингредиенты</h2>
-      {ingredients.length === 0 ? (
-        <p className="adm-muted">
-          Пока пусто. Добавьте то, из чего делаете товары: мясо, муку, лук, специи, пакеты. Потом записывайте закупки.
-        </p>
-      ) : (
-        <ul className="adm-ingredients">
-          {ingredients.map((ingredient) =>
-            editing === ingredient.id ? (
-              <IngredientEditor
-                key={ingredient.id}
-                ingredient={ingredient}
-                onChange={onChange}
-                onClose={() => setEditing(null)}
-              />
-            ) : (
-              <li key={ingredient.id}>
-                <button type="button" className="adm-ingredient" onClick={() => setEditing(ingredient.id)}>
-                  <span className="adm-ingredient__name">{ingredient.name}</span>
-                  <span className={`adm-ingredient__stock${ingredient.stockQty < 0 ? ' adm-ingredient__stock--minus' : ''}`}>
-                    {formatStock(ingredient.stockQty, ingredient.unit)}
-                  </span>
-                  <span className="adm-ingredient__price adm-muted">
-                    {ingredient.unitCostAmd > 0 ? formatUnitPrice(ingredient.unitCostAmd, ingredient.unit) : 'цена не известна'}
-                  </span>
-                </button>
-              </li>
-            ),
-          )}
-        </ul>
-      )}
-      {ingredients.some((ingredient) => ingredient.stockQty < 0) && (
-        <p className="adm-muted">
-          Минус — по заказам ушло больше, чем записано закупок. Запишите закупку или поправьте остаток, нажав на строку.
-        </p>
-      )}
-
-      <form className="adm-ingredient-add" onSubmit={add}>
-        <input
-          className="field__input"
-          value={name}
-          maxLength={60}
-          placeholder="Новый ингредиент, например: Говядина"
-          aria-label="Название нового ингредиента"
-          onChange={(event) => setName(event.target.value)}
-        />
-        <select
-          className="field__input"
-          value={unit}
-          aria-label="В чём считать"
-          onChange={(event) => setUnit(event.target.value as IngredientUnit)}
-        >
-          {INGREDIENT_UNITS.map((value) => (
-            <option key={value} value={value}>
-              {UNITS[value].label}
-            </option>
-          ))}
-        </select>
-        <button type="submit" className="btn" disabled={busy || !name.trim()}>
-          Добавить
-        </button>
-      </form>
-    </section>
-  );
-}
-
-/** A row opened for correcting: the name, what a count of the shelf found, the price; or deleting. */
-function IngredientEditor({
-  ingredient,
-  onChange,
-  onClose,
-}: {
-  ingredient: AdminIngredient;
-  onChange: Change;
-  onClose: () => void;
-}) {
-  const unit = UNITS[ingredient.unit];
-  const [name, setName] = useState(ingredient.name);
-  const [stock, setStock] = useState(decimalInput(ingredient.stockQty / unit.factor));
-  const [price, setPrice] = useState(String(Math.round(ingredient.unitCostAmd * unit.factor)));
-  const [busy, setBusy] = useState(false);
-
-  const stockValue = parseDecimal(stock);
-  const priceValue = parseDecimal(price);
-  const valid = Boolean(name.trim()) && stockValue !== null && priceValue !== null && priceValue >= 0;
-
-  async function save(event: FormEvent) {
-    event.preventDefault();
-    if (!valid || busy) return;
-    setBusy(true);
-    const ok = await onChange(() =>
-      adminApi.updateIngredient(ingredient.id, {
-        name: name.trim(),
-        stockQty: stockValue! * unit.factor,
-        unitCostAmd: priceValue! / unit.factor,
-      }),
-    );
-    setBusy(false);
-    if (ok) onClose();
-  }
-
-  async function remove() {
-    if (!window.confirm(`Удалить «${ingredient.name}» со склада вместе с его закупками?`)) return;
-    setBusy(true);
-    const ok = await onChange(() => adminApi.deleteIngredient(ingredient.id));
-    setBusy(false);
-    if (ok) onClose();
-  }
-
-  return (
-    <li>
-      <form className="adm-ingredient-edit" onSubmit={save} noValidate>
-        <Field label="Название" value={name} onChange={setName} maxLength={60} />
-        <div className="adm-form__pair">
-          <Field
-            label={`Остаток, ${unit.big}`}
-            value={stock}
-            onChange={setStock}
-            inputMode="decimal"
-            hint="Если пересчитали, что есть на самом деле."
-            error={stockValue === null ? 'Число' : null}
-          />
-          <Field
-            label={`Цена за ${unit.big}, ֏`}
-            value={price}
-            onChange={setPrice}
-            inputMode="decimal"
-            hint="Средняя; закупки меняют её сами."
-            error={priceValue === null || priceValue < 0 ? 'Число' : null}
-          />
-        </div>
-        <div className="adm-actions">
-          <button type="submit" className="btn btn--primary" disabled={busy || !valid}>
-            Сохранить
-          </button>
-          <button type="button" className="btn" disabled={busy} onClick={onClose}>
+        {onCancel && (
+          <button type="button" className="btn" disabled={busy} onClick={onCancel}>
             Отмена
           </button>
-          <button type="button" className="btn adm-danger adm-actions__last" disabled={busy} onClick={remove}>
+        )}
+        {onDelete && (
+          <button type="button" className="btn adm-danger adm-actions__last" disabled={busy} onClick={onDelete}>
             Удалить
           </button>
-        </div>
-      </form>
-    </li>
-  );
-}
-
-/** What one of each product costs to make today, its profit, and how many the shelf has ingredients for. */
-function ProductCosts({ warehouse }: { warehouse: WarehouseView }) {
-  const stock = new Map(warehouse.ingredients.map((ingredient) => [ingredient.id, ingredient]));
-  return (
-    <section className="adm-card">
-      <h2>Себестоимость товаров</h2>
-      {warehouse.products.length === 0 ? (
-        <p className="adm-muted">
-          Пока ни у одного товара нет состава. Откройте товар в «<Link to="/admin/products">Товарах</Link>» и заполните раздел
-          «Себестоимость»: сколько каких ингредиентов уходит на одну штуку.
-        </p>
-      ) : (
-        <ul className="adm-costs">
-          {warehouse.products.map((product) => {
-            const cost = compositionCost(product.composition, warehouse.ingredients);
-            const profit = product.priceAmd - cost;
-            const enough = enoughFor(product.composition, stock);
-            return (
-              <li key={product.id}>
-                <Link to={`/admin/products/${product.id}`} className="adm-costs__name">
-                  {product.name}
-                </Link>
-                <span className="adm-costs__numbers">
-                  себестоимость {formatAmd(cost)} · цена {formatAmd(product.priceAmd)} ·{' '}
-                  <strong className={profit < 0 ? 'adm-minus' : undefined}>
-                    прибыль {formatAmd(profit)} ({marginText(profit, product.priceAmd)})
-                  </strong>
-                </span>
-                <span className="adm-muted">
-                  {enough.count > 0
-                    ? `Ингредиентов хватит на ${enough.count} шт.`
-                    : 'Ингредиентов не хватит ни на одну штуку'}
-                  {enough.limitedBy && ` — меньше всего: ${enough.limitedBy}`}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </section>
-  );
-}
-
-function Purchases({ warehouse, onChange }: { warehouse: WarehouseView; onChange: Change }) {
-  const byId = new Map(warehouse.ingredients.map((ingredient) => [ingredient.id, ingredient]));
-  if (warehouse.purchases.length === 0) return null;
-
-  async function remove(id: number, label: string) {
-    if (!window.confirm(`Удалить закупку «${label}»? Остаток и средняя цена пересчитаются.`)) return;
-    await onChange(() => adminApi.deletePurchase(id));
-  }
-
-  return (
-    <section className="adm-card">
-      <h2>Последние закупки</h2>
-      <table className="adm-table">
-        <thead>
-          <tr>
-            <th>Дата</th>
-            <th>Что</th>
-            <th className="adm-num">Сколько</th>
-            <th className="adm-num">Заплатили</th>
-            <th aria-label="Удалить" />
-          </tr>
-        </thead>
-        <tbody>
-          {warehouse.purchases.map((purchase) => {
-            const ingredient = byId.get(purchase.ingredientId);
-            const qty = ingredient ? formatStock(purchase.qty, ingredient.unit) : formatSmall(purchase.qty, 'pcs');
-            return (
-              <tr key={purchase.id}>
-                <td className="adm-nowrap">{formatDate(purchase.purchasedOn)}</td>
-                <td>{ingredient?.name ?? '—'}</td>
-                <td className="adm-num">{qty}</td>
-                <td className="adm-num">{formatAmd(purchase.paidAmd)}</td>
-                <td className="adm-num">
-                  <button
-                    type="button"
-                    className="link-btn adm-purchase__remove"
-                    aria-label={`Удалить закупку: ${ingredient?.name ?? ''}, ${qty}`}
-                    onClick={() => remove(purchase.id, `${ingredient?.name ?? ''}, ${qty}`)}
-                  >
-                    ×
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </section>
+        )}
+      </div>
+    </form>
   );
 }
