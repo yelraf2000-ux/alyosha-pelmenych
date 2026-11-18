@@ -15,6 +15,7 @@ interface FormState {
   category: string;
   priceAmd: string;
   weightLabel: string;
+  piecesPerPack: string;
   description: string;
   stockQty: string;
   isNew: boolean;
@@ -28,6 +29,7 @@ const EMPTY: FormState = {
   category: '',
   priceAmd: '',
   weightLabel: '',
+  piecesPerPack: '',
   description: '',
   stockQty: '0',
   isNew: false,
@@ -42,6 +44,7 @@ function fromProduct(product: AdminProduct): FormState {
     category: product.category,
     priceAmd: String(product.priceAmd),
     weightLabel: product.weightLabel,
+    piecesPerPack: product.piecesPerPack === null ? '' : String(product.piecesPerPack),
     description: product.description,
     stockQty: String(product.stockQty),
     isNew: product.isNew,
@@ -138,6 +141,7 @@ export function ProductFormPage() {
     category: form.category ? null : 'Выберите категорию',
     priceAmd: wholeNumber(form.priceAmd) ? null : 'Цена — целое число в драмах',
     stockQty: wholeNumber(form.stockQty) ? null : 'Количество — целое число',
+    piecesPerPack: !form.piecesPerPack.trim() || (wholeNumber(form.piecesPerPack) && Number(form.piecesPerPack) > 0) ? null : 'Целое число больше нуля',
     slug: !form.slug.trim() || /^[a-z0-9]+(-[a-z0-9]+)*$/.test(form.slug.trim()) ? null : 'Только латинские буквы, цифры и дефис',
   };
   const hasErrors = Object.values(errors).some(Boolean);
@@ -168,6 +172,7 @@ export function ProductFormPage() {
       category: form.category,
       priceAmd: Number(form.priceAmd),
       weightLabel: form.weightLabel.trim(),
+      piecesPerPack: form.piecesPerPack.trim() ? Number(form.piecesPerPack) : null,
       description: form.description.trim(),
       stockQty: Number(form.stockQty),
       isNew: form.isNew,
@@ -319,6 +324,16 @@ export function ProductFormPage() {
               placeholder="500 г"
             />
           </div>
+
+          <Field
+            label="Штук в пачке"
+            value={form.piecesPerPack}
+            onChange={(v) => set('piecesPerPack', v.replace(/[^\d]/g, ''))}
+            inputMode="numeric"
+            placeholder="15"
+            hint="Сколько пельменей (мант, хинкали) в одной пачке. Видно только вам, в админке; на сайте не показывается."
+            error={showErrors ? errors.piecesPerPack : null}
+          />
 
           <Field
             label="Описание"

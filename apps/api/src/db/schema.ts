@@ -62,6 +62,8 @@ export const products = pgTable(
       .references(() => categories.slug, { onUpdate: 'cascade' }),
     priceAmd: integer('price_amd').notNull(),
     weightLabel: text('weight_label').notNull().default(''),
+    /** How many pieces one pack holds (15 пельменей in 500 g). For the owner only: the site never shows it. */
+    piecesPerPack: integer('pieces_per_pack'),
     stockQty: integer('stock_qty').notNull().default(0),
     isNew: boolean('is_new').notNull().default(false),
     /** The owner's own labels («Бест-селлер»…), shown on the product next to «Новинка». */
@@ -76,6 +78,7 @@ export const products = pgTable(
     // The database itself refuses to oversell, whatever the application code does.
     check('products_stock_qty_non_negative', sql`${t.stockQty} >= 0`),
     check('products_price_amd_non_negative', sql`${t.priceAmd} >= 0`),
+    check('products_pieces_per_pack_positive', sql`${t.piecesPerPack} IS NULL OR ${t.piecesPerPack} > 0`),
   ],
 );
 

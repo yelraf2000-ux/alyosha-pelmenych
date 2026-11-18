@@ -170,6 +170,32 @@ describe('admin access', () => {
 });
 
 describe('admin products', () => {
+  it('keeps how many pieces a pack holds for the admin and never shows it on the storefront', async () => {
+    const created = await asAdmin({
+      method: 'POST',
+      url: '/api/admin/products',
+      payload: { name: 'Пельмени', category: 'pelmeni', priceAmd: 3300, weightLabel: '500 г', piecesPerPack: 15 },
+    });
+    expect(created.statusCode).toBe(201);
+    const { id, piecesPerPack } = created.json().product;
+    expect(piecesPerPack).toBe(15);
+
+    const cleared = await asAdmin({ method: 'PATCH', url: `/api/admin/products/${id}`, payload: { piecesPerPack: null } });
+    expect(cleared.json().product.piecesPerPack).toBeNull();
+    await asAdmin({ method: 'PATCH', url: `/api/admin/products/${id}`, payload: { piecesPerPack: 16 } });
+    expect((await asAdmin({ url: `/api/admin/products/${id}` })).json().piecesPerPack).toBe(16);
+    expect((await asAdmin({ url: '/api/admin/products' })).json()[0].piecesPerPack).toBe(16);
+
+    for (const bad of [0, -1, 2.5, '15']) {
+      const response = await asAdmin({ method: 'PATCH', url: `/api/admin/products/${id}`, payload: { piecesPerPack: bad } });
+      expect(response.statusCode).toBe(400);
+    }
+
+    const storefront = (await ctx.app.inject({ url: '/api/products' })).json();
+    expect(storefront).toHaveLength(1);
+    expect(storefront[0]).not.toHaveProperty('piecesPerPack');
+  });
+
   it('creates a product with a slug made from the name, at the end of the catalog', async () => {
     await addProduct(ctx.db, { sortOrder: 30 });
 

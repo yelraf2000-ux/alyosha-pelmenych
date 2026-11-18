@@ -1,0 +1,2 @@
+ALTER TABLE "products" ADD COLUMN "pieces_per_pack" integer;--> statement-breakpoint
+ALTER TABLE "products" ADD CONSTRAINT "products_pieces_per_pack_positive" CHECK ("products"."pieces_per_pack" IS NULL OR "products"."pieces_per_pack" > 0);

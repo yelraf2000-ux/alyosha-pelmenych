@@ -44,7 +44,8 @@ function ProductRow({
           </Link>
           <span className="adm-muted">
             {categoryName(categories, product.category)}
-            {product.weightLabel && ` · ${product.weightLabel}`} · {formatAmd(product.priceAmd)}
+            {product.weightLabel && ` · ${product.weightLabel}`}
+            {product.piecesPerPack !== null && ` · ${product.piecesPerPack} шт. в пачке`} · {formatAmd(product.priceAmd)}
           </span>
           <span className="adm-tags">
             {!product.isActive && <span className="adm-tag">скрыт</span>}

@@ -77,6 +77,8 @@ export type ProductInput = {
   category: string;
   priceAmd: number;
   weightLabel: string;
+  /** Pieces in one pack; null when not filled in. Only the admin shows it. */
+  piecesPerPack: number | null;
   stockQty: number;
   isNew: boolean;
   badges: string[];

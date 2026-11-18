@@ -7,7 +7,11 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 // ---------- Views returned by the admin API ----------
 
-export type AdminProduct = Product;
+/** A product as the admin sees it: with what only the owner needs. */
+export interface AdminProduct extends Product {
+  /** How many pieces one pack holds; null when not filled in. Never sent to the storefront. */
+  piecesPerPack: number | null;
+}
 
 export interface AdminCategory extends Category {
   /** Products in it, hidden ones included. Only an empty category can be deleted. */

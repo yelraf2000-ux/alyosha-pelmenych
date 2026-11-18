@@ -115,7 +115,7 @@ Rules:
 ## 7. Admin panel (`/admin`)
 
 - **Auth:** single admin. Password hash (argon2/bcrypt) from env, httpOnly secure session cookie, login rate limit. No sign-up.
-- **Products:** list with inline stock edit; create/edit form (all fields + image upload); toggle active / new; drag or number sort.
+- **Products:** list with inline stock edit; create/edit form (all fields + image upload); toggle active / new; drag or number sort. «Штук в пачке» (pieces per pack) is for the owner only and is never sent to the storefront.
 - **Orders:** list newest first with status filter; detail view; change status. **Cancelling an order returns its items to stock** (in a transaction). Show customer contacts with one-tap links.
 - **Settings:** edit all `Setting` keys (texts, fees, threshold, addresses, contacts).
 - **Today view (simple):** count of new orders and total quantities per product for orders with status `new`/`confirmed` — a plain table, no charts. (Helps the owner know how much to prepare. Keep it this simple.)

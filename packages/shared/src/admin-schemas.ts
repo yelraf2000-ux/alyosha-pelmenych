@@ -19,6 +19,8 @@ const productFields = {
   category: z.string().trim().min(1).max(80),
   priceAmd: z.number().int().min(0).max(10_000_000),
   weightLabel: z.string().trim().max(40),
+  /** Pieces in one pack, for the owner; null when not filled in. */
+  piecesPerPack: z.number().int().min(1).max(10_000).nullable(),
   stockQty: z.number().int().min(0).max(100_000),
   isNew: z.boolean(),
   /** The owner's own labels; repeats and empty ones are dropped. */
@@ -35,6 +37,7 @@ export const productCreateSchema = z.object({
   slug: productFields.slug.or(z.literal('')).optional(),
   description: productFields.description.optional(),
   weightLabel: productFields.weightLabel.optional(),
+  piecesPerPack: productFields.piecesPerPack.optional(),
   stockQty: productFields.stockQty.optional(),
   isNew: productFields.isNew.optional(),
   badges: productFields.badges.optional(),

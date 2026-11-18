@@ -31,16 +31,21 @@ export function toProduct(row: ProductRow): Product {
   };
 }
 
+/** The storefront's fields plus what only the owner sees. */
+function toAdminProduct(row: ProductRow): AdminProduct {
+  return { ...toProduct(row), piecesPerPack: row.piecesPerPack };
+}
+
 // ---------- Products ----------
 
 export async function listAdminProducts(db: Db): Promise<AdminProduct[]> {
   const rows = await db.select().from(products).orderBy(asc(products.sortOrder), asc(products.id));
-  return rows.map(toProduct);
+  return rows.map(toAdminProduct);
 }
 
 export async function getAdminProduct(db: Db | Tx, id: number): Promise<AdminProduct | null> {
   const [row] = await db.select().from(products).where(eq(products.id, id));
-  return row ? toProduct(row) : null;
+  return row ? toAdminProduct(row) : null;
 }
 
 /** Appends -2, -3… until the slug is free. */
@@ -66,6 +71,7 @@ export async function createProduct(db: Db, input: ProductCreate): Promise<Admin
         priceAmd: input.priceAmd,
         description: input.description ?? '',
         weightLabel: input.weightLabel ?? '',
+        piecesPerPack: input.piecesPerPack ?? null,
         stockQty: input.stockQty ?? 0,
         isNew: input.isNew ?? false,
         badges: input.badges ?? [],
@@ -73,7 +79,7 @@ export async function createProduct(db: Db, input: ProductCreate): Promise<Admin
         sortOrder: (last?.value ?? 0) + 10,
       })
       .returning();
-    return toProduct(row!);
+    return toAdminProduct(row!);
   });
 }
 
@@ -100,7 +106,7 @@ export async function updateProduct(db: Db, id: number, patch: ProductPatch): Pr
       .set({ ...patch, updatedAt: new Date() })
       .where(eq(products.id, id))
       .returning();
-    return { ok: true, product: toProduct(row!) };
+    return { ok: true, product: toAdminProduct(row!) };
   });
 }
 
