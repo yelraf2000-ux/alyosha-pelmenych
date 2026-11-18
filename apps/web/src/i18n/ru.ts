@@ -6,10 +6,12 @@ export const ru = {
   loadError: 'Не получилось загрузить каталог. Обновите страницу.',
   close: 'Закрыть',
 
-  /** The strip at the top of every page; `count` is already formatted (12 480). */
+  /** The live counter at the top of every page: «🥟 12 480 пельменей продано · онлайн». */
   sold: {
     before: 'Уже продано',
     after: (n: number) => plural(n, ['пельмень', 'пельменя', 'пельменей']),
+    done: 'продано',
+    live: 'онлайн',
   },
 
   demo: {
