@@ -94,6 +94,8 @@ export const orders = pgTable(
     customerPhone: text('customer_phone').notNull(),
     customerTelegram: text('customer_telegram'),
     comment: text('comment'),
+    /** The owner's own note on the order. Only the admin shows it: the buyer never sees it. */
+    ownerNote: text('owner_note'),
     deliveryMethod: deliveryMethod('delivery_method').notNull(),
     deliveryAddress: text('delivery_address'),
     itemsTotalAmd: integer('items_total_amd').notNull(),

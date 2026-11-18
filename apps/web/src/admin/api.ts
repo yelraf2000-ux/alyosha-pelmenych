@@ -151,6 +151,8 @@ export const adminApi = {
   setOrderStatus: (id: number, status: OrderStatus) =>
     request<{ ok: true; order: AdminOrder }>('PATCH', `/orders/${id}`, { status }),
   editOrder: (id: number, input: OrderEditInput) => request<{ ok: true; order: AdminOrder }>('PUT', `/orders/${id}`, input),
+  /** The owner's own note; empty takes it away. The buyer never sees it. */
+  setOrderNote: (id: number, note: string) => request<AdminOrder>('PUT', `/orders/${id}/note`, { note }),
   /** For good: the order leaves the list and the statistics, and the buyer is told nothing. */
   deleteOrder: (id: number) => request<{ ok: true }>('DELETE', `/orders/${id}`),
 

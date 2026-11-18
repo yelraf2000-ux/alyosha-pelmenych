@@ -34,6 +34,8 @@ export interface AdminOrderSummary {
   itemsCount: number;
   /** Some of it is made to order. */
   isPreorder: boolean;
+  /** The owner's own note on the order; null when there is none. The buyer never sees it. */
+  ownerNote: string | null;
   createdAt: string;
 }
 

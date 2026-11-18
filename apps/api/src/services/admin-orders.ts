@@ -39,6 +39,7 @@ function toSummary(row: OrderRow, items: number): AdminOrderSummary {
     totalAmd: row.totalAmd,
     itemsCount: items,
     isPreorder: row.isPreorder,
+    ownerNote: row.ownerNote,
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -84,6 +85,19 @@ export async function getOrder(db: Db | Tx, id: number): Promise<AdminOrder | nu
     telegramLinked: row.telegramChatId !== null,
     updatedAt: row.updatedAt.toISOString(),
   };
+}
+
+/**
+ * The owner's own note on an order (empty takes it away); null when there is no such order.
+ * Only the admin shows it: no message to the buyer and no page of the storefront carries it.
+ */
+export async function setOrderNote(db: Db, id: number, note: string): Promise<AdminOrder | null> {
+  const updated = await db
+    .update(orders)
+    .set({ ownerNote: note || null })
+    .where(eq(orders.id, id))
+    .returning({ id: orders.id });
+  return updated.length > 0 ? getOrder(db, id) : null;
 }
 
 type ItemRow = typeof orderItems.$inferSelect;

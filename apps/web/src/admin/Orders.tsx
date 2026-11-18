@@ -1,5 +1,5 @@
-import { formatAmd, ORDER_STATUSES, type AdminOrderSummary, type OrderStatus, type StockShortage } from '@alyosha/shared';
-import { useEffect, useState } from 'react';
+import { formatAmd, ORDER_STATUSES, type AdminOrder, type AdminOrderSummary, type OrderStatus, type StockShortage } from '@alyosha/shared';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { adminApi, ApiError } from './api';
 import { OrderEditor } from './OrderEditor';
@@ -91,6 +91,7 @@ export function OrdersPage() {
                   {order.customerName} · {order.deliveryMethod === 'pickup' ? 'самовывоз' : 'курьер'} · {order.itemsCount}{' '}
                   шт.
                 </span>
+                {order.ownerNote && <span className="adm-row__note">Заметка: {order.ownerNote.split('\n')[0]}</span>}
                 <span className="adm-row__side">
                   <strong>{formatAmd(order.totalAmd)}</strong>
                   <span className="adm-muted">{formatDateTime(order.createdAt)}</span>
@@ -229,6 +230,8 @@ export function OrderPage() {
         )}
       </section>
 
+      <OwnerNote order={order} onSaved={setData} />
+
       {editing ? (
         <OrderEditor
           order={order}
@@ -331,5 +334,70 @@ export function OrderPage() {
         )}
       </section>
     </>
+  );
+}
+
+/** The owner's own note on the order: kept for him alone, the buyer never sees it. */
+function OwnerNote({ order, onSaved }: { order: AdminOrder; onSaved: (order: AdminOrder) => void }) {
+  const saved = order.ownerNote ?? '';
+  const [text, setText] = useState(saved);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+  const changed = text.trim() !== saved;
+
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    if (!changed || busy) return;
+    setBusy(true);
+    setError(null);
+    setDone(false);
+    try {
+      const updated = await adminApi.setOrderNote(order.id, text);
+      onSaved(updated);
+      setText(updated.ownerNote ?? '');
+      setDone(true);
+    } catch (reason) {
+      setError(errorText(reason));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="adm-card adm-owner-note" onSubmit={save}>
+      <h2>Заметка для себя</h2>
+      <textarea
+        className="field__input"
+        rows={3}
+        maxLength={2000}
+        value={text}
+        aria-label="Заметка для себя"
+        placeholder="Например: позвонить после 18:00, оплата наличными"
+        onChange={(event) => {
+          setText(event.target.value);
+          setDone(false);
+        }}
+      />
+      <p className="adm-muted">Видна только вам, в админке. Покупатель её не видит, и в Telegram она ему не приходит.</p>
+      {error && (
+        <p className="alert alert--error" role="alert">
+          {error}
+        </p>
+      )}
+      {(changed || done) && (
+        <div className="adm-actions">
+          {changed ? (
+            <button type="submit" className="btn btn--primary" disabled={busy}>
+              {busy ? 'Сохраняем…' : 'Сохранить заметку'}
+            </button>
+          ) : (
+            <span className="adm-muted" role="status">
+              Сохранено.
+            </span>
+          )}
+        </div>
+      )}
+    </form>
   );
 }

@@ -1085,3 +1085,34 @@
   font-weight: 600;
   cursor: pointer;
 }
+
+/* ---------- The owner's note on an order ---------- */
+
+.adm-owner-note {
+  display: grid;
+  gap: 8px;
+}
+
+.adm-owner-note h2,
+.adm-owner-note .adm-muted {
+  margin: 0;
+}
+
+.adm-owner-note textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.adm-owner-note .alert {
+  margin: 0;
+}
+
+/* Its first line in the list of orders, under the buyer. */
+.adm-row__note {
+  grid-column: 1;
+  overflow: hidden;
+  color: var(--sky-700);
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

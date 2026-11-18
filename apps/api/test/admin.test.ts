@@ -369,6 +369,32 @@ describe('admin orders', () => {
     });
   });
 
+  it('keeps the owner’s own note on an order, apart from the buyer’s comment and through edits', async () => {
+    const id = await addProduct(ctx.db, { stockQty: 20 });
+    const order = await placeOrderFor(id, 2);
+    const note = (text: unknown) => asAdmin({ method: 'PUT', url: `/api/admin/orders/${order}/note`, payload: { note: text } });
+
+    const saved = await note('  Позвонить после 18:00, оплата наличными ');
+    expect(saved.statusCode).toBe(200);
+    expect(saved.json()).toMatchObject({ ownerNote: 'Позвонить после 18:00, оплата наличными', comment: null });
+    expect((await asAdmin({ url: '/api/admin/orders' })).json().orders[0].ownerNote).toBe('Позвонить после 18:00, оплата наличными');
+
+    // Changing the status or the goods leaves the note as it is.
+    await setStatus(order, 'confirmed');
+    const edited = await asAdmin({
+      method: 'PUT',
+      url: `/api/admin/orders/${order}`,
+      payload: { ...orderBody([{ productId: id, qty: 3 }]), website: undefined },
+    });
+    expect(edited.statusCode).toBe(200);
+    expect(edited.json().order.ownerNote).toBe('Позвонить после 18:00, оплата наличными');
+
+    expect((await note('')).json().ownerNote).toBeNull();
+    expect((await note('x'.repeat(2001))).statusCode).toBe(400);
+    expect((await asAdmin({ method: 'PUT', url: '/api/admin/orders/9999/note', payload: { note: 'x' } })).statusCode).toBe(404);
+    expect((await ctx.app.inject({ method: 'PUT', url: `/api/admin/orders/${order}/note`, payload: { note: 'x' } })).statusCode).toBe(401);
+  });
+
   it('returns the items to stock when an order is cancelled, once', async () => {
     const a = await addProduct(ctx.db, { stockQty: 10 });
     const b = await addProduct(ctx.db, { stockQty: 4 });

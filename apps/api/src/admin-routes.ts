@@ -7,6 +7,7 @@ import {
   loginSchema,
   newsPostSchema,
   orderEditSchema,
+  orderNoteSchema,
   ORDER_STATUSES,
   orderStatusSchema,
   passwordResetSchema,
@@ -36,7 +37,7 @@ import {
 } from './auth';
 import type { Db } from './db/client';
 import { PASSWORD_CHANGED_TEXT } from './services/admin-bot';
-import { deleteOrder, editOrder, getOrder, getOrderStats, getToday, listOrders } from './services/admin-orders';
+import { deleteOrder, editOrder, getOrder, getOrderStats, getToday, listOrders, setOrderNote } from './services/admin-orders';
 import { finishPasswordReset } from './services/admin-password';
 import { categoryExists, createCategory, deleteCategory, listAdminCategories, renameCategory } from './services/categories';
 import type { BuyerBot } from './services/buyer-bot';
@@ -463,6 +464,15 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
           return result;
         }
         return result;
+      });
+
+      // The owner's own note; the buyer is told nothing and never sees it.
+      admin.put('/orders/:id/note', async (request, reply) => {
+        const id = idParam(request);
+        if (!id) return fail(reply, 404, 'not_found');
+        const parsed = orderNoteSchema.safeParse(request.body);
+        if (!parsed.success) return fail(reply, 400, 'invalid');
+        return (await setOrderNote(db, id, parsed.data.note)) ?? fail(reply, 404, 'not_found');
       });
 
       // For good, and without a word to the buyer: for test orders and mistakes.

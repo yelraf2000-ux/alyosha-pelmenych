@@ -166,3 +166,6 @@ export const expenseSchema = z.object({
   spentOn: z.string().refine(isIsoDate),
 });
 export type ExpenseInput = z.output<typeof expenseSchema>;
+
+/** The owner's own note on an order; empty takes it away. */
+export const orderNoteSchema = z.object({ note: z.string().trim().max(2000) });

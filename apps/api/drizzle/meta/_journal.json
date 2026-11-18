@@ -120,6 +120,13 @@
       "when": 1794998832171,
       "tag": "0016_pieces_per_pack",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794999255720,
+      "tag": "0017_order_owner_note",
+      "breakpoints": true
     }
   ]
 }
