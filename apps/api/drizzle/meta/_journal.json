@@ -127,6 +127,13 @@
       "when": 1794999255720,
       "tag": "0017_order_owner_note",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1795002335600,
+      "tag": "0018_custom_order_owner_note",
+      "breakpoints": true
     }
   ]
 }

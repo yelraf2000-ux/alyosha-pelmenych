@@ -1,5 +1,5 @@
 import type { OrderStatus } from '@alyosha/shared';
-import { useCallback, useEffect, useRef, useState, type DependencyList, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type DependencyList, type FormEvent, type ReactNode } from 'react';
 import { telHref } from '../lib/format';
 import { ApiError } from './api';
 
@@ -137,5 +137,79 @@ export function ContactLinks({ phone, telegram }: { phone: string; telegram: str
         </a>
       )}
     </div>
+  );
+}
+
+/**
+ * «Заметка для себя»: the owner's own note on an order or a «Свой рецепт» request, kept for him
+ * alone. `onSave` stores the text and answers the note as saved. `card`: a card of its own.
+ */
+export function OwnerNote({
+  note,
+  onSave,
+  card = false,
+}: {
+  note: string | null;
+  onSave: (text: string) => Promise<string | null>;
+  card?: boolean;
+}) {
+  const saved = note ?? '';
+  const [text, setText] = useState(saved);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+  const changed = text.trim() !== saved;
+
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    if (!changed || busy) return;
+    setBusy(true);
+    setError(null);
+    setDone(false);
+    try {
+      setText((await onSave(text)) ?? '');
+      setDone(true);
+    } catch (reason) {
+      setError(errorText(reason));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className={card ? 'adm-card adm-owner-note' : 'adm-owner-note'} onSubmit={save}>
+      {card ? <h2>Заметка для себя</h2> : <span className="field__label">Заметка для себя</span>}
+      <textarea
+        className="field__input"
+        rows={3}
+        maxLength={2000}
+        value={text}
+        aria-label="Заметка для себя"
+        placeholder="Например: позвонить после 18:00, оплата наличными"
+        onChange={(event) => {
+          setText(event.target.value);
+          setDone(false);
+        }}
+      />
+      <p className="adm-muted">Видна только вам, в админке. Покупатель её не видит, и в Telegram она ему не приходит.</p>
+      {error && (
+        <p className="alert alert--error" role="alert">
+          {error}
+        </p>
+      )}
+      {(changed || done) && (
+        <div className="adm-actions">
+          {changed ? (
+            <button type="submit" className="btn btn--primary" disabled={busy}>
+              {busy ? 'Сохраняем…' : 'Сохранить заметку'}
+            </button>
+          ) : (
+            <span className="adm-muted" role="status">
+              Сохранено.
+            </span>
+          )}
+        </div>
+      )}
+    </form>
   );
 }

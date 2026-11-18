@@ -1,0 +1,1 @@
+ALTER TABLE "custom_orders" ADD COLUMN "owner_note" text;

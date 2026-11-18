@@ -1,7 +1,7 @@
 import { formatAmd, formatKg, type AdminCustomOrder, type OrderStatus } from '@alyosha/shared';
 import { useState } from 'react';
 import { adminApi } from './api';
-import { ContactLinks, errorText, formatDateTime, LoadState, PageHead, StatusBadge, useLoad } from './shared';
+import { ContactLinks, errorText, formatDateTime, LoadState, OwnerNote, PageHead, StatusBadge, useLoad } from './shared';
 
 const ACTIONS: { status: OrderStatus; label: string }[] = [
   { status: 'confirmed', label: 'Подтвердить' },
@@ -130,6 +130,14 @@ function RecipeCard({
           <span className="adm-muted">Входит в статистику. Покупатель увидит её при подтверждении.</span>
         )}
       </form>
+      <OwnerNote
+        note={order.ownerNote}
+        onSave={async (text) => {
+          const updated = await adminApi.setCustomOrderNote(order.id, text);
+          onChanged(updated);
+          return updated.ownerNote;
+        }}
+      />
       <div className="adm-actions">
         {ACTIONS.filter((action) => action.status !== order.status).map((action) => (
           <button

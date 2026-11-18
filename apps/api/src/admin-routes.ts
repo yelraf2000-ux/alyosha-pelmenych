@@ -41,7 +41,13 @@ import { deleteOrder, editOrder, getOrder, getOrderStats, getToday, listOrders, 
 import { finishPasswordReset } from './services/admin-password';
 import { categoryExists, createCategory, deleteCategory, listAdminCategories, renameCategory } from './services/categories';
 import type { BuyerBot } from './services/buyer-bot';
-import { countNewCustomOrders, deleteCustomOrder, listCustomOrders, setCustomOrderPrice } from './services/custom-orders';
+import {
+  countNewCustomOrders,
+  deleteCustomOrder,
+  listCustomOrders,
+  setCustomOrderNote,
+  setCustomOrderPrice,
+} from './services/custom-orders';
 import { deleteProductImage, InvalidImageError, MAX_UPLOAD_BYTES, saveProductImage, type ImageFolder } from './services/images';
 import {
   createNewsPost,
@@ -503,6 +509,15 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
         const parsed = customPriceSchema.safeParse(request.body);
         if (!parsed.success) return fail(reply, 400, 'invalid');
         return (await setCustomOrderPrice(db, id, parsed.data.priceAmd)) ?? fail(reply, 404, 'not_found');
+      });
+
+      // The owner's own note; the buyer is told nothing and never sees it.
+      admin.put('/custom-orders/:id/note', async (request, reply) => {
+        const id = idParam(request);
+        if (!id) return fail(reply, 404, 'not_found');
+        const parsed = orderNoteSchema.safeParse(request.body);
+        if (!parsed.success) return fail(reply, 400, 'invalid');
+        return (await setCustomOrderNote(db, id, parsed.data.note)) ?? fail(reply, 404, 'not_found');
       });
 
       admin.delete('/custom-orders/:id', async (request, reply) => {

@@ -116,7 +116,7 @@ Rules:
 
 - **Auth:** single admin. Password hash (argon2/bcrypt) from env, httpOnly secure session cookie, login rate limit. No sign-up.
 - **Products:** list with inline stock edit; create/edit form (all fields + image upload); toggle active / new; drag or number sort. «Штук в пачке» (pieces per pack) is for the owner only and is never sent to the storefront.
-- **Orders:** list newest first with status filter; detail view; change status. The owner can keep a private note on an order («Заметка для себя»); the buyer never sees it. **Cancelling an order returns its items to stock** (in a transaction). Show customer contacts with one-tap links.
+- **Orders:** list newest first with status filter; detail view; change status. The owner can keep a private note («Заметка для себя») on an order and on a «Свой рецепт» request; the buyer never sees it. **Cancelling an order returns its items to stock** (in a transaction). Show customer contacts with one-tap links.
 - **Settings:** edit all `Setting` keys (texts, fees, threshold, addresses, contacts).
 - **Today view (simple):** count of new orders and total quantities per product for orders with status `new`/`confirmed` — a plain table, no charts. (Helps the owner know how much to prepare. Keep it this simple.)
 - **Warehouse («Склад»):** a list of what the owner spent money on — a name, how much (kg, g, l, ml, pcs) and what was paid, on a day. Order statistics show the profit for a period: the revenue (kept orders plus priced «Свой рецепт» requests) minus the expenses of the same days.

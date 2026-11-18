@@ -76,6 +76,8 @@ export interface AdminCustomOrder {
   createdAt: string;
   /** What the owner charges for it, once he has named a price; null until then. */
   priceAmd: number | null;
+  /** The owner's own note on the request; null when there is none. The buyer never sees it. */
+  ownerNote: string | null;
 }
 
 export type ChangeOrderStatusResult =

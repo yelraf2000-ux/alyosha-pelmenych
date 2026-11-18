@@ -254,6 +254,25 @@ describe('a price for «Свой рецепт»', () => {
     expect((await price(999, 100)).statusCode).toBe(404);
   });
 
+  it('keeps the owner’s own note apart from the buyer’s comment, through status and price changes', async () => {
+    const id = await placeRecipe('Для бубылды');
+    const note = (text: unknown) => asAdmin({ method: 'PUT', url: `/api/admin/custom-orders/${id}/note`, payload: { note: text } });
+
+    const saved = await note('  Диана, постоянная. Отдать в пятницу ');
+    expect(saved.statusCode).toBe(200);
+    expect(saved.json()).toMatchObject({ id, ownerNote: 'Диана, постоянная. Отдать в пятницу', comment: null });
+
+    await price(id, 12200);
+    await asAdmin({ method: 'PATCH', url: `/api/admin/custom-orders/${id}`, payload: { status: 'done' } });
+    const [listed] = (await asAdmin({ url: '/api/admin/custom-orders' })).json();
+    expect(listed).toMatchObject({ priceAmd: 12200, status: 'done', ownerNote: 'Диана, постоянная. Отдать в пятницу' });
+
+    expect((await note('')).json().ownerNote).toBeNull();
+    expect((await note('x'.repeat(2001))).statusCode).toBe(400);
+    expect((await asAdmin({ method: 'PUT', url: '/api/admin/custom-orders/999/note', payload: { note: 'x' } })).statusCode).toBe(404);
+    expect((await ctx.app.inject({ method: 'PUT', url: `/api/admin/custom-orders/${id}/note`, payload: { note: 'x' } })).statusCode).toBe(401);
+  });
+
   it('counts in the statistics when it has a price and is not cancelled', async () => {
     const priced = await placeRecipe('Первые');
     await placeRecipe('Без цены');

@@ -160,6 +160,8 @@ export const adminApi = {
   setCustomOrderStatus: (id: number, status: OrderStatus) =>
     request<AdminCustomOrder>('PATCH', `/custom-orders/${id}`, { status }),
   deleteCustomOrder: (id: number) => request<{ ok: true }>('DELETE', `/custom-orders/${id}`),
+  /** The owner's own note; empty takes it away. The buyer never sees it. */
+  setCustomOrderNote: (id: number, note: string) => request<AdminCustomOrder>('PUT', `/custom-orders/${id}/note`, { note }),
   /** null takes the price away again. */
   setCustomOrderPrice: (id: number, priceAmd: number | null) =>
     request<AdminCustomOrder>('PUT', `/custom-orders/${id}/price`, { priceAmd }),

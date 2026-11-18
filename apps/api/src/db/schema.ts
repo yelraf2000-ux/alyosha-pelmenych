@@ -181,6 +181,8 @@ export const customOrders = pgTable(
     comment: text('comment'),
     /** The price the owner named, once he has; it counts in the statistics. */
     priceAmd: integer('price_amd'),
+    /** The owner's own note on the request. Only the admin shows it: the buyer never sees it. */
+    ownerNote: text('owner_note'),
     status: orderStatus('status').notNull().default('new'),
     ...buyerChat('custom_orders'),
     ...timestamps,
