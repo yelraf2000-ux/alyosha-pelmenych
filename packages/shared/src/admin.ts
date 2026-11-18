@@ -70,6 +70,8 @@ export interface AdminCustomOrder {
   createdAt: string;
   /** What the owner charges for it, once he has named a price; null until then. */
   priceAmd: number | null;
+  /** What making it cost him, if he has written it down; with the price it gives the profit. */
+  costAmd: number | null;
 }
 
 export type ChangeOrderStatusResult =
@@ -85,6 +87,53 @@ export interface TodayView {
   newCustomOrders: number;
   /** Total quantity per product across orders that are new or confirmed. */
   totals: { productId: number; name: string; qty: number }[];
+}
+
+// ---------- Warehouse ----------
+
+/** Grams, millilitres or pieces. The admin shows the first two as kilograms and litres. */
+export const INGREDIENT_UNITS = ['g', 'ml', 'pcs'] as const;
+export type IngredientUnit = (typeof INGREDIENT_UNITS)[number];
+
+/** Something the goods are made from: meat, flour, packaging. */
+export interface AdminIngredient {
+  id: number;
+  name: string;
+  unit: IngredientUnit;
+  /** What is left, in `unit`. Below zero when more was used than was written down as bought. */
+  stockQty: number;
+  /** The average price of one `unit` of what is left, in AMD (4.5 a gram: 4 500 ֏ a kilogram). */
+  unitCostAmd: number;
+}
+
+export interface IngredientPurchase {
+  id: number;
+  ingredientId: number;
+  qty: number;
+  paidAmd: number;
+  /** YYYY-MM-DD. */
+  purchasedOn: string;
+}
+
+/** How much of an ingredient one of a product (one pack) takes, in the ingredient's unit. */
+export interface CompositionLine {
+  ingredientId: number;
+  qty: number;
+}
+
+/** Everything the «Склад» page shows. */
+export interface WarehouseView {
+  ingredients: AdminIngredient[];
+  /** The latest purchases, newest first. */
+  purchases: IngredientPurchase[];
+  /** Every product that has a composition. */
+  products: { id: number; name: string; priceAmd: number; composition: CompositionLine[] }[];
+}
+
+/** What one of a product costs to make today: its composition at the warehouse's average prices. */
+export function compositionCost(composition: CompositionLine[], ingredients: Pick<AdminIngredient, 'id' | 'unitCostAmd'>[]): number {
+  const price = new Map(ingredients.map((ingredient) => [ingredient.id, ingredient.unitCostAmd]));
+  return Math.round(composition.reduce((sum, line) => sum + line.qty * (price.get(line.ingredientId) ?? 0), 0));
 }
 
 /** The shop's clock: an order belongs to the day it was placed on in Yerevan. */
@@ -114,15 +163,28 @@ export interface OrderStats {
   byStatus: Record<OrderStatus, OrderCountAndSum>;
   pickupCount: number;
   courierCount: number;
-  /** What was sold, most first. */
-  products: { productId: number; name: string; qty: number; totalAmd: number }[];
-  /** One line per day that had orders, oldest first. */
-  days: { date: string; count: number; cancelledCount: number; totalAmd: number }[];
+  /**
+   * What was sold, most first. `costedQty` of `qty` had a known cost when ordered; `profitAmd`
+   * is their price minus that cost (before promo discounts), null when none of them had one.
+   */
+  products: { productId: number; name: string; qty: number; totalAmd: number; costedQty: number; profitAmd: number | null }[];
+  /** One line per day that had orders, oldest first. `profitAmd` as in `profit`. */
+  days: { date: string; count: number; cancelledCount: number; totalAmd: number; profitAmd: number }[];
+  /**
+   * The profit on the goods of the orders that were not cancelled: what the goods brought after
+   * promo discounts (`goodsAmd`, delivery left out: it pays the courier) minus what they cost to
+   * make (`costAmd`). Goods with no cost known (`uncostedQty` of them: a product without a
+   * composition) add their price and no cost.
+   */
+  profit: { goodsAmd: number; costAmd: number; profitAmd: number; uncostedQty: number };
+  /** What the owner paid for the warehouse purchases dated in the period. */
+  purchasesAmd: number;
   /**
    * «Свой рецепт» requests in the period, cancelled ones left out. Only those the owner has put a
-   * price on (`pricedCount`) are in `totalAmd`.
+   * price on (`pricedCount`) are in `totalAmd`; only those with a price and a cost (`costedCount`)
+   * are in `profitAmd`.
    */
-  recipes: { count: number; pricedCount: number; totalAmd: number };
+  recipes: { count: number; pricedCount: number; totalAmd: number; costedCount: number; profitAmd: number };
   /**
    * Orders placed with a promo code, cancelled ones left out: one line per code, most used first.
    * `totalAmd` is what those orders came to after their discount.

@@ -17,18 +17,20 @@ import { ResetPassword } from './ResetPassword';
 import { SettingsPage } from './SettingsPage';
 import { errorText } from './shared';
 import { TodayPage } from './Today';
+import { WarehousePage } from './Warehouse';
 
 type AuthState = 'checking' | 'in' | 'out' | 'off' | 'error';
 
 // Absolute paths: the bar sits outside the nested <Routes>, where relative links
 // would resolve against whatever admin page is open.
-// The two longest labels carry a soft hyphen (\u00AD): on a phone, where seven tabs share the
+// The two longest labels carry a soft hyphen (\u00AD): on a phone, where eight tabs share the
 // width, they break into two lines (Промо-/коды); anywhere wider they stay whole.
 const TABS = [
   { to: '/admin', label: 'Сегодня', end: true },
   { to: '/admin/orders', label: 'Заказы', end: false },
   { to: '/admin/recipes', label: 'Рецепты', end: false },
   { to: '/admin/products', label: 'Товары', end: false },
+  { to: '/admin/warehouse', label: 'Склад', end: false },
   { to: '/admin/promo-codes', label: 'Промо\u00ADкоды', end: false },
   { to: '/admin/news', label: 'Ново\u00ADсти', end: false },
   { to: '/admin/settings', label: 'На\u00ADстрой\u00ADки', end: false },
@@ -208,6 +210,7 @@ export default function AdminApp() {
           <Route path="products/categories" element={<CategoriesPage />} />
           <Route path="products/new" element={<ProductFormPage />} />
           <Route path="products/:id" element={<ProductFormPage />} />
+          <Route path="warehouse" element={<WarehousePage />} />
           <Route path="promo-codes" element={<PromoCodesPage />} />
           <Route path="news" element={<NewsPage />} />
           <Route path="news/new" element={<NewsFormPage />} />

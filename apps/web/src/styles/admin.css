@@ -109,7 +109,7 @@
   padding: 0 2px;
   border-top: 3px solid transparent;
   color: var(--text-muted);
-  /* Seven tabs share a phone's width. */
+  /* Eight tabs share a phone's width. */
   font-size: 0.6875rem;
   font-weight: 600;
   text-align: center;
@@ -816,6 +816,217 @@
   color: var(--sky-700);
 }
 
+/* ---------- Warehouse and cost ---------- */
+
+/* Money lost: a sale below its cost, an ingredient used past what was bought. */
+.adm-minus,
+.adm-table .adm-total.adm-minus td {
+  color: var(--terracotta);
+}
+
+.adm-nowrap {
+  white-space: nowrap;
+}
+
+.adm-purchase h2 {
+  margin: 0;
+}
+
+.adm-purchase .field {
+  margin: 0;
+}
+
+.adm-purchase__date {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.adm-purchase__date input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-s);
+  background: #fff;
+  font-weight: 600;
+}
+
+.adm-purchase .alert {
+  margin: 0;
+}
+
+.adm-ingredients,
+.adm-costs,
+.adm-composition {
+  display: grid;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+/* One ingredient: its name, what is left and its price. Tapping it opens it for correcting. */
+.adm-ingredient {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  width: 100%;
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.adm-ingredients > li:last-child .adm-ingredient {
+  border-bottom: 0;
+}
+
+.adm-ingredient__name {
+  font-weight: 600;
+}
+
+.adm-ingredient__stock {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.adm-ingredient__stock--minus {
+  color: var(--terracotta);
+}
+
+.adm-ingredient__price {
+  grid-column: 1 / -1;
+}
+
+.adm-ingredient-edit {
+  display: grid;
+  gap: 12px;
+  margin: 4px 0 12px;
+  padding: 14px;
+  border-radius: var(--radius-s);
+  background: var(--flour);
+}
+
+.adm-ingredient-edit .field {
+  margin: 0;
+}
+
+.adm-ingredient-edit .field__input {
+  background: #fff;
+}
+
+.adm-ingredient-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.adm-ingredient-add .field__input:first-child {
+  flex: 1 1 200px;
+  width: auto;
+}
+
+.adm-ingredient-add select.field__input {
+  flex: 0 1 150px;
+  width: auto;
+}
+
+.adm-costs {
+  gap: 0;
+}
+
+.adm-costs li {
+  display: grid;
+  gap: 2px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.adm-costs li:last-child {
+  border-bottom: 0;
+}
+
+.adm-costs__name {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.adm-purchase__remove {
+  padding: 2px 6px;
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  text-decoration: none;
+}
+
+/* A product's composition: ingredient, quantity with its unit, what that costs, and ×. */
+.adm-composition {
+  gap: 8px;
+}
+
+/* Fixed columns, so that the lines line up under each other whatever their numbers. */
+.adm-composition__line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 8.5em 6.5em 2em;
+  align-items: center;
+  gap: 8px;
+}
+
+.adm-composition__line--error .field__input {
+  border-color: var(--terracotta);
+  background: var(--terracotta-soft);
+}
+
+.adm-composition__qty {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.adm-composition__qty .field__input {
+  min-width: 0;
+  padding-inline: 10px;
+}
+
+.adm-composition__qty span {
+  flex: none;
+  width: 2em;
+}
+
+.adm-composition__cost {
+  font-size: 0.875rem;
+}
+
+.adm-composition__remove {
+  padding: 4px 6px;
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.adm-composition__total {
+  margin: 12px 0 0;
+}
+
+/* On a phone the line wraps: the ingredient takes the whole first row. */
+@media (max-width: 479px) {
+  .adm-composition__line {
+    grid-template-columns: minmax(0, 1fr) 6.5em 2em;
+  }
+
+  .adm-composition__line select {
+    grid-column: 1 / -1;
+  }
+}
+
 /* ---------- Forms ---------- */
 
 .adm-form {
@@ -919,7 +1130,7 @@
   }
 }
 
-/* Wide enough for all seven tabs in one row: they move from the bottom of the screen into the top bar. */
+/* Wide enough for all eight tabs in one row: they move from the bottom of the screen into the top bar. */
 @media (min-width: 1000px) {
   .adm {
     padding-bottom: 24px;

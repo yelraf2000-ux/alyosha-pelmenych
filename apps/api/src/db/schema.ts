@@ -4,11 +4,14 @@ import {
   boolean,
   check,
   date,
+  doublePrecision,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgSequence,
   pgTable,
+  primaryKey,
   serial,
   text,
   timestamp,
@@ -19,6 +22,8 @@ import {
 export const deliveryMethod = pgEnum('delivery_method', ['pickup', 'courier']);
 export const orderStatus = pgEnum('order_status', ['new', 'confirmed', 'done', 'cancelled']);
 export const promoKind = pgEnum('promo_kind', ['percent', 'amount']);
+/** What an ingredient on the warehouse is counted in: grams, millilitres or pieces. */
+export const ingredientUnit = pgEnum('ingredient_unit', ['g', 'ml', 'pcs']);
 
 /** Feeds the human-friendly order number: A-0001, A-0002, … */
 export const orderNumberSeq = pgSequence('order_number_seq', { startWith: 1, increment: 1 });
@@ -135,6 +140,17 @@ export const orderItems = pgTable(
      * only `qty − preorder_qty` came out of the stock (and goes back into it on cancelling).
      */
     preorderQty: integer('preorder_qty').notNull().default(0),
+    /**
+     * What one of it cost to make when it was ordered (whole AMD), from the product's composition
+     * and the warehouse's prices then; null when the product had no composition (and for orders
+     * from before the warehouse). Later price or composition changes never rewrite it.
+     */
+    unitCostAmd: integer('unit_cost_amd'),
+    /**
+     * The composition of one, as it was taken off the warehouse for this line: exactly this goes
+     * back when the order is cancelled, whatever the product's composition is by then.
+     */
+    ingredients: jsonb('ingredients').$type<IngredientUse[]>(),
   },
   (t) => [
     check('order_items_qty_positive', sql`${t.qty} > 0`),
@@ -173,6 +189,8 @@ export const customOrders = pgTable(
     comment: text('comment'),
     /** The price the owner named, once he has; it counts in the statistics. */
     priceAmd: integer('price_amd'),
+    /** What the owner says making it cost him; with a price, it gives the request's profit. */
+    costAmd: integer('cost_amd'),
     status: orderStatus('status').notNull().default('new'),
     ...buyerChat('custom_orders'),
     ...timestamps,
@@ -180,6 +198,7 @@ export const customOrders = pgTable(
   (t) => [
     index('custom_orders_status_created_idx').on(t.status, t.createdAt),
     check('custom_orders_price_non_negative', sql`${t.priceAmd} IS NULL OR ${t.priceAmd} >= 0`),
+    check('custom_orders_cost_non_negative', sql`${t.costAmd} IS NULL OR ${t.costAmd} >= 0`),
   ],
 );
 
@@ -244,4 +263,68 @@ export const newsPosts = pgTable(
     ...timestamps,
   },
   (t) => [index('news_posts_published_idx').on(t.publishedOn, t.id)],
+);
+
+// ---------- Warehouse (services/warehouse.ts) ----------
+
+/** How much of an ingredient one of a product takes (in the ingredient's unit). */
+export interface IngredientUse {
+  id: number;
+  qty: number;
+}
+
+/**
+ * What the owner makes the goods from: meat, flour, onions, packaging. Quantities are in `unit`
+ * (grams, millilitres or pieces); the admin shows kilograms and litres.
+ */
+export const ingredients = pgTable('ingredients', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  unit: ingredientUnit('unit').notNull(),
+  /**
+   * What is left. It may go below zero: an order is never refused for want of flour, and a
+   * negative number tells the owner a purchase was not written down.
+   */
+  stockQty: doublePrecision('stock_qty').notNull().default(0),
+  /** The average price of one unit of what is left (AMD; 4.5 a gram is 4 500 ֏ a kilogram). */
+  unitCostAmd: doublePrecision('unit_cost_amd').notNull().default(0),
+  ...timestamps,
+});
+
+/** What the owner bought: it adds to the stock and moves the average price. */
+export const ingredientPurchases = pgTable(
+  'ingredient_purchases',
+  {
+    id: serial('id').primaryKey(),
+    ingredientId: integer('ingredient_id')
+      .notNull()
+      .references(() => ingredients.id, { onDelete: 'cascade' }),
+    qty: doublePrecision('qty').notNull(),
+    paidAmd: integer('paid_amd').notNull(),
+    purchasedOn: date('purchased_on').notNull().default(sql`CURRENT_DATE`),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('ingredient_purchases_qty_positive', sql`${t.qty} > 0`),
+    check('ingredient_purchases_paid_non_negative', sql`${t.paidAmd} >= 0`),
+    index('ingredient_purchases_date_idx').on(t.purchasedOn, t.id),
+  ],
+);
+
+/** What one of a product (one pack) is made of. An ingredient in use cannot be deleted. */
+export const productIngredients = pgTable(
+  'product_ingredients',
+  {
+    productId: integer('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    ingredientId: integer('ingredient_id')
+      .notNull()
+      .references(() => ingredients.id, { onDelete: 'restrict' }),
+    qty: doublePrecision('qty').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.productId, t.ingredientId] }),
+    check('product_ingredients_qty_positive', sql`${t.qty} > 0`),
+  ],
 );

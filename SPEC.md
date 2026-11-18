@@ -119,6 +119,7 @@ Rules:
 - **Orders:** list newest first with status filter; detail view; change status. **Cancelling an order returns its items to stock** (in a transaction). Show customer contacts with one-tap links.
 - **Settings:** edit all `Setting` keys (texts, fees, threshold, addresses, contacts).
 - **Today view (simple):** count of new orders and total quantities per product for orders with status `new`/`confirmed` — a plain table, no charts. (Helps the owner know how much to prepare. Keep it this simple.)
+- **Warehouse («Склад») and profit:** ingredients with what is left and their average price; purchases move both. Each product can have a composition (how much of each ingredient one pack takes). An order line keeps the cost of one at the prices of the day it was placed and takes the composition off the warehouse; cancelling or deleting the order puts exactly that back. Order statistics show the profit: goods after promo discounts, minus that cost, delivery left out. A «Свой рецепт» request can carry a cost the owner types in.
 - Admin UI can be plain and functional; mobile-usable (the owner will use his phone).
 
 ## 8. Design

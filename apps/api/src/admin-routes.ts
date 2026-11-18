@@ -1,8 +1,13 @@
 import {
   categoryNameSchema,
+  compositionSchema,
+  customCostSchema,
   customPriceSchema,
   daysInRange,
+  ingredientCreateSchema,
+  ingredientPatchSchema,
   isIsoDate,
+  purchaseSchema,
   loginSchema,
   newsPostSchema,
   orderEditSchema,
@@ -39,7 +44,13 @@ import { deleteOrder, editOrder, getOrder, getOrderStats, getToday, listOrders }
 import { finishPasswordReset } from './services/admin-password';
 import { categoryExists, createCategory, deleteCategory, listAdminCategories, renameCategory } from './services/categories';
 import type { BuyerBot } from './services/buyer-bot';
-import { countNewCustomOrders, deleteCustomOrder, listCustomOrders, setCustomOrderPrice } from './services/custom-orders';
+import {
+  countNewCustomOrders,
+  deleteCustomOrder,
+  listCustomOrders,
+  setCustomOrderCost,
+  setCustomOrderPrice,
+} from './services/custom-orders';
 import { deleteProductImage, InvalidImageError, MAX_UPLOAD_BYTES, saveProductImage, type ImageFolder } from './services/images';
 import {
   createNewsPost,
@@ -64,6 +75,17 @@ import { changeCustomStatusAndTell, changeOrderStatusAndTell } from './services/
 import { deletePromoCode, listPromoCodes, savePromoCode } from './services/promo-codes';
 import { getSettings, saveSettings } from './services/settings';
 import { deleteProductVideo, InvalidVideoError, MAX_VIDEO_BYTES, saveProductVideo, VideoBusyError } from './services/videos';
+import {
+  addPurchase,
+  createIngredient,
+  deleteIngredient,
+  deletePurchase,
+  getComposition,
+  getWarehouse,
+  setComposition,
+  updateIngredient,
+  type WarehouseResult,
+} from './services/warehouse';
 
 declare module 'fastify' {
   interface FastifyContextConfig {
@@ -493,10 +515,80 @@ export async function registerAdminRoutes(app: FastifyInstance, options: AdminRo
         return (await setCustomOrderPrice(db, id, parsed.data.priceAmd)) ?? fail(reply, 404, 'not_found');
       });
 
+      admin.put('/custom-orders/:id/cost', async (request, reply) => {
+        const id = idParam(request);
+        if (!id) return fail(reply, 404, 'not_found');
+        const parsed = customCostSchema.safeParse(request.body);
+        if (!parsed.success) return fail(reply, 400, 'invalid');
+        return (await setCustomOrderCost(db, id, parsed.data.costAmd)) ?? fail(reply, 404, 'not_found');
+      });
+
       admin.delete('/custom-orders/:id', async (request, reply) => {
         const id = idParam(request);
         if (!id || !(await deleteCustomOrder(db, id))) return fail(reply, 404, 'not_found');
         return { ok: true };
+      });
+
+      // ----- «Склад»: ingredients, purchases, and what each product is made of -----
+      // Every change answers the whole warehouse, as GET /warehouse does.
+
+      const warehouseReply = (reply: FastifyReply, result: WarehouseResult) =>
+        result.ok ? result.warehouse : fail(reply, result.error === 'not_found' ? 404 : 409, result.error);
+
+      admin.get('/warehouse', async () => getWarehouse(db));
+
+      admin.post('/ingredients', async (request, reply) => {
+        const parsed = ingredientCreateSchema.safeParse(request.body);
+        if (!parsed.success) return fail(reply, 400, 'invalid');
+        const result = await createIngredient(db, parsed.data);
+        if (result.ok) reply.code(201);
+        return warehouseReply(reply, result);
+      });
+
+      admin.patch('/ingredients/:id', async (request, reply) => {
+        const id = idParam(request);
+        if (!id) return fail(reply, 404, 'not_found');
+        const parsed = ingredientPatchSchema.safeParse(request.body);
+        if (!parsed.success) return fail(reply, 400, 'invalid');
+        return warehouseReply(reply, await updateIngredient(db, id, parsed.data));
+      });
+
+      admin.delete('/ingredients/:id', async (request, reply) => {
+        const id = idParam(request);
+        if (!id) return fail(reply, 404, 'not_found');
+        return warehouseReply(reply, await deleteIngredient(db, id));
+      });
+
+      admin.post('/ingredients/:id/purchases', async (request, reply) => {
+        const id = idParam(request);
+        if (!id) return fail(reply, 404, 'not_found');
+        const parsed = purchaseSchema.safeParse(request.body);
+        if (!parsed.success) return fail(reply, 400, 'invalid');
+        const result = await addPurchase(db, id, parsed.data);
+        if (result.ok) reply.code(201);
+        return warehouseReply(reply, result);
+      });
+
+      admin.delete('/purchases/:id', async (request, reply) => {
+        const id = idParam(request);
+        if (!id) return fail(reply, 404, 'not_found');
+        return warehouseReply(reply, await deletePurchase(db, id));
+      });
+
+      admin.get('/products/:id/composition', async (request, reply) => {
+        const id = idParam(request);
+        const lines = id ? await getComposition(db, id) : null;
+        return lines ? { lines } : fail(reply, 404, 'not_found');
+      });
+
+      admin.put('/products/:id/composition', async (request, reply) => {
+        const id = idParam(request);
+        if (!id) return fail(reply, 404, 'not_found');
+        const parsed = compositionSchema.safeParse(request.body);
+        if (!parsed.success) return fail(reply, 400, 'invalid');
+        const result = await setComposition(db, id, parsed.data.lines);
+        if (!result.ok) return fail(reply, result.error === 'not_found' ? 404 : 400, result.error);
+        return { lines: result.lines };
       });
 
       // ----- Promo codes -----

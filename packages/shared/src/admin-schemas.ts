@@ -1,7 +1,7 @@
 // Validation of what the admin panel sends (SPEC §7).
 
 import { z } from 'zod';
-import { ORDER_STATUSES } from './admin';
+import { INGREDIENT_UNITS, isIsoDate, ORDER_STATUSES } from './admin';
 import { DELIVERY_METHODS, normalizeTelegram, PRODUCT_BADGE_MAX_LENGTH, PRODUCT_BADGES_MAX } from './shop';
 import { nameSchema, optionalText, phoneSchema, telegramSchema } from './shop-schemas';
 
@@ -153,3 +153,47 @@ export type ValidOrderEdit = z.output<typeof orderEditSchema>;
 
 /** The price the owner names for a «Свой рецепт» request; null takes it away again. */
 export const customPriceSchema = z.object({ priceAmd: z.number().int().min(0).max(10_000_000).nullable() });
+
+/** What making a «Свой рецепт» request cost; null takes it away again. */
+export const customCostSchema = z.object({ costAmd: z.number().int().min(0).max(10_000_000).nullable() });
+
+// ---------- Warehouse ----------
+
+/** A quantity in an ingredient's unit (grams, millilitres, pieces); up to 100 tonnes. */
+const ingredientQty = z.number().finite().positive().max(100_000_000);
+const ingredientName = z.string().trim().min(1).max(60);
+
+export const ingredientCreateSchema = z.object({
+  name: ingredientName,
+  unit: z.enum(INGREDIENT_UNITS),
+  /** What is already on the shelf, and what one unit of it cost: for starting the warehouse. */
+  stockQty: z.number().finite().min(0).max(100_000_000).optional(),
+  unitCostAmd: z.number().finite().min(0).max(1_000_000).optional(),
+});
+export type IngredientCreate = z.output<typeof ingredientCreateSchema>;
+
+/** A correction: a new name, or what a count of the shelf found and what it costs. */
+export const ingredientPatchSchema = z
+  .object({
+    name: ingredientName,
+    stockQty: z.number().finite().min(-100_000_000).max(100_000_000),
+    unitCostAmd: z.number().finite().min(0).max(1_000_000),
+  })
+  .partial();
+export type IngredientPatch = z.output<typeof ingredientPatchSchema>;
+
+export const purchaseSchema = z.object({
+  qty: ingredientQty,
+  paidAmd: z.number().int().min(0).max(100_000_000),
+  /** The day it was bought; today when left out. */
+  purchasedOn: z.string().refine(isIsoDate).optional(),
+});
+export type PurchaseInput = z.output<typeof purchaseSchema>;
+
+/** What one of a product is made of; an empty list takes the composition away. */
+export const compositionSchema = z.object({
+  lines: z
+    .array(z.object({ ingredientId: z.number().int().positive(), qty: ingredientQty }))
+    .max(40)
+    .refine((lines) => new Set(lines.map((line) => line.ingredientId)).size === lines.length, 'each ingredient once'),
+});

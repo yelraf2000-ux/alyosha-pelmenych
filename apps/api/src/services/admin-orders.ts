@@ -14,10 +14,11 @@ import {
   type TodayView,
   type ValidOrderEdit,
 } from '@alyosha/shared';
-import { and, asc, count, desc, eq, inArray, isNotNull, ne, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, inArray, isNotNull, lte, ne, sql } from 'drizzle-orm';
 import type { Db, Tx } from '../db/client';
-import { customOrders, orderItems, orders, products, promoCodes } from '../db/schema';
+import { customOrders, ingredientPurchases, orderItems, orders, products, promoCodes } from '../db/schema';
 import { getSettings } from './settings';
+import { makingOf, moveIngredients, type LineMaking } from './warehouse';
 
 type OrderRow = typeof orders.$inferSelect;
 
@@ -25,6 +26,16 @@ type OrderRow = typeof orders.$inferSelect;
 // name `id`, which Postgres resolves to order_items.id instead of orders.id.
 const itemsCount = sql<number>`(
   select coalesce(sum(oi.qty), 0)::int from order_items oi where oi.order_id = orders.id
+)`;
+
+/** What an order's goods cost to make, as far as it is known (lines without a cost add nothing). */
+const orderCost = sql<number>`(
+  select coalesce(sum(oi.qty * oi.unit_cost_amd), 0) from order_items oi where oi.order_id = orders.id
+)`;
+
+/** How many of an order's goods have no cost known. */
+const orderUncosted = sql<number>`(
+  select coalesce(sum(oi.qty) filter (where oi.unit_cost_amd is null), 0) from order_items oi where oi.order_id = orders.id
 )`;
 
 function toSummary(row: OrderRow, items: number): AdminOrderSummary {
@@ -157,6 +168,13 @@ export async function changeOrderStatus(db: Db, id: number, next: OrderStatus): 
         const isPreorder = plan.some(({ item, take }) => item.qty > take);
         await tx.update(orders).set({ isPreorder }).where(eq(orders.id, id));
       }
+
+      // The warehouse follows: cancelling puts the order's ingredients back on the shelf, exactly as
+      // they were taken; reopening takes them again.
+      await moveIngredients(
+        tx,
+        items.map((item) => ({ uses: item.ingredients, times: cancelling ? item.qty : -item.qty })),
+      );
     }
 
     if (next !== order.status) {
@@ -195,13 +213,15 @@ export async function editOrder(db: Db, id: number, input: ValidOrderEdit): Prom
     if (!sameGoods && !holdsGoods) return { ok: false, error: 'items_locked' };
 
     const settings = await getSettings(tx);
-    type Line = { productId: number; name: string; priceAmd: number; qty: number; preorderQty: number };
+    type Line = { productId: number; name: string; priceAmd: number; qty: number; preorderQty: number } & LineMaking;
     let lines: Line[] = items.map((item) => ({
       productId: item.productId,
       name: item.productNameSnapshot,
       priceAmd: item.priceAmdSnapshot,
       qty: item.qty,
       preorderQty: item.preorderQty,
+      unitCostAmd: item.unitCostAmd,
+      ingredients: item.ingredients,
     }));
 
     if (!sameGoods) {
@@ -211,6 +231,11 @@ export async function editOrder(db: Db, id: number, input: ValidOrderEdit): Prom
       const shortages: StockShortage[] = [];
       const moves: [number, number][] = [];
       const next: Line[] = [];
+      // Products new to the order are made at today's cost; lines it had keep theirs, like their price.
+      const making = await makingOf(
+        tx,
+        [...wanted.keys()].filter((productId) => !oldBy.has(productId)),
+      );
 
       for (const [productId, qty] of wanted) {
         const old = oldBy.get(productId);
@@ -233,12 +258,19 @@ export async function editOrder(db: Db, id: number, input: ValidOrderEdit): Prom
           priceAmd: old?.priceAmdSnapshot ?? product!.priceAmd,
           qty,
           preorderQty: qty - take,
+          ...(old ? { unitCostAmd: old.unitCostAmd, ingredients: old.ingredients } : making.get(productId)!),
         });
       }
       for (const old of items) if (!wanted.has(old.productId)) moves.push([old.productId, held(old)]);
       if (shortages.length > 0) return { ok: false, error: 'insufficient_stock', shortages };
 
       for (const [productId, delta] of moves) await moveStock(tx, productId, delta);
+      // The old goods' ingredients go back on the shelf and the new goods' are taken: what stays the
+      // same cancels out.
+      await moveIngredients(tx, [
+        ...items.map((item) => ({ uses: item.ingredients, times: item.qty })),
+        ...next.map((line) => ({ uses: line.ingredients, times: -line.qty })),
+      ]);
       await tx.delete(orderItems).where(eq(orderItems.orderId, id));
       await tx.insert(orderItems).values(
         next.map((line) => ({
@@ -248,6 +280,8 @@ export async function editOrder(db: Db, id: number, input: ValidOrderEdit): Prom
           priceAmdSnapshot: line.priceAmd,
           qty: line.qty,
           preorderQty: line.preorderQty,
+          unitCostAmd: line.unitCostAmd,
+          ingredients: line.ingredients,
         })),
       );
       lines = next;
@@ -319,6 +353,11 @@ export async function deleteOrder(db: Db, id: number): Promise<boolean> {
       );
       // Only what came out of the stock goes back: the made-to-order part never was in it.
       for (const item of items) await moveStock(tx, item.productId, held(item));
+      // Its ingredients were taken for all of it, so all of them go back.
+      await moveIngredients(
+        tx,
+        items.map((item) => ({ uses: item.ingredients, times: item.qty })),
+      );
     }
 
     // The order's lines go with it (ON DELETE CASCADE).
@@ -393,6 +432,8 @@ export async function getOrderStats(db: Db, from: string, to: string): Promise<O
       name: sql<string>`(array_agg(${orderItems.productNameSnapshot} ORDER BY ${orderItems.id} DESC))[1]`,
       qty,
       totalAmd: sql<number>`sum(${orderItems.qty} * ${orderItems.priceAmdSnapshot})::int`,
+      costedQty: sql<number>`coalesce(sum(${orderItems.qty}) FILTER (WHERE ${orderItems.unitCostAmd} IS NOT NULL), 0)::int`,
+      profitAmd: sql<number | null>`(sum(${orderItems.qty} * (${orderItems.priceAmdSnapshot} - ${orderItems.unitCostAmd})) FILTER (WHERE ${orderItems.unitCostAmd} IS NOT NULL))::int`,
     })
     .from(orderItems)
     .innerJoin(orders, eq(orders.id, orderItems.orderId))
@@ -407,11 +448,26 @@ export async function getOrderStats(db: Db, from: string, to: string): Promise<O
       count: sql<number>`count(*) FILTER (WHERE ${orders.status} <> 'cancelled')::int`,
       cancelledCount: sql<number>`count(*) FILTER (WHERE ${orders.status} = 'cancelled')::int`,
       totalAmd: sql<number>`coalesce(sum(${orders.totalAmd}) FILTER (WHERE ${orders.status} <> 'cancelled'), 0)::int`,
+      profitAmd: sql<number>`coalesce(sum(${orders.itemsTotalAmd} - ${orders.discountAmd} - ${orderCost}) FILTER (WHERE ${orders.status} <> 'cancelled'), 0)::int`,
     })
     .from(orders)
     .where(inPeriod)
     .groupBy(day)
     .orderBy(day);
+
+  const [profit] = await db
+    .select({
+      goodsAmd: sql<number>`coalesce(sum(${orders.itemsTotalAmd} - ${orders.discountAmd}), 0)::int`,
+      costAmd: sql<number>`coalesce(sum(${orderCost}), 0)::int`,
+      uncostedQty: sql<number>`coalesce(sum(${orderUncosted}), 0)::int`,
+    })
+    .from(orders)
+    .where(and(inPeriod, notCancelled));
+
+  const [purchases] = await db
+    .select({ paidAmd: sql<number>`coalesce(sum(${ingredientPurchases.paidAmd}), 0)::int` })
+    .from(ingredientPurchases)
+    .where(and(gte(ingredientPurchases.purchasedOn, from), lte(ingredientPurchases.purchasedOn, to)));
 
   // «Свой рецепт» requests of the same days; only a priced one adds to the money.
   const recipeInPeriod = and(
@@ -424,6 +480,8 @@ export async function getOrderStats(db: Db, from: string, to: string): Promise<O
       count: count(),
       pricedCount: sql<number>`count(${customOrders.priceAmd})::int`,
       totalAmd: sql<number>`coalesce(sum(${customOrders.priceAmd}), 0)::int`,
+      costedCount: sql<number>`count(*) FILTER (WHERE ${customOrders.priceAmd} IS NOT NULL AND ${customOrders.costAmd} IS NOT NULL)::int`,
+      profitAmd: sql<number>`coalesce(sum(${customOrders.priceAmd} - ${customOrders.costAmd}), 0)::int`,
     })
     .from(customOrders)
     .where(recipeInPeriod);
@@ -464,6 +522,13 @@ export async function getOrderStats(db: Db, from: string, to: string): Promise<O
     products: productRows,
     days: dayRows,
     promoCodes: promoRows.map((row) => ({ ...row, code: row.code ?? '' })),
-    recipes: recipes ?? { count: 0, pricedCount: 0, totalAmd: 0 },
+    recipes: recipes ?? { count: 0, pricedCount: 0, totalAmd: 0, costedCount: 0, profitAmd: 0 },
+    profit: {
+      goodsAmd: profit?.goodsAmd ?? 0,
+      costAmd: profit?.costAmd ?? 0,
+      profitAmd: (profit?.goodsAmd ?? 0) - (profit?.costAmd ?? 0),
+      uncostedQty: profit?.uncostedQty ?? 0,
+    },
+    purchasesAmd: purchases?.paidAmd ?? 0,
   };
 }

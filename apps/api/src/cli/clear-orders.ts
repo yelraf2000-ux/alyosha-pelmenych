@@ -3,7 +3,7 @@
 // while trying it out. The next order is A-0001 again.
 //
 // Products, categories, photos, texts and settings, and the admin password are not touched.
-// Stock is not put back: check the numbers under «Товары» afterwards.
+// Stock is not put back, on the shelf or on the warehouse: check «Товары» and «Склад» afterwards.
 //
 //   node apps/api/dist/clear-orders.js          shows how much there is, deletes nothing
 //   node apps/api/dist/clear-orders.js --yes    deletes it; this cannot be undone

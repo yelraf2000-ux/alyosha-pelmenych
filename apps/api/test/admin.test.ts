@@ -1038,8 +1038,8 @@ describe('order statistics', () => {
       ],
     });
     expect(both.products).toEqual([
-      { productId: pelmeni, name: 'Пельмени', qty: 3, totalAmd: 6000 },
-      { productId: manty, name: 'Манты', qty: 3, totalAmd: 9000 },
+      { productId: pelmeni, name: 'Пельмени', qty: 3, totalAmd: 6000, costedQty: 0, profitAmd: null },
+      { productId: manty, name: 'Манты', qty: 3, totalAmd: 9000, costedQty: 0, profitAmd: null },
     ]);
     expect(both.byStatus.done).toEqual({ count: 1, totalAmd: 2000 });
 
